@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react' ;
-import { getMyProfile, logout } from '@/api';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { getMyProfile } from '@/api/user';
 import { IUser } from '@/types/index';
 import Cookies from 'js-cookie';
 
@@ -12,6 +13,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
+  login: (token: string, refreshToken: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,80 +23,122 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [initialCheckDone, setInitialCheckDone] = useState(false);
-  const refreshInProgress = useRef(false);
+  const router = useRouter();
+  const pathname = usePathname();
 
   const refreshUser = async () => {
-    // Prevent concurrent refresh calls
-    if (refreshInProgress.current) {
-      console.log('Refresh already in progress, skipping');
-      return;
-    }
-
-    // Don't refresh if there's no token
-    if (!Cookies.get('auth_token')) {
-      console.log('No auth token found, skipping refresh');
-      setLoading(false);
-      setUser(null);
-      setIsAuthenticated(false);
-      return;
-    }
-    
     try {
-      refreshInProgress.current = true;
       setLoading(true);
-      console.log('Refreshing user profile...');
+      setError(null);
       
-      const response = await getMyProfile();
-      
-      if (response.data) {
-        console.log('User data received:', response.data);
-        setUser(response.data);
-        setIsAuthenticated(true);
-        setError(null);
-      } else {
-        console.warn('No user data in response');
+      // Don't refresh if there's no token
+      const token = Cookies.get('auth_token');
+      if (!token) {
+        console.log('No auth token found, skipping refresh');
         setUser(null);
         setIsAuthenticated(false);
+        setLoading(false);
+        return;
+      }
+      
+      console.log('Attempting to refresh user profile...');
+      console.log('Token being used:', token?.substring(0, 15) + '...');
+      
+      const response = await getMyProfile();
+      console.log('Profile refresh response:', response);
+      
+      if (response.success && response.data) {
+        console.log('User profile refreshed successfully');
+        setUser(response.data);
+        setIsAuthenticated(true);
+      } else {
+        console.error('Failed to get user data:', response.message || 'No error message');
+        // Don't throw error here, handle it directly
+        setError(response.message || 'Failed to fetch user profile');
+        setIsAuthenticated(false);
+        setUser(null);
+        
+        // Clear tokens if unauthorized
+        if (response.error?.status === 401) {
+          console.log('Clearing tokens due to auth error');
+          Cookies.remove('auth_token');
+          Cookies.remove('refresh_token');
+          
+          // Don't redirect if we're already on login or auth pages
+          if (!pathname?.startsWith('/login') && !pathname?.startsWith('/auth/')) {
+            console.log('Redirecting to login due to auth error');
+            router.push('/login');
+          }
+        }
       }
     } catch (err: any) {
-      console.error('Error fetching user profile:', err.message);
-      // Clear tokens if unauthorized
-      if (err.status === 401) {
-        Cookies.remove('auth_token');
-        Cookies.remove('refresh_token');
-      }
-      setUser(null);
+      console.error('Error in refreshUser function:', err);
+      setError(err.message || 'Failed to load user data');
       setIsAuthenticated(false);
-      setError('Failed to fetch user profile');
+      setUser(null);
     } finally {
       setLoading(false);
-      refreshInProgress.current = false;
     }
+  };
+
+  const login = (token: string, refreshToken: string) => {
+    console.log('Setting tokens in cookies...');
+    console.log('Token:', token.substring(0, 15) + '...');
+    console.log('Refresh token:', refreshToken.substring(0, 15) + '...');
+    
+    try {
+      // Remove any existing tokens first
+      Cookies.remove('auth_token');
+      Cookies.remove('refresh_token');
+      
+      // Set tokens with proper options
+      Cookies.set('auth_token', token, { 
+        expires: 1, // 1 day
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax' // Changed from strict to lax for cross-domain redirects
+      });
+      
+      Cookies.set('refresh_token', refreshToken, { 
+        expires: 30, // 30 days
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax' // Changed from strict to lax for cross-domain redirects
+      });
+      
+      // Verify cookies were set
+      const savedToken = Cookies.get('auth_token');
+      const savedRefresh = Cookies.get('refresh_token');
+      
+      console.log('Cookies set successfully:', {
+        authTokenSet: !!savedToken,
+        refreshTokenSet: !!savedRefresh
+      });
+    } catch (error) {
+      console.error('Error setting cookies:', error);
+    }
+    
+    // Don't refresh user here - let the caller handle it
   };
 
   const handleLogout = async () => {
     try {
-      await logout();
-      // Clear stored tokens (the logout API function already does this, but we'll do it here as well for safety)
+      // Clear stored tokens
       Cookies.remove('auth_token');
       Cookies.remove('refresh_token');
       setUser(null);
       setIsAuthenticated(false);
+      router.push('/login');
     } catch (err) {
       console.error('Error during logout:', err);
     }
   };
 
-  // Check auth status whenever the component mounts or when URL changes
+  // Check auth status on component mount
   useEffect(() => {
-    console.log('AuthContext: Checking authentication state');
-    console.log('Auth token exists:', !!Cookies.get('auth_token'));
-    
     const checkAuth = async () => {
       // Check if user has auth token in cookies
       const hasToken = !!Cookies.get('auth_token');
-      console.log('Auth check - token exists:', hasToken);
       
       if (hasToken) {
         await refreshUser();
@@ -103,31 +147,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(null);
         setIsAuthenticated(false);
       }
-      
-      setInitialCheckDone(true);
     };
     
     checkAuth();
-  }, []);
-
-  // Add a URL change listener to recheck auth status
-  useEffect(() => {
-    // Listen for URL changes
-    const handleRouteChange = () => {
-      console.log('URL changed, rechecking auth status');
-      
-      // Only refresh if we have a token to prevent unnecessary API calls
-      if (Cookies.get('auth_token') && !refreshInProgress.current) {
-        refreshUser();
-      }
-    };
-
-    // Set up listener for URL changes
-    window.addEventListener('popstate', handleRouteChange);
-    
-    return () => {
-      window.removeEventListener('popstate', handleRouteChange);
-    };
   }, []);
 
   return (
@@ -138,7 +160,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         error,
         logout: handleLogout,
         refreshUser,
-        isAuthenticated
+        isAuthenticated,
+        login
       }}
     >
       {children}

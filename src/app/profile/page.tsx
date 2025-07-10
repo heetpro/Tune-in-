@@ -5,7 +5,8 @@ import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/Header';
 import MusicProfile from '@/components/MusicProfile';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { setUsername as setUsernameRequest } from '@/api';
+import { setUsername } from '@/api/user';
+import { syncSpotifyData } from '@/api/spotify';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 export default function ProfilePage() {
@@ -20,26 +21,18 @@ function Profile() {
   const { user, loading, refreshUser } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [username, setUsername] = useState('');
+  const [username, setUsernameState] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [syncingData, setSyncingData] = useState(false);
   const isSetup = searchParams.get('setup') === 'true';
 
   useEffect(() => {
     if (user?.username) {
-      setUsername(user.username);
+      setUsernameState(user.username);
     }
   }, [user]);
-
-  // Ensure we have the latest user data, but only on first mount
-  useEffect(() => {
-    console.log('Profile: Checking if refresh is needed');
-    if (!loading && !user) {
-      console.log('Profile: Refreshing user data');
-      refreshUser();
-    }
-  }, [loading, refreshUser, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,21 +42,26 @@ function Profile() {
       return;
     }
     
+    if (username.length < 3 || username.length > 30) {
+      setError('Username must be between 3 and 30 characters');
+      return;
+    }
+    
     try {
       setIsSubmitting(true);
       setError(null);
       
-      const response = await setUsernameRequest(username);
+      const response = await setUsername(username);
       
       if (response.success) {
         setSuccess('Username updated successfully');
         // Refresh user data to get the updated username
         await refreshUser();
         
-        // If this is initial setup, redirect to home
+        // If this is initial setup, redirect to profile without query params
         if (isSetup) {
           setTimeout(() => {
-            router.push('/');
+            router.push('/profile');
           }, 1500);
         }
       } else {
@@ -74,6 +72,26 @@ function Profile() {
       setError(err.message || 'An error occurred while updating username');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSyncSpotifyData = async () => {
+    try {
+      setSyncingData(true);
+      setError(null);
+      
+      const response = await syncSpotifyData();
+      
+      if (response.success) {
+        setSuccess('Spotify data synced successfully!');
+        await refreshUser();
+      } else {
+        setError(response.message || 'Failed to sync Spotify data');
+      }
+    } catch (error: any) {
+      setError(error.message || 'Failed to sync Spotify data');
+    } finally {
+      setSyncingData(false);
     }
   };
 
@@ -101,6 +119,7 @@ function Profile() {
             </div>
           )}
           
+          {/* User Profile Section */}
           <div className="bg-white p-6 rounded-lg shadow-md mb-6">
             <div className="flex items-center mb-6">
               {user?.profilePicture ? (
@@ -126,6 +145,7 @@ function Profile() {
               </div>
             </div>
             
+            {/* Username Form */}
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
                 <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
@@ -135,7 +155,7 @@ function Profile() {
                   type="text"
                   id="username"
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={(e) => setUsernameState(e.target.value)}
                   className="w-full p-2 border rounded focus:ring focus:ring-blue-300 focus:outline-none"
                   placeholder="Enter your username"
                 />
@@ -153,16 +173,30 @@ function Profile() {
                 </div>
               )}
               
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:opacity-50"
-              >
-                {isSubmitting ? 'Updating...' : isSetup ? 'Complete Setup' : 'Update Username'}
-              </button>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Updating...' : isSetup ? 'Complete Setup' : 'Update Username'}
+                </button>
+                
+                {user?.username && (
+                  <button
+                    type="button"
+                    onClick={handleSyncSpotifyData}
+                    disabled={syncingData}
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded disabled:opacity-50"
+                  >
+                    {syncingData ? 'Syncing...' : 'Sync Spotify Data'}
+                  </button>
+                )}
+              </div>
             </form>
           </div>
           
+          {/* Account Info Section */}
           <div className="bg-white p-6 rounded-lg shadow-md mb-6">
             <h2 className="text-xl font-semibold mb-4">Account Information</h2>
             <div className="space-y-3">
@@ -186,7 +220,9 @@ function Profile() {
           </div>
           
           {/* Music Profile Section */}
-          <MusicProfile />
+          {user && user._id && (
+            <MusicProfile userId={user._id} />
+          )}
         </div>
       </main>
     </div>

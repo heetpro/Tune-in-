@@ -1,4 +1,5 @@
 import { API_BASE_URL, getHeaders, handleApiResponse, ApiResponse } from './config';
+import Cookies from 'js-cookie';
 
 interface SpotifyProfile {
   id: string;
@@ -60,16 +61,57 @@ interface AudioFeatures {
  */
 export const syncSpotifyData = async (): Promise<ApiResponse<null>> => {
   try {
+    const token = Cookies.get('auth_token');
+    console.log(`Syncing Spotify data from API: ${API_BASE_URL}/spotify/sync`);
+    console.log('Auth token present:', !!token);
+    
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    };
+    
     const response = await fetch(`${API_BASE_URL}/spotify/sync`, {
       method: 'GET',
-      headers: getHeaders(),
-      credentials: 'include'
+      headers: headers,
+      credentials: 'include',
+      mode: 'cors'
     });
     
-    return await handleApiResponse<null>(response);
+    console.log('Sync API response status:', response.status);
+    
+    if (!response.ok) {
+      console.error('Error syncing Spotify data:', response.status, response.statusText);
+      const errorText = await response.text();
+      console.error('Error response body:', errorText);
+      
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { message: errorText || 'Unknown error' };
+      }
+      
+      if (response.status === 401) {
+        Cookies.remove('auth_token');
+        Cookies.remove('refresh_token');
+      }
+      
+      return {
+        success: false,
+        message: errorData.message || `API error: ${response.status} ${response.statusText}`,
+        error: errorData
+      };
+    }
+    
+    const data = await response.json();
+    return data;
   } catch (error) {
     console.error('Failed to sync Spotify data:', error);
-    throw error;
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error occurred',
+      error
+    };
   }
 };
 
@@ -96,16 +138,54 @@ export const getSpotifyProfile = async (): Promise<ApiResponse<SpotifyProfile>> 
  */
 export const getTopArtists = async (timeRange: 'short_term' | 'medium_term' | 'long_term' = 'medium_term'): Promise<ApiResponse<Artist[]>> => {
   try {
+    const token = Cookies.get('auth_token');
+    console.log(`Fetching top artists from API: ${API_BASE_URL}/spotify/top-artists?time_range=${timeRange}`);
+    
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    };
+    
     const response = await fetch(`${API_BASE_URL}/spotify/top-artists?time_range=${timeRange}`, {
       method: 'GET',
-      headers: getHeaders(),
-      credentials: 'include'
+      headers: headers,
+      credentials: 'include',
+      mode: 'cors'
     });
     
-    return await handleApiResponse<Artist[]>(response);
+    if (!response.ok) {
+      console.error('Error fetching top artists:', response.status, response.statusText);
+      const errorText = await response.text();
+      console.error('Error response body:', errorText);
+      
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { message: errorText || 'Unknown error' };
+      }
+      
+      if (response.status === 401) {
+        Cookies.remove('auth_token');
+        Cookies.remove('refresh_token');
+      }
+      
+      return {
+        success: false,
+        message: errorData.message || `API error: ${response.status} ${response.statusText}`,
+        error: errorData
+      };
+    }
+    
+    const data = await response.json();
+    return data;
   } catch (error) {
     console.error('Failed to fetch top artists:', error);
-    throw error;
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error occurred',
+      error
+    };
   }
 };
 

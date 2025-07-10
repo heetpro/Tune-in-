@@ -9,24 +9,14 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps): ReactNode => {
-  const { user, loading, refreshUser, isAuthenticated } = useAuth();
+  const { user, loading, isAuthenticated, refreshUser } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    const verify = async () => {
-      if (!loading && !isAuthenticated) {
-        // Try refreshing once
-        await refreshUser();
-        
-        // If still not authenticated, redirect
-        if (!isAuthenticated) {
-          router.replace('/login');
-        }
-      }
-    };
-    
-    verify();
-  }, [isAuthenticated, loading, refreshUser, router]);
+    if (!loading && !isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [isAuthenticated, loading, router]);
 
   if (loading) {
     return (
@@ -40,13 +30,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps): ReactNode => {
   }
 
   if (!isAuthenticated) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <p className="text-gray-600">Checking authentication...</p>
-        </div>
-      </div>
-    );
+    return null; // Will redirect in the useEffect
   }
 
   return <>{children}</>;
