@@ -11,7 +11,7 @@ interface FriendRequestsResponse {
  */
 export const getFriendsList = async (): Promise<ApiResponse<IUser[]>> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/`, {
+    const response = await fetch(`${API_BASE_URL}/friends`, {
       method: 'GET',
       headers: getHeaders(),
       credentials: 'include'
@@ -29,7 +29,7 @@ export const getFriendsList = async (): Promise<ApiResponse<IUser[]>> => {
  */
 export const getFriendRequestsList = async (): Promise<ApiResponse<FriendRequestsResponse>> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/requests`, {
+    const response = await fetch(`${API_BASE_URL}/friends/requests`, {
       method: 'GET',
       headers: getHeaders(),
       credentials: 'include'
@@ -70,12 +70,13 @@ export const searchForUsers = async (query: string): Promise<ApiResponse<IUser[]
     throw error;
   }
 };
+
 /**
  * Send friend request to user
  */
 export const sendFriendRequest = async (userId: string): Promise<ApiResponse<null>> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/request`, {
+    const response = await fetch(`${API_BASE_URL}/friends/request`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({ userId }),
@@ -94,7 +95,7 @@ export const sendFriendRequest = async (userId: string): Promise<ApiResponse<nul
  */
 export const acceptFriendRequest = async (requestId: string): Promise<ApiResponse<null>> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/request/${requestId}/accept`, {
+    const response = await fetch(`${API_BASE_URL}/friends/request/${requestId}/accept`, {
       method: 'PUT',
       headers: getHeaders(),
       credentials: 'include'
@@ -112,7 +113,7 @@ export const acceptFriendRequest = async (requestId: string): Promise<ApiRespons
  */
 export const rejectFriendRequest = async (requestId: string): Promise<ApiResponse<null>> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/request/${requestId}/reject`, {
+    const response = await fetch(`${API_BASE_URL}/friends/request/${requestId}/reject`, {
       method: 'PUT',
       headers: getHeaders(),
       credentials: 'include'
@@ -130,7 +131,7 @@ export const rejectFriendRequest = async (requestId: string): Promise<ApiRespons
  */
 export const removeFriend = async (friendId: string): Promise<ApiResponse<null>> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/${friendId}`, {
+    const response = await fetch(`${API_BASE_URL}/friends/${friendId}`, {
       method: 'DELETE',
       headers: getHeaders(),
       credentials: 'include'

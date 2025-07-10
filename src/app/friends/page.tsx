@@ -31,7 +31,7 @@ interface RequestsData {
 }
 
 export default function Friends() {
-  const { user, loading } = useAuth();
+  const { user: currentUser, loading } = useAuth();
   const searchParams = useSearchParams();
   const [friends, setFriends] = useState<FriendUser[]>([]);
   const [requests, setRequests] = useState<RequestsData>({ incoming: [], outgoing: [] });
@@ -53,11 +53,11 @@ export default function Friends() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (user) {
+    if (currentUser) {
       loadFriends();
       loadRequests();
     }
-  }, [user]);
+  }, [currentUser]);
 
   const loadFriends = async () => {
     try {
@@ -138,7 +138,7 @@ export default function Friends() {
     }
   };
 
-  if (loading || !user) {
+  if (loading || !currentUser) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
@@ -307,6 +307,11 @@ export default function Friends() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by name or username"
                 className="flex-grow p-2 border rounded-l"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSearch();
+                  }
+                }}
               />
               <button
                 onClick={handleSearch}
@@ -317,44 +322,65 @@ export default function Friends() {
               </button>
             </div>
             
-            {searchResults.length > 0 && (
+            {isLoading.search ? (
+              <p>Searching users...</p>
+            ) : searchResults.length > 0 ? (
               <div>
                 <h3 className="text-lg mb-2">Search Results</h3>
                 <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {searchResults.map((user) => (
-                    <li key={user._id} className="border p-4 rounded-lg flex items-center justify-between">
-                      <div className="flex items-center">
-                        {user.profilePicture && (
-                          <img 
-                            src={user.profilePicture} 
-                            alt={user.displayName} 
-                            className="w-12 h-12 rounded-full mr-3" 
-                          />
-                        )}
-                        <div>
-                          <p className="font-medium">{user.displayName}</p>
-                          {user.username && <p className="text-sm text-gray-500">@{user.username}</p>}
+                  {searchResults.map((user) => {
+                    // Check if the user is already a friend or has a pending request
+                    const isFriend = friends.some(friend => friend._id === user._id);
+                    const isRequested = requests.outgoing.some(req => req.receiver._id === user._id);
+                    const isRequesting = requests.incoming.some(req => req.sender._id === user._id);
+                    const isCurrentUser = user?._id === currentUser?._id;
+                    
+                    return (
+                      <li key={user._id} className="border p-4 rounded-lg flex items-center justify-between">
+                        <div className="flex items-center">
+                          {user.profilePicture ? (
+                            <img 
+                              src={user.profilePicture} 
+                              alt={user.displayName} 
+                              className="w-12 h-12 rounded-full mr-3" 
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-gray-200 rounded-full mr-3 flex items-center justify-center">
+                              <span className="text-xl text-gray-500">{user.displayName?.[0] || '?'}</span>
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-medium">{user.displayName}</p>
+                            {user.username && <p className="text-sm text-gray-500">@{user.username}</p>}
+                          </div>
                         </div>
-                      </div>
-                      <button
-                        onClick={() => sendRequest(user._id)}
-                        className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
-                        disabled={
-                          requests.outgoing.some(req => req.receiver._id === user._id) ||
-                          friends.some(friend => friend._id === user._id)
-                        }
-                      >
-                        {requests.outgoing.some(req => req.receiver._id === user._id)
-                          ? 'Request Sent'
-                          : friends.some(friend => friend._id === user._id)
-                            ? 'Friends'
-                            : 'Add Friend'}
-                      </button>
-                    </li>
-                  ))}
+                        {!isCurrentUser && (
+                          <button
+                            onClick={() => sendRequest(user._id)}
+                            className={`px-3 py-1 rounded ${
+                              isFriend || isRequested || isRequesting
+                                ? 'bg-gray-300 text-gray-700'
+                                : 'bg-blue-500 text-white hover:bg-blue-600'
+                            }`}
+                            disabled={isFriend || isRequested || isRequesting || isCurrentUser}
+                          >
+                            {isFriend 
+                              ? 'Friends' 
+                              : isRequested 
+                                ? 'Request Sent' 
+                                : isRequesting 
+                                  ? 'Requesting You' 
+                                  : 'Add Friend'}
+                          </button>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
-            )}
+            ) : searchQuery && !isLoading.search ? (
+              <p>No users found matching "{searchQuery}"</p>
+            ) : null}
           </div>
         )}
       </main>
