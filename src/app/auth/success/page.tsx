@@ -30,11 +30,27 @@ export default function AuthSuccess() {
       });
       
       if (token && refreshToken) {
-        // Store tokens in cookies
-        Cookies.set('auth_token', token, { expires: 7 }); // 7 days expiration
-        Cookies.set('refresh_token', refreshToken, { expires: 30 }); // 30 days expiration
+        // Store tokens in cookies - set secure and path properties
+        Cookies.set('auth_token', token, { 
+          expires: 7, // 7 days expiration
+          path: '/', 
+          sameSite: 'strict'
+        });
+        
+        Cookies.set('refresh_token', refreshToken, { 
+          expires: 30, // 30 days expiration
+          path: '/', 
+          sameSite: 'strict'
+        });
+        
+        // Verify tokens were saved correctly
+        const savedToken = Cookies.get('auth_token');
+        console.log('Saved token verified:', !!savedToken);
         
         try {
+          // Small delay to ensure cookies are set
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
           // Refresh the user data using the new token
           await refreshUser();
           console.log('User refreshed after authentication');
@@ -44,8 +60,10 @@ export default function AuthSuccess() {
           
           // If user needs to set a username, redirect to profile page
           if (needsUsername === 'true') {
+            console.log('Redirecting to profile setup');
             router.push('/profile?setup=true');
           } else {
+            console.log('Redirecting to home');
             router.push('/');
           }
         } catch (err) {
@@ -70,6 +88,14 @@ export default function AuthSuccess() {
         <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mb-4"></div>
         <h1 className="text-xl font-medium">Processing your login...</h1>
         <p className="text-gray-500 mt-2">Please wait while we set up your session</p>
+        <div className="mt-8">
+          <button 
+            onClick={() => router.push('/')}
+            className="text-blue-500 underline"
+          >
+            Return to home if not redirected automatically
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -21,7 +21,10 @@ export const getHeaders = () => {
 
   const token = Cookies.get('auth_token');
   if (token) {
+    console.log('Found auth token in cookies for API request');
     headers['Authorization'] = `Bearer ${token}`;
+  } else {
+    console.warn('No auth token found for API request');
   }
 
   return headers;
@@ -45,16 +48,30 @@ export const cacheResponse = (cacheKey: string, data: any) => {
   };
 };
 
+// Check if user is authenticated
+export const isAuthenticated = (): boolean => {
+  return !!Cookies.get('auth_token');
+};
+
 // Utility to handle API responses consistently
 export async function handleApiResponse<T>(response: Response, cacheKey?: string): Promise<ApiResponse<T>> {
   if (!response.ok) {
     // Handle unauthorized errors (expired token)
     if (response.status === 401) {
+      console.error('Unauthorized API request:', response.url);
+      // Clear any existing tokens
       Cookies.remove('auth_token');
       Cookies.remove('refresh_token');
+      
       // Redirect to login if we're in a browser
       if (typeof window !== 'undefined') {
-        window.location.href = '/';
+        console.log('Redirecting to login page due to unauthorized request');
+        window.location.href = '/login';
+        
+        throw {
+          status: response.status,
+          message: 'Authentication required. Redirecting to login...'
+        };
       }
     }
     
