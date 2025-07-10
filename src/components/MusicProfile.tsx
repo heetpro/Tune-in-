@@ -2,35 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getTopArtists, getTopTracks, getTopGenres } from '@/api/spotify';
-
-// Match API response formats
-interface SpotifyArtist {
-  id: string;
-  name: string;
-  popularity: number;
-  genres: string[];
-  images: Array<{url: string}>;
-  spotifyId?: string;
-}
-
-interface SpotifyTrack {
-  id: string;
-  name: string;
-  album: {
-    name: string;
-    images: Array<{url: string}>;
-    spotifyId?: string;
-  };
-  artists: Array<{name: string, id: string, spotifyId?: string}>;
-  popularity: number;
-  spotifyId?: string;
-}
-
-interface SpotifyGenre {
-  name: string;
-  count: number;
-  weight?: number;
-}
+import { SpotifyArtist, SpotifyTrack, SpotifyGenre } from '@/types/index';
 
 interface MusicProfileProps {
   userId?: string; // If provided, shows someone else's profile
@@ -44,6 +16,7 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<'short_term' | 'medium_term' | 'long_term'>('medium_term');
   const [activeTab, setActiveTab] = useState<'artists' | 'tracks' | 'genres'>('artists');
+  const [dataAvailable, setDataAvailable] = useState(true);
 
   const fetchMusicData = async () => {
     setLoading(true);
@@ -60,6 +33,13 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
       console.log('Artists response:', artistsResponse);
       console.log('Tracks response:', tracksResponse);
       console.log('Genres response:', genresResponse);
+      
+      // Check if any data is available
+      const hasArtists = !!(artistsResponse.success && artistsResponse.data && Array.isArray(artistsResponse.data) && artistsResponse.data.length > 0);
+      const hasTracks = !!(tracksResponse.success && tracksResponse.data && Array.isArray(tracksResponse.data) && tracksResponse.data.length > 0);
+      const hasGenres = !!(genresResponse.success && genresResponse.data && Array.isArray(genresResponse.data) && genresResponse.data.length > 0);
+      
+      setDataAvailable(hasArtists || hasTracks || hasGenres);
       
       if (artistsResponse.success && artistsResponse.data) {
         // Ensure data is an array
@@ -91,6 +71,7 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
       setTopArtists([]);
       setTopTracks([]);
       setTopGenres([]);
+      setDataAvailable(false);
     } finally {
       setLoading(false);
     }
@@ -137,6 +118,26 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
           >
             Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!dataAvailable && !loading) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <h2 className="text-xl font-semibold mb-4">Your Music Profile</h2>
+        <div className="text-center p-8">
+          <p className="text-gray-600 mb-4">No music data available yet.</p>
+          <p className="text-sm text-gray-500 mb-6">
+            Connect your Spotify account and sync your music data to see your top artists, tracks, and genres.
+          </p>
+          <button
+            onClick={fetchMusicData}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md"
+          >
+            Refresh Music Data
           </button>
         </div>
       </div>
@@ -279,7 +280,7 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
                 {genre.name}
               </div>
               <div className="text-sm text-gray-500">
-                {Math.round((genre.weight || genre.count / 100 || 0) * 100)}% match
+                {Math.round((genre.weight || (genre.count ? genre.count / 100 : 0) || 0) * 100)}% match
               </div>
             </div>
           ))}

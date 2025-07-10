@@ -171,21 +171,168 @@ export const getSpotifyProfile = async (): Promise<ApiResponse<SpotifyProfile>> 
  * Gets user's top artists
  */
 export const getTopArtists = async (timeRange: 'short_term' | 'medium_term' | 'long_term' = 'medium_term'): Promise<ApiResponse<Artist[]>> => {
-  return makeSpotifyRequest(`/spotify/top-artists?time_range=${timeRange}`);
+  try {
+    const response = await makeSpotifyRequest<any>(`/spotify/top-artists?time_range=${timeRange}`);
+    console.log('Top artists response:', response);
+    
+    if (!response.success) {
+      return response as ApiResponse<Artist[]>;
+    }
+    
+    // Handle the specific response format we received from the backend
+    if (response.data && typeof response.data === 'object') {
+      // Case 1: If response contains timeRange and artists array format
+      if (response.data.timeRange && response.data.artists && Array.isArray(response.data.artists)) {
+        return {
+          success: true,
+          data: response.data.artists
+        };
+      }
+      
+      // Case 2: If response contains nested time ranges in topArtists
+      if (response.data.topArtists && response.data.topArtists[timeRange]) {
+        return {
+          success: true,
+          data: response.data.topArtists[timeRange]
+        };
+      }
+      
+      // Case 3: If response directly contains the time range data
+      if (response.data[timeRange]) {
+        return {
+          success: true,
+          data: response.data[timeRange]
+        };
+      }
+      
+      // Case 4: If response is already an array, use it directly
+      if (Array.isArray(response.data)) {
+        return response as ApiResponse<Artist[]>;
+      }
+    }
+    
+    // Fallback to empty array
+    return {
+      success: true,
+      data: []
+    };
+  } catch (error) {
+    console.error('Error in getTopArtists:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error occurred',
+      error
+    };
+  }
 };
 
 /**
  * Gets user's top tracks
  */
 export const getTopTracks = async (timeRange: 'short_term' | 'medium_term' | 'long_term' = 'medium_term'): Promise<ApiResponse<Track[]>> => {
-  return makeSpotifyRequest(`/spotify/top-tracks?time_range=${timeRange}`);
+  try {
+    const response = await makeSpotifyRequest<any>(`/spotify/top-tracks?time_range=${timeRange}`);
+    console.log('Top tracks response:', response);
+    
+    if (!response.success) {
+      return response as ApiResponse<Track[]>;
+    }
+    
+    // Handle the specific response format we received from the backend
+    if (response.data && typeof response.data === 'object') {
+      // Case 1: If response contains timeRange and tracks array format
+      if (response.data.timeRange && response.data.tracks && Array.isArray(response.data.tracks)) {
+        return {
+          success: true,
+          data: response.data.tracks
+        };
+      }
+      
+      // Case 2: If response contains nested time ranges in topTracks
+      if (response.data.topTracks && response.data.topTracks[timeRange]) {
+        return {
+          success: true,
+          data: response.data.topTracks[timeRange]
+        };
+      }
+      
+      // Case 3: If response directly contains the time range data
+      if (response.data[timeRange]) {
+        return {
+          success: true,
+          data: response.data[timeRange]
+        };
+      }
+      
+      // Case 4: If response is already an array, use it directly
+      if (Array.isArray(response.data)) {
+        return response as ApiResponse<Track[]>;
+      }
+    }
+    
+    // Fallback to empty array
+    return {
+      success: true,
+      data: []
+    };
+  } catch (error) {
+    console.error('Error in getTopTracks:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error occurred',
+      error
+    };
+  }
 };
 
 /**
  * Gets user's recently played tracks
  */
 export const getRecentTracks = async (): Promise<ApiResponse<Track[]>> => {
-  return makeSpotifyRequest('/spotify/recent-tracks');
+  try {
+    const response = await makeSpotifyRequest<any>('/spotify/recent-tracks');
+    
+    if (!response.success) {
+      return response as ApiResponse<Track[]>;
+    }
+    
+    // Handle different response formats
+    if (response.data) {
+      // If response contains recentTracks array
+      if (response.data.recentTracks && Array.isArray(response.data.recentTracks)) {
+        return {
+          success: true,
+          data: response.data.recentTracks
+        };
+      }
+      
+      // If response contains recentlyPlayed array with track property
+      if (response.data.recentlyPlayed && Array.isArray(response.data.recentlyPlayed)) {
+        return {
+          success: true,
+          data: response.data.recentlyPlayed.map((item: any) => item.track || item)
+        };
+      }
+      
+      // If response is already an array
+      if (Array.isArray(response.data)) {
+        return response as ApiResponse<Track[]>;
+      }
+    }
+    
+    // Fallback to empty array
+    return {
+      success: true,
+      data: []
+    };
+  } catch (error) {
+    console.error('Error in getRecentTracks:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error occurred',
+      error
+    };
+  }
 };
 
 /**
@@ -205,8 +352,56 @@ export const getCurrentTrack = async (): Promise<ApiResponse<Track | null>> => {
 /**
  * Gets user's top genres
  */
-export const getTopGenres = async (): Promise<ApiResponse<Array<{name: string, count: number}>>> => {
-  return makeSpotifyRequest('/spotify/top-genres');
+export const getTopGenres = async (): Promise<ApiResponse<Array<{name: string, count: number, weight?: number}>>> => {
+  try {
+    const response = await makeSpotifyRequest<any>('/spotify/top-genres');
+    console.log('Top genres response:', response);
+    
+    if (!response.success) {
+      return response as ApiResponse<Array<{name: string, count: number, weight?: number}>>;
+    }
+    
+    // Handle different response formats
+    if (response.data) {
+      // If response contains topGenres array
+      if (response.data.topGenres && Array.isArray(response.data.topGenres)) {
+        return {
+          success: true,
+          data: response.data.topGenres.map((genre: any) => ({
+            name: genre.name,
+            count: genre.count || 0,
+            weight: genre.weight || 0
+          }))
+        };
+      }
+      
+      // If response is already an array
+      if (Array.isArray(response.data)) {
+        // Ensure each item has required properties
+        return {
+          success: true,
+          data: response.data.map((genre: any) => ({
+            name: genre.name || '',
+            count: genre.count || genre.weight * 100 || 0,
+            weight: genre.weight || genre.count / 100 || 0
+          }))
+        };
+      }
+    }
+    
+    // Fallback to empty array
+    return {
+      success: true,
+      data: []
+    };
+  } catch (error) {
+    console.error('Error in getTopGenres:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error occurred',
+      error
+    };
+  }
 };
 
 /**
