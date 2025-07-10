@@ -47,19 +47,29 @@ export const getFriendRequestsList = async (): Promise<ApiResponse<FriendRequest
  */
 export const searchForUsers = async (query: string): Promise<ApiResponse<IUser[]>> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/search?q=${encodeURIComponent(query)}`, {
+    const response = await fetch(`${API_BASE_URL}/search?query=${encodeURIComponent(query)}`, {
       method: 'GET',
       headers: getHeaders(),
       credentials: 'include'
     });
     
-    return await handleApiResponse<IUser[]>(response);
+    // Don't just log the response object
+    console.log('Response status:', response.status);
+    
+    // Clone the response before reading its body
+    const responseClone = response.clone();
+    const result = await handleApiResponse<IUser[]>(response);
+    
+    // Now you can safely read the cloned response for debugging
+    const responseBody = await responseClone.json();
+    console.log('Response data:', responseBody);
+    
+    return result;
   } catch (error) {
     console.error('Failed to search users:', error);
     throw error;
   }
 };
-
 /**
  * Send friend request to user
  */

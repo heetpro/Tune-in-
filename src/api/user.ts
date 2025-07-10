@@ -113,7 +113,7 @@ export const setUsername = async (username: string): Promise<ApiResponse<null>> 
       'Authorization': token ? `Bearer ${token}` : ''
     };
     
-    const response = await fetch(`${API_BASE_URL}/user/username`, {
+    const response = await fetch(`${API_BASE_URL}/username`, {
       method: 'POST',
       headers: headers,
       body: JSON.stringify({ username }),

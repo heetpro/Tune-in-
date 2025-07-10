@@ -13,6 +13,7 @@ export type ApiResponse<T> = {
 // Default headers for all API calls
 export const getHeaders = () => {
   const headers: HeadersInit = {
+    'Authorization': `Bearer ${Cookies.get('auth_token')}`,
     'Content-Type': 'application/json',
   };
 
