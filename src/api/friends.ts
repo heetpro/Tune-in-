@@ -11,7 +11,7 @@ interface FriendRequestsResponse {
  */
 export const getFriendsList = async (): Promise<ApiResponse<IUser[]>> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/friends`, {
+    const response = await fetch(`${API_BASE_URL}/ `, {
       method: 'GET',
       headers: getHeaders(),
       credentials: 'include'
@@ -29,7 +29,7 @@ export const getFriendsList = async (): Promise<ApiResponse<IUser[]>> => {
  */
 export const getFriendRequestsList = async (): Promise<ApiResponse<FriendRequestsResponse>> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/friends/requests`, {
+    const response = await fetch(`${API_BASE_URL}/requests`, {
       method: 'GET',
       headers: getHeaders(),
       credentials: 'include'
