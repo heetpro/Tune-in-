@@ -1,0 +1,915 @@
+# Detailed Documentation of SpotiLove Frontend Architecture
+
+## 1. Project Overview
+
+The SpotiLove frontend is a Next.js application built with TypeScript that integrates with a backend service for authentication, user profiles, friend management, messaging, and Spotify data integration. It serves as a music-based dating/friend-finding platform where users connect based on their music preferences.
+
+## 2. Architecture
+
+### 2.1 Technology Stack
+- **Framework**: Next.js (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Authentication**: JWT-based auth with cookie storage
+- **Real-time Communication**: Socket.IO
+- **HTTP Client**: Native Fetch API with custom wrappers
+- **State Management**: React Context API
+- **Routing**: Next.js App Router
+
+### 2.2 Directory Structure
+```
+src/
+├── api/           # API service functions
+│   ├── auth.ts    # Authentication endpoints
+│   ├── config.ts  # API configuration and utilities
+│   ├── friends.ts # Friend management endpoints
+│   ├── index.ts   # Re-exports from all API modules
+│   ├── messages.ts # Messaging endpoints
+│   ├── spotify.ts # Spotify data endpoints
+│   └── user.ts    # User profile endpoints
+├── app/           # Next.js app directory (pages and routes)
+│   ├── auth/      # Authentication-related routes
+│   │   └── success/ # OAuth callback handling
+│   ├── friends/   # Friend management page
+│   ├── login/     # Login page
+│   ├── messages/  # Messaging interface
+│   ├── profile/   # User profile page
+│   ├── globals.css # Global styles
+│   └── layout.tsx # Root layout
+├── components/    # Reusable UI components
+│   ├── AuthDebug.tsx # Debugging component for auth
+│   ├── Chat.tsx   # Messaging component
+│   ├── ClientAuthDebug.tsx # Client-side wrapper for AuthDebug
+│   ├── Header.tsx # Site header
+│   ├── MusicProfile.tsx # Spotify music profile display
+│   └── ProtectedRoute.tsx # Auth protection HOC
+├── context/       # React context providers
+│   └── AuthContext.tsx # Authentication state management
+├── lib/           # Utility functions and services
+│   └── socket.ts  # Socket.IO client implementation
+├── middleware/    # Next.js middleware
+└── types/         # TypeScript type definitions
+    └── index.ts   # Core type definitions
+```
+
+## 3. Authentication Flow
+
+### 3.1 Authentication Process
+
+1. **Initial Login**:
+   - User clicks "Login with Spotify" on the login page (`src/app/login/page.tsx`)
+   - This triggers `loginWithSpotify()` function from `src/api/auth.ts`
+   - User is redirected to Spotify's OAuth page (`GET /spotify/login` endpoint)
+
+2. **OAuth Callback**:
+   - After Spotify authentication, the backend redirects to `/auth/success` with tokens as query parameters
+   - `src/app/auth/success/page.tsx` handles this callback:
+     - Extracts tokens from URL: `token` and `refresh`
+     - Stores tokens in cookies using `js-cookie`:
+       ```typescript
+       Cookies.set('auth_token', token, { 
+         expires: 7,
+         path: '/', 
+         sameSite: 'strict'
+       });
+       ```
+     - Calls `refreshUser()` from `AuthContext` to fetch user data
+     - Redirects user to `/profile` or `/profile?setup=true` if username needs to be set
+
+3. **Token Management**:
+   - Auth tokens are stored in HTTP-only cookies:
+     - `auth_token`: JWT access token (expires in 7 days)
+     - `refresh_token`: Refresh token (expires in 30 days)
+   - Cookies are included with all API requests via the `getHeaders()` function:
+     ```typescript
+     export const getHeaders = () => {
+       const headers = { 'Content-Type': 'application/json' };
+       const token = Cookies.get('auth_token');
+       if (token) headers['Authorization'] = `Bearer ${token}`;
+       return headers;
+     };
+     ```
+
+4. **Authentication State**:
+   - Managed by `AuthContext` (`src/context/AuthContext.tsx`)
+   - Provides global access to:
+     - `user`: Current user object or null
+     - `loading`: Authentication loading state
+     - `error`: Authentication error message
+     - `isAuthenticated`: Boolean indicating auth status
+     - `logout()`: Function to log out user
+     - `refreshUser()`: Function to refresh user data from API
+
+5. **Protected Routes**:
+   - Implemented via `ProtectedRoute` component (`src/components/ProtectedRoute.tsx`)
+   - Wraps pages that require authentication
+   - Checks `isAuthenticated` status from `AuthContext`
+   - Redirects to login page if not authenticated
+
+6. **Logout Process**:
+   - Triggered by `logout()` from `AuthContext`
+   - Calls `logout()` API endpoint
+   - Removes cookies: `Cookies.remove('auth_token')` and `Cookies.remove('refresh_token')`
+   - Updates auth state: `setUser(null)` and `setIsAuthenticated(false)`
+
+### 3.2 Auth Token Flow Diagram
+
+```
+User → Login Button → Spotify OAuth → Backend → Callback with Tokens → 
+Store in Cookies → Fetch User Data → Update Auth Context → Protected Routes
+```
+
+## 4. API Integration
+
+### 4.1 API Client Architecture
+
+The API integration is structured as a collection of service modules in the `src/api/` directory:
+
+1. **Base Configuration** (`src/api/config.ts`):
+   - `API_BASE_URL`: The backend API base URL (typically `http://localhost:3001`)
+   - `getHeaders()`: Generates headers with auth tokens
+   - `handleApiResponse()`: Error handling and response processing
+   - `getCachedResponse()` & `cacheResponse()`: Simple in-memory caching system
+
+2. **Service Modules**:
+   Each module provides typed functions that interact with specific API endpoints:
+   
+   - **Authentication** (`src/api/auth.ts`):
+     ```typescript
+     export const loginWithSpotify = (): void => {
+       window.location.href = `${API_BASE_URL}/spotify/login`;
+     };
+     
+     export const logout = async (): Promise<ApiResponse<null>> => {
+       // Implementation...
+     };
+     
+     export const checkOnboardingStatus = async (): Promise<ApiResponse<{ hasCompletedOnboarding: boolean }>> => {
+       // Implementation...
+     };
+     ```
+
+   - **User Profile** (`src/api/user.ts`):
+     ```typescript
+     export const getMyProfile = async (): Promise<ApiResponse<IUser>> => {
+       // Implementation with caching...
+     };
+     
+     export const setUsername = async (username: string): Promise<ApiResponse<null>> => {
+       // Implementation...
+     };
+     ```
+
+   - **Friend Management** (`src/api/friends.ts`):
+     ```typescript
+     export const getFriendsList = async (): Promise<ApiResponse<IUser[]>> => {
+       // Implementation...
+     };
+     
+     export const sendFriendRequest = async (userId: string): Promise<ApiResponse<null>> => {
+       // Implementation...
+     };
+     
+     // Additional friend-related functions...
+     ```
+
+   - **Messaging** (`src/api/messages.ts`):
+     ```typescript
+     export const getChatUsers = async (): Promise<ApiResponse<IUser[]>> => {
+       // Implementation...
+     };
+     
+     export const getMessageHistory = async (userId: string): Promise<ApiResponse<MessagesResponse>> => {
+       // Implementation...
+     };
+     
+     export const sendMessage = async (recipientId: string, message: string, image?: string): Promise<ApiResponse<IMessage>> => {
+       // Implementation...
+     };
+     ```
+
+   - **Spotify Integration** (`src/api/spotify.ts`):
+     ```typescript
+     export const getTopArtists = async (timeRange: 'short_term' | 'medium_term' | 'long_term' = 'medium_term'): Promise<ApiResponse<Artist[]>> => {
+       // Implementation...
+     };
+     
+     export const getTopTracks = async (timeRange: 'short_term' | 'medium_term' | 'long_term' = 'medium_term'): Promise<ApiResponse<Track[]>> => {
+       // Implementation...
+     };
+     
+     // Additional Spotify data functions...
+     ```
+
+### 4.2 API Response Handling
+
+All API functions follow a consistent pattern:
+1. Set up request parameters with auth headers
+2. Make fetch request to the appropriate endpoint
+3. Process response through `handleApiResponse` helper
+4. Return typed data or throw error
+
+Example response handling:
+```typescript
+export async function handleApiResponse<T>(response: Response, cacheKey?: string): Promise<ApiResponse<T>> {
+  if (!response.ok) {
+    // Handle unauthorized errors
+    if (response.status === 401) {
+      Cookies.remove('auth_token');
+      Cookies.remove('refresh_token');
+      
+      if (typeof window !== 'undefined') {
+        console.log('Redirecting to login page due to unauthorized request');
+        window.location.href = '/login';
+        
+        throw {
+          status: response.status,
+          message: 'Authentication required. Redirecting to login...'
+        };
+      }
+    }
+    
+    // Handle other errors
+    const errorData = await response.json().catch(() => ({
+      message: 'An unexpected error occurred'
+    }));
+    
+    throw {
+      status: response.status,
+      ...errorData
+    };
+  }
+  
+  // Handle successful response
+  const data = await response.json();
+  
+  // Cache if needed
+  if (cacheKey) {
+    cacheResponse(cacheKey, data);
+  }
+  
+  return data;
+}
+```
+
+## 5. Real-time Communication
+
+### 5.1 Socket.IO Integration
+
+The application uses Socket.IO for real-time features, primarily messaging. This is implemented in `src/lib/socket.ts`:
+
+1. **Socket Initialization**:
+   ```typescript
+   export const initializeSocket = (userId: string): Socket => {
+     if (!socket) {
+       const token = Cookies.get('auth_token') as string;
+       
+       socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001', {
+         query: { userId },
+         auth: { token },
+         transports: ['websocket', 'polling'],
+         reconnection: true,
+         reconnectionDelay: 1000,
+         reconnectionAttempts: 10,
+       });
+       
+       // Event listeners...
+     }
+     return socket;
+   };
+   ```
+
+2. **Event Handlers**:
+   ```typescript
+   export const emitEvent = <T>(eventName: string, data?: T): void => {
+     if (socket && socket.connected) {
+       socket.emit(eventName, data);
+     } else {
+       console.error('Socket not connected, cannot emit event:', eventName);
+     }
+   };
+   
+   export const listenEvent = <T>(eventName: string, callback: (data: T) => void): void => {
+     if (socket) {
+       socket.on(eventName, callback);
+     }
+   };
+   
+   export const removeListener = (eventName: string): void => {
+     if (socket) {
+       socket.off(eventName);
+     }
+   };
+   ```
+
+3. **Usage in Chat Component**:
+   In `src/components/Chat.tsx`, the socket is used for real-time messaging:
+   ```typescript
+   // Listen for new messages
+   listenEvent<IMessage>('new_message', (message) => {
+     if ((message.receiverId === user?._id && message.senderId === receiverId) ||
+         (message.senderId === user?._id && message.receiverId === receiverId)) {
+       setMessages((prevMessages) => [...prevMessages, message]);
+     }
+   });
+   
+   // Send a message
+   emitEvent('send_message', {
+     conversationId,
+     receiverId,
+     text: newMessage
+   });
+   ```
+
+### 5.2 Real-time Event Flow
+
+1. **Connection Establishment**:
+   - Socket is initialized when user is authenticated
+   - Authentication token is sent with connection
+   - User ID is included in query parameters
+
+2. **Message Flow**:
+   - User composes message in Chat component
+   - Message is sent via API for persistence
+   - Message is also emitted via socket for real-time delivery
+   - Recipients receive message via socket event listener
+   - UI updates immediately with new message
+
+## 6. Component Architecture
+
+### 6.1 Core Components
+
+#### 6.1.1 Auth Components
+
+- **AuthContext** (`src/context/AuthContext.tsx`):
+  - **Purpose**: Manages authentication state
+  - **Props**: `{ children: ReactNode }`
+  - **State**:
+    - `user`: Current user data
+    - `loading`: Loading state
+    - `error`: Error message
+    - `isAuthenticated`: Auth status
+    - `initialCheckDone`: Flag for initial auth check
+  - **Methods**:
+    - `refreshUser()`: Fetches user profile data
+    - `handleLogout()`: Logs out the user
+  - **Effects**:
+    - Initial auth check on mount
+    - URL change listener to recheck auth
+
+- **ProtectedRoute** (`src/components/ProtectedRoute.tsx`):
+  - **Purpose**: Protects routes requiring authentication
+  - **Props**: `{ children: ReactNode }`
+  - **Logic**:
+    - Uses `useAuth()` to access auth state
+    - Redirects to login if not authenticated
+    - Shows loading state while checking
+
+#### 6.1.2 User Interface Components
+
+- **Header** (`src/components/Header.tsx`):
+  - **Purpose**: App navigation header
+  - **Props**: None
+  - **Features**:
+    - Logo/brand
+    - Navigation links
+    - Profile dropdown
+    - Authentication status
+
+- **MusicProfile** (`src/components/MusicProfile.tsx`):
+  - **Purpose**: Displays user's Spotify music data
+  - **Props**: `{ userId?: string }`
+  - **State**:
+    - `topArtists`: User's top artists
+    - `topTracks`: User's top tracks
+    - `topGenres`: User's top genres
+    - `loading`: Loading state
+    - `timeRange`: Time period filter
+    - `activeTab`: Current tab selection
+  - **API Calls**:
+    - `getTopArtists()`
+    - `getTopTracks()`
+    - `getTopGenres()`
+  - **UI Sections**:
+    - Time period selector
+    - Tab navigation
+    - Content display for each tab
+
+- **Chat** (`src/components/Chat.tsx`):
+  - **Purpose**: Real-time messaging interface
+  - **Props**:
+    - `conversationId`: Unique ID for the conversation
+    - `receiverId`: ID of the message recipient
+  - **State**:
+    - `messages`: Array of message objects
+    - `newMessage`: Current message being composed
+    - `sending`: Flag for message sending state
+  - **Methods**:
+    - `handleSendMessage()`: Sends a new message
+    - `formatTime()`: Formats message timestamps
+  - **Effects**:
+    - Fetches message history on mount
+    - Sets up socket listeners for new messages
+    - Scrolls to bottom when messages change
+
+- **AuthDebug** (`src/components/AuthDebug.tsx`):
+  - **Purpose**: Debugging tool for authentication
+  - **Features**:
+    - Displays current auth state
+    - Shows token information
+    - Provides debug controls
+
+### 6.2 Page Components
+
+- **Login Page** (`src/app/login/page.tsx`):
+  - **Purpose**: User login screen
+  - **Features**:
+    - Spotify login button
+    - Redirects if already authenticated
+
+- **Profile Page** (`src/app/profile/page.tsx`):
+  - **Purpose**: User profile management
+  - **Features**:
+    - Profile information display
+    - Username editing
+    - Music profile integration
+    - Setup mode for new users
+
+- **Messages Page** (`src/app/messages/page.tsx`):
+  - **Purpose**: Messaging interface
+  - **Features**:
+    - Contact list
+    - Chat interface
+    - Real-time messaging
+
+- **Friends Page** (`src/app/friends/page.tsx`):
+  - **Purpose**: Friend management
+  - **Features**:
+    - Friend list
+    - Friend requests
+    - User search
+
+## 7. Data Flow
+
+### 7.1 Authentication Data Flow
+
+1. **Login Sequence**:
+   ```
+   User → Login Button → Spotify OAuth → Backend Auth → 
+   Auth Success Page → Store Tokens → Context Update → Protected Routes
+   ```
+
+2. **Auth State Check**:
+   ```
+   Page Load → AuthContext → Check Cookies → API Call → 
+   Update Context → Render Protected Content / Redirect
+   ```
+
+3. **Auth Token Usage**:
+   ```
+   API Call → getHeaders() → Extract Token from Cookie → 
+   Add Authorization Header → Backend Validation
+   ```
+
+### 7.2 User Data Flow
+
+1. **Profile Data Retrieval**:
+   ```
+   Profile Page Load → AuthContext → API Call → 
+   Update State → Render Profile
+   ```
+
+2. **Username Update**:
+   ```
+   Form Submit → API Call → Backend Update → 
+   Refresh User Data → Update UI
+   ```
+
+### 7.3 Messaging Data Flow
+
+1. **Message History**:
+   ```
+   Chat Component Mount → API Call → Get History → 
+   Render Messages → Set Up Socket
+   ```
+
+2. **Message Sending**:
+   ```
+   Send Button → API Call (for persistence) → 
+   Socket Emit (for real-time) → Recipient Socket → 
+   Update Message List → Render
+   ```
+
+3. **Real-time Updates**:
+   ```
+   Socket Event → Message Handler → State Update → UI Update
+   ```
+
+### 7.4 Music Profile Data Flow
+
+1. **Music Data Retrieval**:
+   ```
+   Component Mount → API Calls (parallel) → 
+   Update State → Render Data
+   ```
+
+2. **Tab/Filter Changes**:
+   ```
+   User Input → State Update → Conditional Rendering
+   ```
+
+## 8. Error Handling
+
+### 8.1 API Error Handling
+
+1. **Request-level Error Handling**:
+   - Each API function has try/catch blocks:
+   ```typescript
+   try {
+     const response = await fetch(`${API_BASE_URL}/endpoint`, {
+       method: 'GET',
+       headers: getHeaders(),
+       credentials: 'include'
+     });
+     
+     return await handleApiResponse<ResponseType>(response);
+   } catch (error) {
+     console.error('Error description:', error);
+     throw error;
+   }
+   ```
+
+2. **Response-level Error Handling**:
+   - `handleApiResponse()` function processes HTTP errors:
+   ```typescript
+   if (!response.ok) {
+     // Special handling for 401 Unauthorized
+     if (response.status === 401) {
+       // Clear tokens and redirect
+     }
+     
+     // Process error response
+     const errorData = await response.json().catch(() => ({
+       message: 'An unexpected error occurred'
+     }));
+     
+     throw {
+       status: response.status,
+       ...errorData
+     };
+   }
+   ```
+
+3. **Component-level Error Handling**:
+   - Error states in components capture and display errors:
+   ```typescript
+   const [error, setError] = useState<string | null>(null);
+   
+   try {
+     // API calls
+   } catch (err: any) {
+     setError(err.message || 'An error occurred');
+   }
+   
+   // In render:
+   {error && (
+     <div className="error-message">{error}</div>
+   )}
+   ```
+
+### 8.2 Authentication Error Handling
+
+1. **Token Expiration**:
+   - 401 responses trigger token clearing and redirect
+   - Auth state is updated to reflect logged-out state
+
+2. **Missing Tokens**:
+   - Protected routes redirect to login
+   - API calls that need auth will redirect on 401
+
+3. **Auth Failures**:
+   - OAuth failures redirect with error parameters
+   - Error messages are displayed to users
+
+## 9. State Management
+
+### 9.1 Global State
+
+- **Authentication State**:
+  - Managed by `AuthContext`
+  - Provides user data and auth status throughout app
+  - Updated by login/logout actions and token checks
+
+### 9.2 Component-level State
+
+- **Local UI State**:
+  - Managed with `useState` in individual components
+  - Examples: form input values, active tabs, loading states
+
+- **Component Lifecycle State**:
+  - Managed with `useEffect` for data fetching and cleanup
+  - Examples: API calls on mount, socket connection management
+
+### 9.3 Form State
+
+- **Controlled Inputs**:
+  - Form fields use controlled inputs with `useState`
+  - Example from Profile page:
+  ```typescript
+  const [username, setUsername] = useState('');
+  // ...
+  <input
+    type="text"
+    value={username}
+    onChange={(e) => setUsername(e.target.value)}
+    // ...
+  />
+  ```
+
+## 10. Routing System
+
+The application uses Next.js App Router for routing:
+
+### 10.1 Route Structure
+
+```
+/                     # Home page
+/login                # Login page
+/profile              # User profile page
+/profile?setup=true   # Profile setup for new users
+/messages             # Messaging interface
+/friends              # Friend management
+/auth/success         # OAuth callback handler
+```
+
+### 10.2 Route Protection
+
+- Protected routes are wrapped with the `ProtectedRoute` component:
+```typescript
+export default function ProfilePage() {
+  return (
+    <ProtectedRoute>
+      <Profile />
+    </ProtectedRoute>
+  );
+}
+```
+
+### 10.3 Navigation
+
+- **Programmatic Navigation**:
+  - Uses Next.js `useRouter` hook:
+  ```typescript
+  const router = useRouter();
+  router.push('/profile');
+  ```
+
+- **Link Navigation**:
+  - Uses Next.js `Link` component for client-side navigation
+
+## 11. Environment Configuration
+
+### 11.1 Environment Variables
+
+```
+NEXT_PUBLIC_API_URL=http://localhost:3001
+NEXT_PUBLIC_SOCKET_URL=http://localhost:3001
+```
+
+### 11.2 Environment Usage
+
+```typescript
+// API Base URL
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+// Socket URL
+socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001', {
+  // Config...
+});
+```
+
+## 12. Type System
+
+### 12.1 Core Types
+
+- **User Type** (`src/types/index.ts`):
+```typescript
+export interface IUser {
+  _id: string;
+  spotifyId: string;
+  username?: string;
+  displayName: string;
+  firstName: string;
+  lastName?: string;
+  profilePicture?: string;
+  bio?: string;
+  age?: number;
+  gender?: string;
+  intrestedIn?: string[];
+  location?: { 
+    city?: string;
+    country?: string;
+  };
+  isOnline: boolean;
+  lastSeen?: Date;
+  isActive: boolean;
+  friends: string[];
+  friendRequests: {
+    incoming: string[];
+    outgoing: string[];
+  };
+  spotifyFollowers?: number;
+  country?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+  hasCompletedOnboarding?: boolean;
+  isPremium?: boolean;
+  isVerified?: boolean;
+}
+```
+
+- **Message Type**:
+```typescript
+export interface IMessage {
+  _id: string;
+  receiverId: string;
+  senderId: string;
+  text?: string;
+  image?: string;
+  isRead?: boolean;
+  readAt?: Date;
+  createdAt?: Date;
+}
+```
+
+- **Friend Request Type**:
+```typescript
+export interface IFriendRequest {
+  _id: string;
+  senderId: string;
+  receiverId: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: Date;
+}
+```
+
+- **API Response Type**:
+```typescript
+export interface ApiResponse<T> {
+  success: boolean;
+  message?: string;
+  data?: T;
+  error?: any;
+}
+```
+
+### 12.2 Type Usage
+
+- **API Function Typing**:
+```typescript
+export const getMyProfile = async (): Promise<ApiResponse<IUser>> => {
+  // Implementation...
+};
+```
+
+- **Component Props Typing**:
+```typescript
+interface ChatProps {
+  conversationId: string;
+  receiverId: string;
+}
+
+const Chat: React.FC<ChatProps> = ({ conversationId, receiverId }) => {
+  // Implementation...
+};
+```
+
+- **State Typing**:
+```typescript
+const [user, setUser] = useState<IUser | null>(null);
+const [messages, setMessages] = useState<IMessage[]>([]);
+```
+
+## 13. UI/UX Implementation
+
+### 13.1 Layout Structure
+
+- **Root Layout** (`src/app/layout.tsx`):
+  - Sets up fonts and global styles
+  - Wraps application in `AuthProvider`
+  - Includes debugging tools in dev mode
+
+- **Page Layout Pattern**:
+  ```tsx
+  <div className="min-h-screen flex flex-col">
+    <Header />
+    <main className="container mx-auto p-4 flex-grow">
+      {/* Page content */}
+    </main>
+    {/* Optional footer */}
+  </div>
+  ```
+
+### 13.2 UI Components
+
+- **Loading States**:
+  ```tsx
+  {loading ? (
+    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+  ) : (
+    // Content
+  )}
+  ```
+
+- **Error Messages**:
+  ```tsx
+  {error && (
+    <div className="p-2 bg-red-50 text-red-700 border border-red-200 rounded">
+      {error}
+    </div>
+  )}
+  ```
+
+- **Success Messages**:
+  ```tsx
+  {success && (
+    <div className="p-2 bg-green-50 text-green-700 border border-green-200 rounded">
+      {success}
+    </div>
+  )}
+  ```
+
+## 14. Key User Flows
+
+### 14.1 Authentication Flow
+
+1. User visits site and is redirected to login if not authenticated
+2. User clicks "Login with Spotify"
+3. User authenticates with Spotify OAuth
+4. User returns to site with tokens
+5. Tokens are stored and user profile is fetched
+6. User is redirected to profile page
+7. If user is new, they are prompted to set a username
+
+### 14.2 Profile Management Flow
+
+1. User views profile page
+2. User can edit username
+3. User can view their Spotify music profile data
+4. User can switch between different views of their music data (artists, tracks, genres)
+
+### 14.3 Messaging Flow
+
+1. User navigates to messages page
+2. User selects a contact from the sidebar
+3. Chat history loads for the selected conversation
+4. User composes and sends messages
+5. Messages appear in real-time for both sender and recipient
+
+### 14.4 Friend Management Flow
+
+1. User navigates to friends page
+2. User can view existing friends
+3. User can search for new potential friends
+4. User can send friend requests
+5. User can accept/reject incoming friend requests
+6. User can remove existing friends
+
+## 15. Development and Debugging Tools
+
+### 15.1 AuthDebug Component
+
+- **Purpose**: Debug authentication state
+- **Features**:
+  - Toggle visibility
+  - Display auth tokens
+  - Show user data
+  - Clear cookies for testing
+  - View authentication errors
+
+### 15.2 Console Logging
+
+- Extensive console logging throughout auth flow:
+```typescript
+console.log('Auth tokens received:', { 
+  token: !!token, 
+  refreshToken: !!refreshToken,
+  needsUsername
+});
+
+console.log('Saved token verified:', !!savedToken);
+console.log('User refreshed after authentication');
+```
+
+## 16. Conclusion
+
+This SpotiLove frontend implementation is a comprehensive Next.js application that integrates with a music-based dating/friend-finding backend. It features OAuth authentication with Spotify, real-time messaging, music profile analysis, and friend management. The architecture follows modern React patterns with TypeScript for type safety, context for state management, and component-based UI design.
+
+The application demonstrates effective integration of multiple technologies:
+- Next.js App Router for server and client components
+- React Context for global state management
+- Socket.IO for real-time features
+- TypeScript for strong typing
+- Tailwind CSS for styling
+
+With proper backend integration, this frontend provides a complete user experience for connecting users based on their music preferences through the Spotify API.

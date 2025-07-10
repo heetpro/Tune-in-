@@ -58,19 +58,20 @@ export default function AuthSuccess() {
           // Mark that we've handled the redirect
           hasRedirected.current = true;
           
-          // If user needs to set a username, redirect to profile page
+          // If user needs to set a username, redirect to profile page with setup flag
           if (needsUsername === 'true') {
             console.log('Redirecting to profile setup');
             router.push('/profile?setup=true');
           } else {
-            console.log('Redirecting to home');
-            router.push('/');
+            // Always redirect to profile page instead of home
+            console.log('Redirecting to profile page');
+            router.push('/profile');
           }
         } catch (err) {
           console.error('Error refreshing user after authentication:', err);
-          // Still redirect to home so the user isn't stuck
+          // Redirect to profile even on error
           hasRedirected.current = true;
-          router.push('/');
+          router.push('/profile');
         }
       } else {
         console.error('Missing authentication tokens in callback');
@@ -90,10 +91,10 @@ export default function AuthSuccess() {
         <p className="text-gray-500 mt-2">Please wait while we set up your session</p>
         <div className="mt-8">
           <button 
-            onClick={() => router.push('/')}
+            onClick={() => router.push('/profile')}
             className="text-blue-500 underline"
           >
-            Return to home if not redirected automatically
+            Go to profile if not redirected automatically
           </button>
         </div>
       </div>

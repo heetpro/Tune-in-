@@ -32,11 +32,14 @@ function Profile() {
     }
   }, [user]);
 
-  // Ensure we always have the latest user data
+  // Ensure we have the latest user data, but only on first mount
   useEffect(() => {
-    console.log('Profile: Refreshing user data');
-    refreshUser();
-  }, [refreshUser]);
+    console.log('Profile: Checking if refresh is needed');
+    if (!loading && !user) {
+      console.log('Profile: Refreshing user data');
+      refreshUser();
+    }
+  }, [loading, refreshUser, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
