@@ -88,10 +88,24 @@ export default function Friends() {
     
     try {
       setIsLoading(prev => ({ ...prev, search: true }));
+      console.log('Searching for:', searchQuery);
       const response = await searchForUsers(searchQuery);
-      setSearchResults(response.data || []);
+      console.log('Search response:', response);
+      
+      // Handle different response formats
+      if (Array.isArray(response)) {
+        console.log('Setting direct array search results:', response);
+        setSearchResults(response);
+      } else if (response.success && response.data) {
+        console.log('Setting search results from standard response:', response.data);
+        setSearchResults(response.data);
+      } else {
+        console.error('Search API returned unexpected format:', response);
+        setSearchResults([]);
+      }
     } catch (error) {
       console.error('Error searching users:', error);
+      setSearchResults([]);
     } finally {
       setIsLoading(prev => ({ ...prev, search: false }));
     }
@@ -99,14 +113,23 @@ export default function Friends() {
 
   const sendRequest = async (userId: string) => {
     try {
-      await sendFriendRequestToUser(userId);
-      // Update outgoing requests list
-      await loadRequests();
-      // Clear search results
-      setSearchResults([]);
-      setSearchQuery('');
+      console.log('Sending friend request to user ID:', userId);
+      const response = await sendFriendRequestToUser(userId);
+      console.log('Friend request response:', response);
+      
+      if (response.success) {
+        console.log('Friend request sent successfully');
+        // Update outgoing requests list
+        await loadRequests();
+        // Don't clear search results or query after sending request
+        // This allows users to continue sending requests to other users
+      } else {
+        console.error('Failed to send friend request:', response.message || 'Unknown error');
+        // Show error notification here if you have a notification system
+      }
     } catch (error) {
       console.error('Error sending friend request:', error);
+      // Show error notification here if you have a notification system
     }
   };
 

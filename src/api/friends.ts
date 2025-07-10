@@ -53,16 +53,27 @@ export const searchForUsers = async (query: string): Promise<ApiResponse<IUser[]
       credentials: 'include'
     });
     
-    // Don't just log the response object
-    console.log('Response status:', response.status);
-    
     // Clone the response before reading its body
     const responseClone = response.clone();
+    
+    // Process the main response
     const result = await handleApiResponse<IUser[]>(response);
     
-    // Now you can safely read the cloned response for debugging
-    const responseBody = await responseClone.json();
-    console.log('Response data:', responseBody);
+    // Log the raw response for debugging
+    try {
+      const responseBody = await responseClone.json();
+      console.log('Response data:', responseBody);
+      
+      // If the API returns data directly without our expected wrapper structure
+      if (Array.isArray(responseBody) && !result.data) {
+        return {
+          success: true,
+          data: responseBody
+        };
+      }
+    } catch (err) {
+      console.error('Error parsing cloned response:', err);
+    }
     
     return result;
   } catch (error) {
@@ -76,14 +87,59 @@ export const searchForUsers = async (query: string): Promise<ApiResponse<IUser[]
  */
 export const sendFriendRequest = async (userId: string): Promise<ApiResponse<null>> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/friends/request`, {
+    const response = await fetch(`${API_BASE_URL}/request`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ userId }),
+      // Change this line - use receiverId instead of userId
+      body: JSON.stringify({ receiverId: userId }),
       credentials: 'include'
     });
     
-    return await handleApiResponse<null>(response);
+    // Rest of your function remains the same...
+    const responseClone = response.clone();
+    
+    try {
+      // Try to handle the normal way
+      const result = await handleApiResponse<null>(response);
+      return result;
+    } catch (apiError) {
+      console.error("Error handling API response:", apiError);
+      
+      // Fallback: Try to parse the response manually
+      try {
+        const responseBody = await responseClone.text();
+        console.log("Raw response:", responseBody);
+        
+        // Check if response is empty or not JSON
+        if (!responseBody || responseBody.trim() === '') {
+          if (response.ok) {
+            // Empty but successful response
+            return { success: true, data: null };
+          }
+        }
+        
+        // Try to parse as JSON if possible
+        try {
+          const jsonBody = JSON.parse(responseBody);
+          return { 
+            success: response.ok, 
+            data: null,
+            message: jsonBody.message || response.statusText,
+            error: response.ok ? null : jsonBody
+          };
+        } catch (jsonError) {
+          // Not JSON, return text-based response
+          return {
+            success: response.ok,
+            data: null,
+            message: response.ok ? "Request successful" : responseBody || response.statusText
+          };
+        }
+      } catch (fallbackError) {
+        console.error("Failed to parse response in fallback handler:", fallbackError);
+        throw apiError; // Throw original error if fallback fails
+      }
+    }
   } catch (error) {
     console.error('Failed to send friend request:', error);
     throw error;
@@ -95,13 +151,58 @@ export const sendFriendRequest = async (userId: string): Promise<ApiResponse<nul
  */
 export const acceptFriendRequest = async (requestId: string): Promise<ApiResponse<null>> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/friends/request/${requestId}/accept`, {
+    const response = await fetch(`${API_BASE_URL}/request/${requestId}/accept`, {
       method: 'PUT',
       headers: getHeaders(),
       credentials: 'include'
     });
+    console.log("accept friend request", response);
     
-    return await handleApiResponse<null>(response);
+    // Clone the response for debugging
+    const responseClone = response.clone();
+    
+    try {
+      // Try to handle the normal way
+      const result = await handleApiResponse<null>(response);
+      return result;
+    } catch (apiError) {
+      console.error("Error handling API response:", apiError);
+      
+      // Fallback: Try to parse the response manually
+      try {
+        const responseBody = await responseClone.text();
+        console.log("Raw response:", responseBody);
+        
+        // Check if response is empty or not JSON
+        if (!responseBody || responseBody.trim() === '') {
+          if (response.ok) {
+            // Empty but successful response
+            return { success: true, data: null };
+          }
+        }
+        
+        // Try to parse as JSON if possible
+        try {
+          const jsonBody = JSON.parse(responseBody);
+          return { 
+            success: response.ok, 
+            data: null,
+            message: jsonBody.message || response.statusText,
+            error: response.ok ? null : jsonBody
+          };
+        } catch (jsonError) {
+          // Not JSON, return text-based response
+          return {
+            success: response.ok,
+            data: null,
+            message: response.ok ? "Request accepted" : responseBody || response.statusText
+          };
+        }
+      } catch (fallbackError) {
+        console.error("Failed to parse response in fallback handler:", fallbackError);
+        throw apiError; // Throw original error if fallback fails
+      }
+    }
   } catch (error) {
     console.error('Failed to accept friend request:', error);
     throw error;
@@ -113,13 +214,58 @@ export const acceptFriendRequest = async (requestId: string): Promise<ApiRespons
  */
 export const rejectFriendRequest = async (requestId: string): Promise<ApiResponse<null>> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/friends/request/${requestId}/reject`, {
+    const response = await fetch(`${API_BASE_URL}/request/${requestId}/reject`, {
       method: 'PUT',
       headers: getHeaders(),
       credentials: 'include'
     });
+    console.log("reject friend request", response);
     
-    return await handleApiResponse<null>(response);
+    // Clone the response for debugging
+    const responseClone = response.clone();
+    
+    try {
+      // Try to handle the normal way
+      const result = await handleApiResponse<null>(response);
+      return result;
+    } catch (apiError) {
+      console.error("Error handling API response:", apiError);
+      
+      // Fallback: Try to parse the response manually
+      try {
+        const responseBody = await responseClone.text();
+        console.log("Raw response:", responseBody);
+        
+        // Check if response is empty or not JSON
+        if (!responseBody || responseBody.trim() === '') {
+          if (response.ok) {
+            // Empty but successful response
+            return { success: true, data: null };
+          }
+        }
+        
+        // Try to parse as JSON if possible
+        try {
+          const jsonBody = JSON.parse(responseBody);
+          return { 
+            success: response.ok, 
+            data: null,
+            message: jsonBody.message || response.statusText,
+            error: response.ok ? null : jsonBody
+          };
+        } catch (jsonError) {
+          // Not JSON, return text-based response
+          return {
+            success: response.ok,
+            data: null,
+            message: response.ok ? "Request rejected" : responseBody || response.statusText
+          };
+        }
+      } catch (fallbackError) {
+        console.error("Failed to parse response in fallback handler:", fallbackError);
+        throw apiError; // Throw original error if fallback fails
+      }
+    }
   } catch (error) {
     console.error('Failed to reject friend request:', error);
     throw error;
@@ -131,13 +277,58 @@ export const rejectFriendRequest = async (requestId: string): Promise<ApiRespons
  */
 export const removeFriend = async (friendId: string): Promise<ApiResponse<null>> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/friends/${friendId}`, {
+    const response = await fetch(`${API_BASE_URL}/${friendId}`, {
       method: 'DELETE',
       headers: getHeaders(),
       credentials: 'include'
     });
+    console.log("remove friend", response);
     
-    return await handleApiResponse<null>(response);
+    // Clone the response for debugging
+    const responseClone = response.clone();
+    
+    try {
+      // Try to handle the normal way
+      const result = await handleApiResponse<null>(response);
+      return result;
+    } catch (apiError) {
+      console.error("Error handling API response:", apiError);
+      
+      // Fallback: Try to parse the response manually
+      try {
+        const responseBody = await responseClone.text();
+        console.log("Raw response:", responseBody);
+        
+        // Check if response is empty or not JSON
+        if (!responseBody || responseBody.trim() === '') {
+          if (response.ok) {
+            // Empty but successful response
+            return { success: true, data: null };
+          }
+        }
+        
+        // Try to parse as JSON if possible
+        try {
+          const jsonBody = JSON.parse(responseBody);
+          return { 
+            success: response.ok, 
+            data: null,
+            message: jsonBody.message || response.statusText,
+            error: response.ok ? null : jsonBody
+          };
+        } catch (jsonError) {
+          // Not JSON, return text-based response
+          return {
+            success: response.ok,
+            data: null,
+            message: response.ok ? "Friend removed" : responseBody || response.statusText
+          };
+        }
+      } catch (fallbackError) {
+        console.error("Failed to parse response in fallback handler:", fallbackError);
+        throw apiError; // Throw original error if fallback fails
+      }
+    }
   } catch (error) {
     console.error('Failed to remove friend:', error);
     throw error;
