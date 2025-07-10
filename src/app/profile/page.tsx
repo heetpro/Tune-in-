@@ -3,10 +3,20 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/Header';
+import MusicProfile from '@/components/MusicProfile';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { setUsername as setUsernameRequest } from '@/api';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
-export default function Profile() {
+export default function ProfilePage() {
+  return (
+    <ProtectedRoute>
+      <Profile />
+    </ProtectedRoute>
+  );
+}
+
+function Profile() {
   const { user, loading, refreshUser } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -21,6 +31,12 @@ export default function Profile() {
       setUsername(user.username);
     }
   }, [user]);
+
+  // Ensure we always have the latest user data
+  useEffect(() => {
+    console.log('Profile: Refreshing user data');
+    refreshUser();
+  }, [refreshUser]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,22 +85,11 @@ export default function Profile() {
     );
   }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <div className="container mx-auto p-4 text-center flex-grow flex items-center justify-center">
-          <p>Please log in to access this page.</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="container mx-auto p-4 flex-grow">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-3xl mx-auto">
           <h1 className="text-2xl font-bold mb-6">{isSetup ? 'Complete Your Profile' : 'Your Profile'}</h1>
           
           {isSetup && (
@@ -95,7 +100,7 @@ export default function Profile() {
           
           <div className="bg-white p-6 rounded-lg shadow-md mb-6">
             <div className="flex items-center mb-6">
-              {user.profilePicture ? (
+              {user?.profilePicture ? (
                 <img 
                   src={user.profilePicture} 
                   alt={user.displayName} 
@@ -103,11 +108,18 @@ export default function Profile() {
                 />
               ) : (
                 <div className="w-20 h-20 rounded-full bg-gray-300 mr-4 flex items-center justify-center">
-                  <span className="text-2xl text-gray-600">{user.displayName?.charAt(0) || '?'}</span>
+                  <span className="text-2xl text-gray-600">{user?.displayName?.charAt(0) || '?'}</span>
                 </div>
               )}
               <div>
-                <h2 className="text-xl font-semibold">{user.displayName}</h2>
+                <h2 className="text-xl font-semibold">{user?.displayName}</h2>
+                {user?.spotifyId && (
+                  <p className="text-sm text-gray-600">
+                    <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full mr-2">
+                      Spotify Connected
+                    </span>
+                  </p>
+                )}
               </div>
             </div>
             
@@ -148,15 +160,30 @@ export default function Profile() {
             </form>
           </div>
           
-          <div className="bg-white p-6 rounded-lg shadow-md">
+          <div className="bg-white p-6 rounded-lg shadow-md mb-6">
             <h2 className="text-xl font-semibold mb-4">Account Information</h2>
             <div className="space-y-3">
               <div>
-                <span className="text-gray-600">Spotify Connected:</span> 
-                <span className="text-green-600 ml-2">Yes</span>
+                <span className="text-gray-600">Display Name:</span> 
+                <span className="ml-2">{user?.displayName}</span>
               </div>
+              {user?.location?.country && (
+                <div>
+                  <span className="text-gray-600">Country:</span> 
+                  <span className="ml-2">{user.location.country}</span>
+                </div>
+              )}
+              {user?.spotifyFollowers !== undefined && (
+                <div>
+                  <span className="text-gray-600">Spotify Followers:</span> 
+                  <span className="ml-2">{user.spotifyFollowers}</span>
+                </div>
+              )}
             </div>
           </div>
+          
+          {/* Music Profile Section */}
+          <MusicProfile />
         </div>
       </main>
     </div>

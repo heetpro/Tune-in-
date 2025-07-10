@@ -1,36 +1,108 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SpotiLove Frontend
 
-## Getting Started
+A Next.js TypeScript frontend for the SpotiLove application, a dating app that matches users based on their Spotify music preferences.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Spotify authentication
+- User profiles with music preferences
+- Friend management
+- Real-time messaging
+- Music compatibility matching
+
+## Prerequisites
+
+- Node.js 18+
+- npm or bun
+- SpotiLove backend running
+
+## Setup and Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/spotilove-frontend.git
+   cd spotilove-frontend
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   # or
+   bun install
+   ```
+
+3. Create a `.env.local` file:
+   ```
+   NEXT_PUBLIC_API_URL=http://localhost:3001
+   NEXT_PUBLIC_SOCKET_URL=http://localhost:3001
+   ```
+
+4. Start the development server:
+   ```bash
+   npm run dev
+   # or
+   bun dev
+   ```
+
+## API Integration
+
+The frontend integrates with the SpotiLove backend through a set of API services:
+
+- Authentication with Spotify
+- User profile management
+- Friend relationships
+- Real-time messaging
+- Spotify data synchronization
+
+## Authentication Flow
+
+1. Users are redirected to Spotify for authentication
+2. After successful authentication, they are redirected back to the app
+3. JWT tokens are stored in HTTP-only cookies
+4. Protected routes require authentication
+
+## Directory Structure
+
+```
+src/
+├── api/           # API service functions
+├── app/           # Next.js app directory
+├── components/    # Reusable components
+├── context/       # React context providers
+├── lib/           # Utility functions
+├── middleware/    # Next.js middleware
+└── types/         # TypeScript type definitions
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Main Components
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `AuthContext` - Authentication state management
+- `ProtectedRoute` - Route protection component
+- `MusicProfile` - Displays user's Spotify data
+- `Chat` - Real-time messaging component
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## WebSocket Integration
 
-## Learn More
+Real-time features are implemented using Socket.IO:
 
-To learn more about Next.js, take a look at the following resources:
+- Messaging between users
+- Online status updates
+- Friend request notifications
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Contributing
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Acknowledgments
+
+- [Next.js](https://nextjs.org/)
+- [Spotify Web API](https://developer.spotify.com/documentation/web-api/)
+- [Socket.IO](https://socket.io/)

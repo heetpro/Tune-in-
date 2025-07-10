@@ -35,6 +35,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!Cookies.get('auth_token')) {
       console.log('No auth token found, skipping refresh');
       setLoading(false);
+      setUser(null);
+      setIsAuthenticated(false);
       return;
     }
     
@@ -84,27 +86,49 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Only run once to check authentication state
+  // Check auth status whenever the component mounts or when URL changes
   useEffect(() => {
-    // Skip if we've already done the initial check
-    if (initialCheckDone) return;
+    console.log('AuthContext: Checking authentication state');
+    console.log('Auth token exists:', !!Cookies.get('auth_token'));
     
     const checkAuth = async () => {
       // Check if user has auth token in cookies
       const hasToken = !!Cookies.get('auth_token');
-      console.log('Initial auth check - token exists:', hasToken);
+      console.log('Auth check - token exists:', hasToken);
       
       if (hasToken) {
         await refreshUser();
       } else {
         setLoading(false);
+        setUser(null);
+        setIsAuthenticated(false);
       }
       
       setInitialCheckDone(true);
     };
     
     checkAuth();
-  }, []); // Empty dependency array - only run on mount
+  }, []);
+
+  // Add a URL change listener to recheck auth status
+  useEffect(() => {
+    // Listen for URL changes
+    const handleRouteChange = () => {
+      console.log('URL changed, rechecking auth status');
+      
+      // Only refresh if we have a token to prevent unnecessary API calls
+      if (Cookies.get('auth_token') && !refreshInProgress.current) {
+        refreshUser();
+      }
+    };
+
+    // Set up listener for URL changes
+    window.addEventListener('popstate', handleRouteChange);
+    
+    return () => {
+      window.removeEventListener('popstate', handleRouteChange);
+    };
+  }, []);
 
   return (
     <AuthContext.Provider
