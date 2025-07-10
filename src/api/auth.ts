@@ -5,7 +5,72 @@ import Cookies from 'js-cookie';
  * Redirects to Spotify login page
  */
 export const loginWithSpotify = (): void => {
+  console.log('Redirecting to Spotify login page...');
   window.location.href = `${API_BASE_URL}/spotify/login`;
+};
+
+/**
+ * Checks if a user exists and is authenticated using current token
+ * @returns ApiResponse with exists boolean and userId if successful
+ */
+export const checkUserAuth = async (): Promise<ApiResponse<{exists: boolean; userId?: string}>> => {
+  try {
+    const token = Cookies.get('auth_token');
+    if (!token) {
+      return {
+        success: false,
+        message: 'No auth token found',
+        data: { exists: false }
+      };
+    }
+    
+    console.log('Checking user authentication status...');
+    
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+    
+    const response = await fetch(`${API_BASE_URL}/auth/check`, {
+      method: 'GET',
+      headers: headers,
+      credentials: 'include',
+      mode: 'cors'
+    });
+    
+    if (!response.ok) {
+      console.error('Error checking auth status:', response.status);
+      
+      if (response.status === 401) {
+        // Invalid or expired token
+        Cookies.remove('auth_token');
+        Cookies.remove('refresh_token');
+      }
+      
+      return {
+        success: false,
+        message: 'Authentication check failed',
+        data: { exists: false }
+      };
+    }
+    
+    const data = await response.json();
+    return {
+      success: true,
+      data: {
+        exists: data.exists,
+        userId: data.userId
+      }
+    };
+  } catch (error) {
+    console.error('Failed to check authentication:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error occurred',
+      data: { exists: false },
+      error
+    };
+  }
 };
 
 /**

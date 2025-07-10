@@ -1,21 +1,76 @@
 "use client";
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { loginWithSpotify } from '@/api';
+import { loginWithSpotify, checkUserAuth } from '@/api';
 import Header from '@/components/Header';
+import Cookies from 'js-cookie';
 
 export default function Login() {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [error, setError] = useState<string | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  
+  // Handle error message from URL
+  useEffect(() => {
+    const errorParam = searchParams?.get('error');
+    if (errorParam) {
+      switch (errorParam) {
+        case 'missing_tokens':
+          setError('Authentication failed: missing tokens');
+          break;
+        case 'auth_failed':
+          setError('Authentication failed. Please try again.');
+          break;
+        case 'cookie_failure':
+          setError('Failed to store authentication data. Please check your browser settings.');
+          break;
+        default:
+          setError('An error occurred during login');
+      }
+    }
+  }, [searchParams]);
+
+  // Check for existing auth token
+  useEffect(() => {
+    const checkAuth = async () => {
+      setCheckingAuth(true);
+      
+      const token = Cookies.get('auth_token');
+      if (token && !isAuthenticated) {
+        try {
+          console.log('Login page: Checking existing token');
+          const authCheck = await checkUserAuth();
+          
+          if (authCheck.success && authCheck.data?.exists) {
+            console.log('Login page: Valid token found, redirecting to profile');
+            router.push('/profile');
+          } else {
+            console.log('Login page: Invalid token');
+            // Token exists but is invalid - clear it
+            Cookies.remove('auth_token');
+            Cookies.remove('refresh_token');
+          }
+        } catch (err) {
+          console.error('Login page: Error checking auth', err);
+        }
+      }
+      
+      setCheckingAuth(false);
+    };
+    
+    checkAuth();
+  }, [router, isAuthenticated]);
 
   // Redirect to home if already authenticated
   useEffect(() => {
-    if (isAuthenticated && !loading) {
-      router.push('/');
+    if (isAuthenticated && !loading && !checkingAuth) {
+      router.push('/profile');
     }
-  }, [isAuthenticated, loading, router]);
+  }, [isAuthenticated, loading, checkingAuth, router]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -29,8 +84,14 @@ export default function Login() {
             </p>
           </div>
           
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded mb-6">
+              {error}
+            </div>
+          )}
+          
           <div className="flex flex-col gap-6">
-            {loading ? (
+            {loading || checkingAuth ? (
               <div className="flex justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
               </div>

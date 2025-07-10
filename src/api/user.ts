@@ -18,7 +18,7 @@ export const getMyProfile = async (): Promise<ApiResponse<IUser>> => {
     
     console.log('Using headers:', headers);
     
-    const response = await fetch(`${API_BASE_URL}/user/profile`, {
+    const response = await fetch(`${API_BASE_URL}/profile/me`, {
       method: 'GET',
       headers: headers,
       credentials: 'include',
@@ -55,7 +55,7 @@ export const getMyProfile = async (): Promise<ApiResponse<IUser>> => {
     const userData = await response.json();
     console.log('Received user data:', userData);
     
-    // Convert to our expected format
+    // Convert to our expected format based on updated backend response
     return {
       success: true,
       data: {
@@ -67,16 +67,27 @@ export const getMyProfile = async (): Promise<ApiResponse<IUser>> => {
         lastName: userData.lastName,
         profilePicture: userData.profilePicture,
         bio: userData.bio,
+        age: userData.age,
+        gender: userData.gender,
+        intrestedIn: userData.intrestedIn || [],
         isOnline: userData.isOnline,
-        isActive: userData.isActive,
+        isActive: userData.isActive || true, // Default to true if missing
+        lastSeen: userData.lastSeen,
         friends: userData.friends || [],
         friendRequests: userData.friendRequests || { incoming: [], outgoing: [] },
         spotifyFollowers: userData.spotifyFollowers,
         country: userData.country,
-        location: userData.location || {},
+        location: {
+          city: userData.city || '',
+          country: userData.country || ''
+        },
         hasCompletedOnboarding: userData.hasCompletedOnboarding,
         isPremium: userData.isPremium,
-        isVerified: userData.isVerified
+        isVerified: userData.isVerified,
+        isBanned: userData.isBanned,
+        isAdmin: userData.isAdmin || false,
+        createdAt: userData.createdAt,
+        updatedAt: userData.updatedAt
       }
     };
   } catch (error) {

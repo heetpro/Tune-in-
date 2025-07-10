@@ -57,20 +57,40 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
         getTopGenres()
       ]);
       
+      console.log('Artists response:', artistsResponse);
+      console.log('Tracks response:', tracksResponse);
+      console.log('Genres response:', genresResponse);
+      
       if (artistsResponse.success && artistsResponse.data) {
-        setTopArtists(artistsResponse.data);
+        // Ensure data is an array
+        const artistsData = Array.isArray(artistsResponse.data) ? artistsResponse.data : [];
+        setTopArtists(artistsData);
+      } else {
+        setTopArtists([]);
       }
       
       if (tracksResponse.success && tracksResponse.data) {
-        setTopTracks(tracksResponse.data);
+        // Ensure data is an array
+        const tracksData = Array.isArray(tracksResponse.data) ? tracksResponse.data : [];
+        setTopTracks(tracksData);
+      } else {
+        setTopTracks([]);
       }
       
       if (genresResponse.success && genresResponse.data) {
-        setTopGenres(genresResponse.data);
+        // Ensure data is an array
+        const genresData = Array.isArray(genresResponse.data) ? genresResponse.data : [];
+        setTopGenres(genresData);
+      } else {
+        setTopGenres([]);
       }
     } catch (error: any) {
       console.error('Failed to fetch music data:', error);
       setError(error.message || 'Failed to load music profile');
+      // Reset states to empty arrays on error
+      setTopArtists([]);
+      setTopTracks([]);
+      setTopGenres([]);
     } finally {
       setLoading(false);
     }
@@ -123,6 +143,11 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
     );
   }
 
+  // Safe array accessors with fallbacks
+  const safeTopArtists = Array.isArray(topArtists) ? topArtists : [];
+  const safeTopTracks = Array.isArray(topTracks) ? topTracks : [];
+  const safeTopGenres = Array.isArray(topGenres) ? topGenres : [];
+
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
@@ -145,9 +170,9 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
       <div className="border-b border-gray-200 mb-6">
         <nav className="flex space-x-8">
           {[
-            { id: 'artists', label: 'Top Artists', count: topArtists.length },
-            { id: 'tracks', label: 'Top Tracks', count: topTracks.length },
-            { id: 'genres', label: 'Top Genres', count: topGenres.length }
+            { id: 'artists', label: 'Top Artists', count: safeTopArtists.length },
+            { id: 'tracks', label: 'Top Tracks', count: safeTopTracks.length },
+            { id: 'genres', label: 'Top Genres', count: safeTopGenres.length }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -167,7 +192,7 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
       {/* Artists Tab */}
       {activeTab === 'artists' && (
         <div className="grid gap-4">
-          {topArtists.slice(0, 10).map((artist, index) => (
+          {safeTopArtists.slice(0, 10).map((artist, index) => (
             <div key={artist.spotifyId || artist.id || index} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
               <div className="flex-shrink-0">
                 <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-500 text-white rounded-full text-sm font-medium">
@@ -194,13 +219,19 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
               </div>
             </div>
           ))}
+
+          {safeTopArtists.length === 0 && (
+            <div className="text-center p-6 bg-gray-50 rounded-lg">
+              <p className="text-gray-500">No artist data available. Try syncing your Spotify data.</p>
+            </div>
+          )}
         </div>
       )}
 
       {/* Tracks Tab */}
       {activeTab === 'tracks' && (
         <div className="grid gap-4">
-          {topTracks.slice(0, 10).map((track, index) => (
+          {safeTopTracks.slice(0, 10).map((track, index) => (
             <div key={track.spotifyId || track.id || index} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
               <div className="flex-shrink-0">
                 <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-500 text-white rounded-full text-sm font-medium">
@@ -227,13 +258,19 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
               </div>
             </div>
           ))}
+
+          {safeTopTracks.length === 0 && (
+            <div className="text-center p-6 bg-gray-50 rounded-lg">
+              <p className="text-gray-500">No track data available. Try syncing your Spotify data.</p>
+            </div>
+          )}
         </div>
       )}
 
       {/* Genres Tab */}
       {activeTab === 'genres' && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {topGenres.slice(0, 15).map((genre, index) => (
+          {safeTopGenres.slice(0, 15).map((genre, index) => (
             <div key={genre.name || index} className="bg-gray-50 rounded-lg p-4 text-center">
               <div className="text-2xl font-bold text-blue-600 mb-1">
                 #{index + 1}
@@ -246,6 +283,12 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
               </div>
             </div>
           ))}
+
+          {safeTopGenres.length === 0 && (
+            <div className="col-span-full text-center p-6 bg-gray-50 rounded-lg">
+              <p className="text-gray-500">No genre data available. Try syncing your Spotify data.</p>
+            </div>
+          )}
         </div>
       )}
     </div>

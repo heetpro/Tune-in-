@@ -105,19 +105,44 @@ const makeSpotifyRequest = async <T>(endpoint: string): Promise<ApiResponse<T>> 
       };
     }
     
-    // Check if response is in expected format or direct data
-    const responseData = await response.json();
-    
-    // If response already has success field, return as is
-    if (responseData.hasOwnProperty('success')) {
-      return responseData;
+    try {
+      // Parse response data
+      const responseData = await response.json();
+      console.log(`Response data from ${endpoint}:`, responseData);
+      
+      // If response already has success field, return as is
+      if (responseData.hasOwnProperty('success')) {
+        return responseData;
+      }
+      
+      // If the endpoint is expected to return an array but returns null/undefined
+      if (
+        (endpoint.includes('top-artists') || 
+         endpoint.includes('top-tracks') || 
+         endpoint.includes('top-genres') || 
+         endpoint.includes('recent-tracks') || 
+         endpoint.includes('playlists')) && 
+        (responseData === null || responseData === undefined)
+      ) {
+        return {
+          success: true,
+          data: [] as unknown as T
+        };
+      }
+      
+      // Otherwise wrap in expected format
+      return {
+        success: true,
+        data: responseData
+      };
+    } catch (error) {
+      console.error(`Failed to parse response from ${endpoint}:`, error);
+      return {
+        success: false,
+        message: 'Failed to parse API response',
+        error
+      };
     }
-    
-    // Otherwise wrap in expected format
-    return {
-      success: true,
-      data: responseData
-    };
   } catch (error) {
     console.error(`Failed request to ${endpoint}:`, error);
     return {

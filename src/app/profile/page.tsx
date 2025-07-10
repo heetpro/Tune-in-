@@ -204,10 +204,46 @@ function Profile() {
                 <span className="text-gray-600">Display Name:</span> 
                 <span className="ml-2">{user?.displayName}</span>
               </div>
-              {user?.location?.country && (
+              {user?.firstName && (
+                <div>
+                  <span className="text-gray-600">Name:</span> 
+                  <span className="ml-2">{user.firstName} {user.lastName}</span>
+                </div>
+              )}
+              {user?.age && (
+                <div>
+                  <span className="text-gray-600">Age:</span> 
+                  <span className="ml-2">{user.age}</span>
+                </div>
+              )}
+              {user?.gender && (
+                <div>
+                  <span className="text-gray-600">Gender:</span> 
+                  <span className="ml-2">{user.gender}</span>
+                </div>
+              )}
+              {user?.bio && (
+                <div>
+                  <span className="text-gray-600">Bio:</span> 
+                  <span className="ml-2">{user.bio}</span>
+                </div>
+              )}
+              {user?.city && (
+                <div>
+                  <span className="text-gray-600">City:</span> 
+                  <span className="ml-2">{user.city}</span>
+                </div>
+              )}
+              {user?.country && (
                 <div>
                   <span className="text-gray-600">Country:</span> 
-                  <span className="ml-2">{user.location.country}</span>
+                  <span className="ml-2">{user.country}</span>
+                </div>
+              )}
+              {user?.intrestedIn && user.intrestedIn.length > 0 && (
+                <div>
+                  <span className="text-gray-600">Interested In:</span> 
+                  <span className="ml-2">{user.intrestedIn.join(', ')}</span>
                 </div>
               )}
               {user?.spotifyFollowers !== undefined && (

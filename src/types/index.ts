@@ -25,11 +25,14 @@ export interface IUser {
   };
   spotifyFollowers?: number;
   country?: string;
+  city?: string;
   createdAt?: Date;
   updatedAt?: Date;
   hasCompletedOnboarding?: boolean;
   isPremium?: boolean;
   isVerified?: boolean;
+  isBanned?: boolean;
+  isAdmin?: boolean;
 }
 
 // Friend request interfaces

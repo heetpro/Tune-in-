@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { getMyProfile } from '@/api/user';
+import { checkUserAuth } from '@/api/auth';
 import { IUser } from '@/types/index';
 import Cookies from 'js-cookie';
 
@@ -138,10 +139,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const checkAuth = async () => {
       // Check if user has auth token in cookies
-      const hasToken = !!Cookies.get('auth_token');
+      const token = Cookies.get('auth_token');
       
-      if (hasToken) {
-        await refreshUser();
+      if (token) {
+        try {
+          // First do a quick check to see if the token is valid
+          console.log('Performing quick auth check...');
+          const authCheck = await checkUserAuth();
+          
+          if (authCheck.success && authCheck.data?.exists) {
+            console.log('Auth check successful, token is valid');
+            // Token is valid, now get the full profile
+            await refreshUser();
+          } else {
+            console.log('Auth check failed, token is invalid');
+            // Token is invalid, clear it
+            Cookies.remove('auth_token');
+            Cookies.remove('refresh_token');
+            setLoading(false);
+            setUser(null);
+            setIsAuthenticated(false);
+          }
+        } catch (err) {
+          console.error('Error during auth check:', err);
+          await refreshUser(); // Fall back to full refresh if quick check fails
+        }
       } else {
         setLoading(false);
         setUser(null);
