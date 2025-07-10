@@ -75,21 +75,9 @@ export default function Friends() {
     try {
       setIsLoading(prev => ({ ...prev, requests: true }));
       const response = await getFriendRequestsList();
-      console.log('Friend requests response:', response);
-      
-      if (response.success && response.data) {
-        // Debug logging to check structure
-        console.log('Incoming requests:', response.data.incoming);
-        console.log('Outgoing requests:', response.data.outgoing);
-        
-        // Set the requests directly - we've added null checks in the render methods
-        setRequests(response.data);
-      } else {
-        setRequests({ incoming: [], outgoing: [] });
-      }
+      setRequests(response.data || { incoming: [], outgoing: [] });
     } catch (error) {
       console.error('Error loading friend requests:', error);
-      setRequests({ incoming: [], outgoing: [] });
     } finally {
       setIsLoading(prev => ({ ...prev, requests: false }));
     }
@@ -228,20 +216,20 @@ export default function Friends() {
                 {friends.map((friend) => (
                   <li key={friend._id} className="border p-4 rounded-lg flex items-center justify-between">
                     <div className="flex items-center">
-                      {friend && friend.profilePicture ? (
+                      {friend.profilePicture ? (
                         <img 
                           src={friend.profilePicture} 
-                          alt={friend?.displayName || 'User'} 
+                          alt={friend.displayName || 'User'} 
                           className="w-12 h-12 rounded-full mr-3" 
                         />
                       ) : (
                         <div className="w-12 h-12 bg-gray-200 rounded-full mr-3 flex items-center justify-center">
-                          <span className="text-xl text-gray-500">{friend?.displayName?.[0] || '?'}</span>
+                          <span className="text-xl text-gray-500">{friend.displayName?.[0] || '?'}</span>
                         </div>
                       )}
                       <div>
-                        <p className="font-medium">{friend?.displayName || 'Unknown User'}</p>
-                        {friend?.username && <p className="text-sm text-gray-500">@{friend.username}</p>}
+                        <p className="font-medium">{friend.displayName || 'User'}</p>
+                        {friend.username && <p className="text-sm text-gray-500">@{friend.username}</p>}
                       </div>
                     </div>
                     <button
@@ -270,7 +258,7 @@ export default function Friends() {
                   {requests.incoming.map((request) => (
                     <li key={request._id} className="border p-4 rounded-lg">
                       <div className="flex items-center mb-3">
-                        {request.sender && request.sender.profilePicture ? (
+                        {request.sender?.profilePicture ? (
                           <img 
                             src={request.sender.profilePicture} 
                             alt={request.sender?.displayName || 'User'} 
@@ -278,11 +266,11 @@ export default function Friends() {
                           />
                         ) : (
                           <div className="w-12 h-12 bg-gray-200 rounded-full mr-3 flex items-center justify-center">
-                            <span className="text-xl text-gray-500">{request.sender?.displayName?.[0] || '?'}</span>
+                            <span className="text-xl text-gray-500">{(request.sender?.displayName?.[0] || '?')}</span>
                           </div>
                         )}
                         <div>
-                          <p className="font-medium">{request.sender?.displayName || 'Unknown User'}</p>
+                          <p className="font-medium">{request.sender?.displayName || 'User'}</p>
                           {request.sender?.username && <p className="text-sm text-gray-500">@{request.sender.username}</p>}
                         </div>
                       </div>
@@ -317,7 +305,7 @@ export default function Friends() {
                   {requests.outgoing.map((request) => (
                     <li key={request._id} className="border p-4 rounded-lg flex items-center justify-between">
                       <div className="flex items-center">
-                        {request.receiver && request.receiver.profilePicture ? (
+                        {request.receiver?.profilePicture ? (
                           <img 
                             src={request.receiver.profilePicture} 
                             alt={request.receiver?.displayName || 'User'} 
@@ -325,11 +313,11 @@ export default function Friends() {
                           />
                         ) : (
                           <div className="w-12 h-12 bg-gray-200 rounded-full mr-3 flex items-center justify-center">
-                            <span className="text-xl text-gray-500">{request.receiver?.displayName?.[0] || '?'}</span>
+                            <span className="text-xl text-gray-500">{(request.receiver?.displayName?.[0] || '?')}</span>
                           </div>
                         )}
                         <div>
-                          <p className="font-medium">{request.receiver?.displayName || 'Unknown User'}</p>
+                          <p className="font-medium">{request.receiver?.displayName || 'User'}</p>
                           {request.receiver?.username && <p className="text-sm text-gray-500">@{request.receiver.username}</p>}
                         </div>
                       </div>

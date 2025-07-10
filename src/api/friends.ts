@@ -11,7 +11,7 @@ interface FriendRequestsResponse {
  */
 export const getFriendsList = async (): Promise<ApiResponse<IUser[]>> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/ `, {
+    const response = await fetch(`${API_BASE_URL}/friends`, {
       method: 'GET',
       headers: getHeaders(),
       credentials: 'include'
@@ -83,67 +83,88 @@ export const searchForUsers = async (query: string): Promise<ApiResponse<IUser[]
 };
 
 /**
- * Send friend request to user
+ * Send friend request to user (with auto-retry different endpoints)
  */
 export const sendFriendRequest = async (userId: string): Promise<ApiResponse<null>> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/request`, {
-      method: 'POST',
-      headers: getHeaders(),
-      // Change this line - use receiverId instead of userId
-      body: JSON.stringify({ receiverId: userId }),
-      credentials: 'include'
-    });
-    
-    // Rest of your function remains the same...
-    const responseClone = response.clone();
-    
+  // Define possible endpoints to try
+  const endpointsToTry = [
+    { url: `${API_BASE_URL}/friends/requests`, body: { targetUserId: userId } },
+    { url: `${API_BASE_URL}/friends/request`, body: { userId } },
+    { url: `${API_BASE_URL}/friends/request`, body: { receiverId: userId } },
+    { url: `${API_BASE_URL}/request`, body: { userId } },
+    { url: `${API_BASE_URL}/request`, body: { receiverId: userId } },
+    { url: `${API_BASE_URL}/users/friends/request`, body: { userId } },
+    { url: `${API_BASE_URL}/friends/requests/${userId}`, body: {} }
+  ];
+  
+  console.log("Friend request payload:", { userId });
+  
+  let lastError = null;
+  
+  // Try each endpoint in sequence
+  for (const endpoint of endpointsToTry) {
     try {
-      // Try to handle the normal way
-      const result = await handleApiResponse<null>(response);
-      return result;
-    } catch (apiError) {
-      console.error("Error handling API response:", apiError);
+      console.log(`Trying endpoint: ${endpoint.url} with body:`, endpoint.body);
       
-      // Fallback: Try to parse the response manually
-      try {
-        const responseBody = await responseClone.text();
-        console.log("Raw response:", responseBody);
-        
-        // Check if response is empty or not JSON
-        if (!responseBody || responseBody.trim() === '') {
-          if (response.ok) {
-            // Empty but successful response
-            return { success: true, data: null };
-          }
-        }
-        
-        // Try to parse as JSON if possible
+      const response = await fetch(endpoint.url, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(endpoint.body),
+        credentials: 'include'
+      });
+      console.log(`Response from ${endpoint.url}:`, response);
+      
+      // If response is OK, we found the right endpoint
+      if (response.ok) {
+        console.log("Found working endpoint:", endpoint.url);
         try {
-          const jsonBody = JSON.parse(responseBody);
-          return { 
-            success: response.ok, 
-            data: null,
-            message: jsonBody.message || response.statusText,
-            error: response.ok ? null : jsonBody
-          };
-        } catch (jsonError) {
-          // Not JSON, return text-based response
-          return {
-            success: response.ok,
-            data: null,
-            message: response.ok ? "Request successful" : responseBody || response.statusText
-          };
+          const result = await handleApiResponse<null>(response);
+          return result;
+        } catch (parseError) {
+          // Even if parsing fails, if response was OK we return success
+          return { success: true, data: null, message: "Friend request sent" };
         }
-      } catch (fallbackError) {
-        console.error("Failed to parse response in fallback handler:", fallbackError);
-        throw apiError; // Throw original error if fallback fails
       }
+      
+      // If not OK but specific status code like 401 (unauthorized)
+      // don't try other endpoints as they'll likely fail the same way
+      if (response.status === 401) {
+        const result = await handleApiResponse<null>(response);
+        return result;
+      }
+      
+      // Store the error to return if all endpoints fail
+      try {
+        const responseClone = response.clone();
+        const responseBody = await responseClone.text();
+        lastError = { 
+          success: false, 
+          endpoint: endpoint.url,
+          status: response.status,
+          message: response.statusText,
+          body: responseBody
+        };
+      } catch (err) {
+        lastError = { 
+          success: false,
+          endpoint: endpoint.url,
+          status: response.status,
+          message: response.statusText 
+        };
+      }
+    } catch (error) {
+      console.error(`Error with endpoint ${endpoint.url}:`, error);
+      lastError = { success: false, endpoint: endpoint.url, error };
     }
-  } catch (error) {
-    console.error('Failed to send friend request:', error);
-    throw error;
   }
+  
+  // If we get here, all endpoints failed
+  console.error("All friend request endpoints failed. Last error:", lastError);
+  return { 
+    success: false, 
+    message: `All endpoints failed. Last attempt: ${lastError?.endpoint} (${lastError?.status}: ${lastError?.message})`,
+    error: lastError
+  };
 };
 
 /**

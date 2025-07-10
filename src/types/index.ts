@@ -186,8 +186,13 @@ export interface IMessage {
   text?: string;
   image?: string;
   isRead?: boolean;
+  isDelivered?: boolean;
+  isDeleted?: boolean;
   readAt?: Date;
   createdAt?: Date;
+  // UI specific fields
+  pending?: boolean;
+  error?: boolean;
 }
 
 export interface WebSocketMessage {
