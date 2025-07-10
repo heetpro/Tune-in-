@@ -18,7 +18,7 @@ export const getMyProfile = async (): Promise<ApiResponse<IUser>> => {
     
     console.log('Using headers:', headers);
     
-    const response = await fetch(`${API_BASE_URL}/profile/me`, {
+    const response = await fetch(`${API_BASE_URL}/user/profile`, {
       method: 'GET',
       headers: headers,
       credentials: 'include',
@@ -51,8 +51,34 @@ export const getMyProfile = async (): Promise<ApiResponse<IUser>> => {
       };
     }
     
-    const data = await response.json();
-    return data;
+    // The backend returns the user object directly, not wrapped in a success/data structure
+    const userData = await response.json();
+    console.log('Received user data:', userData);
+    
+    // Convert to our expected format
+    return {
+      success: true,
+      data: {
+        _id: userData.id || userData._id,
+        spotifyId: userData.spotifyId,
+        username: userData.username,
+        displayName: userData.displayName,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        profilePicture: userData.profilePicture,
+        bio: userData.bio,
+        isOnline: userData.isOnline,
+        isActive: userData.isActive,
+        friends: userData.friends || [],
+        friendRequests: userData.friendRequests || { incoming: [], outgoing: [] },
+        spotifyFollowers: userData.spotifyFollowers,
+        country: userData.country,
+        location: userData.location || {},
+        hasCompletedOnboarding: userData.hasCompletedOnboarding,
+        isPremium: userData.isPremium,
+        isVerified: userData.isVerified
+      }
+    };
   } catch (error) {
     console.error('Failed to fetch user profile:', error);
     return {
@@ -76,7 +102,7 @@ export const setUsername = async (username: string): Promise<ApiResponse<null>> 
       'Authorization': token ? `Bearer ${token}` : ''
     };
     
-    const response = await fetch(`${API_BASE_URL}/username`, {
+    const response = await fetch(`${API_BASE_URL}/user/username`, {
       method: 'POST',
       headers: headers,
       body: JSON.stringify({ username }),
@@ -103,8 +129,15 @@ export const setUsername = async (username: string): Promise<ApiResponse<null>> 
       };
     }
     
-    const data = await response.json();
-    return data;
+    // Backend might return different response format
+    const responseData = await response.json();
+    
+    // Ensure we return the expected format
+    return {
+      success: true,
+      message: responseData.message || 'Username updated successfully',
+      data: null
+    };
   } catch (error) {
     console.error('Failed to update username:', error);
     return {

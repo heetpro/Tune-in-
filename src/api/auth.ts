@@ -1,4 +1,4 @@
-import { API_BASE_URL, getHeaders, handleApiResponse, ApiResponse } from './config';
+import { API_BASE_URL, ApiResponse } from './config';
 import Cookies from 'js-cookie';
 
 /**
@@ -13,20 +13,58 @@ export const loginWithSpotify = (): void => {
  */
 export const logout = async (): Promise<ApiResponse<null>> => {
   try {
+    const token = Cookies.get('auth_token');
+    console.log('Logging out user...');
+    
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    };
+    
     const response = await fetch(`${API_BASE_URL}/logout`, {
       method: 'POST',
-      headers: getHeaders(),
-      credentials: 'include'
+      headers: headers,
+      credentials: 'include',
+      mode: 'cors'
     });
     
     // Clear stored tokens regardless of response
     Cookies.remove('auth_token');
     Cookies.remove('refresh_token');
     
-    return await handleApiResponse<null>(response);
+    if (!response.ok) {
+      console.error('Error during logout:', response.status, response.statusText);
+      return {
+        success: false,
+        message: 'Error during logout, but cookies were cleared'
+      };
+    }
+    
+    try {
+      const data = await response.json();
+      return {
+        success: true,
+        message: data.message || 'Logged out successfully',
+        data: null
+      };
+    } catch (e) {
+      return {
+        success: true,
+        message: 'Logged out successfully',
+        data: null
+      };
+    }
   } catch (error) {
     console.error('Logout failed:', error);
-    throw error;
+    // Clear cookies anyway
+    Cookies.remove('auth_token');
+    Cookies.remove('refresh_token');
+    
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Error during logout',
+      error
+    };
   }
 };
 
@@ -35,15 +73,56 @@ export const logout = async (): Promise<ApiResponse<null>> => {
  */
 export const checkOnboardingStatus = async (): Promise<ApiResponse<{ hasCompletedOnboarding: boolean }>> => {
   try {
+    const token = Cookies.get('auth_token');
+    
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    };
+    
     const response = await fetch(`${API_BASE_URL}/onboarding`, {
       method: 'GET',
-      headers: getHeaders(),
-      credentials: 'include'
+      headers: headers,
+      credentials: 'include',
+      mode: 'cors'
     });
     
-    return await handleApiResponse<{ hasCompletedOnboarding: boolean }>(response);
+    if (!response.ok) {
+      console.error('Failed to check onboarding status:', response.status, response.statusText);
+      const errorText = await response.text();
+      
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { message: errorText || 'Unknown error' };
+      }
+      
+      return {
+        success: false,
+        message: errorData.message || 'Failed to check onboarding status',
+        error: errorData
+      };
+    }
+    
+    const data = await response.json();
+    
+    // If backend already returns in correct format
+    if (data.hasOwnProperty('success')) {
+      return data;
+    }
+    
+    // Otherwise, wrap the data
+    return {
+      success: true,
+      data: { hasCompletedOnboarding: data.hasCompletedOnboarding || false }
+    };
   } catch (error) {
     console.error('Failed to check onboarding status:', error);
-    throw error;
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to check onboarding status',
+      error
+    };
   }
 }; 
