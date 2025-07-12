@@ -40,7 +40,7 @@ export const initializeSocket = (userId?: string): Promise<Socket> => {
       // Try polling first, then upgrade to websocket - helps with some connectivity issues
       transports: ['polling', 'websocket'],
       reconnection: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: 10,
       reconnectionDelay: 3000,
       timeout: 20000, // Increase timeout to 20 seconds
       withCredentials: true,
@@ -103,11 +103,25 @@ export const closeSocket = (): void => {
   }
 };
 
-export const emitEvent = async <T>(eventName: string, data?: T): Promise<boolean> => {
+// Enhanced emit event with acknowledgment support
+export const emitEvent = async <T, R = any>(
+  eventName: string, 
+  data?: T, 
+  withAck: boolean = false
+): Promise<R | boolean> => {
   try {
     const socket = await getSocket();
-    socket.emit(eventName, data);
-    return true;
+    
+    if (withAck) {
+      return new Promise((resolve) => {
+        socket.emit(eventName, data, (response: R) => {
+          resolve(response);
+        });
+      });
+    } else {
+      socket.emit(eventName, data);
+      return true;
+    }
   } catch (error) {
     console.error(`Socket not connected, cannot emit event: ${eventName}`, error);
     return false;
@@ -127,4 +141,48 @@ export const removeListener = (eventName: string): void => {
   if (socket) {
     socket.off(eventName);
   }
-}; 
+};
+
+// Save messages to local storage
+export const saveMessagesToStorage = (userId: string, messages: Record<string, any[]>) => {
+  try {
+    localStorage.setItem(`chat_messages_${userId}`, JSON.stringify(messages));
+  } catch (error) {
+    console.error('Error saving messages to storage:', error);
+  }
+};
+
+// Load messages from local storage
+export const loadMessagesFromStorage = (userId: string): Record<string, any[]> => {
+  try {
+    const stored = localStorage.getItem(`chat_messages_${userId}`);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      
+      // Convert date strings back to Date objects
+      Object.keys(parsed).forEach(conversationId => {
+        parsed[conversationId] = parsed[conversationId].map((msg: any) => ({
+          ...msg,
+          createdAt: new Date(msg.createdAt)
+        }));
+      });
+      
+      return parsed;
+    }
+  } catch (error) {
+    console.error('Error loading messages from storage:', error);
+  }
+  return {};
+};
+
+// Sound notification for new messages
+export const playMessageSound = () => {
+  try {
+    const audio = new Audio('/notification.mp3'); // You'll need to add this file to your public folder
+    audio.play().catch(error => {
+      console.error('Error playing notification sound:', error);
+    });
+  } catch (error) {
+    console.error('Error with audio playback:', error);
+  }
+};
