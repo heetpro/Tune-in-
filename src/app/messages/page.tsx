@@ -1,50 +1,107 @@
 "use client";
 
-import React from 'react';
-import { ChatProvider } from '@/context/ChatContext';
-import ChatList from '@/components/ChatList';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { getChatUsers } from '@/api';
+import { IUser } from '@/types';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import Link from 'next/link';
+import Chat from '@/components/Chat';
+import ConversationList from '@/components/ConversationList';
+import { useChat } from '@/context/ChatContext';
+import Header from '@/components/Header';
 
-const MessagesPage = () => {
-  const { user } = useAuth();
-  
+export default function MessagesPage() {
   return (
     <ProtectedRoute>
-      <ChatProvider>
-        <div className="container mx-auto px-4 py-8">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold">Messages</h1>
-            <p className="text-gray-600">Connect with your music matches</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="col-span-1">
-              <ChatList />
-            </div>
-            
-            <div className="col-span-1 md:col-span-2 hidden md:flex flex-col justify-center items-center bg-white rounded-lg shadow p-8 text-center">
-              <div className="mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                </svg>
-              </div>
-              <h2 className="text-xl font-semibold mb-2">Your Messages</h2>
-              <p className="text-gray-600 mb-6">Select a conversation or start a new one</p>
-              
-              <Link 
-                href="/friends" 
-                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-full transition-colors"
-              >
-                Find Friends
-              </Link>
-            </div>
-          </div>
-        </div>
-      </ChatProvider>
+      <MessagesContent />
     </ProtectedRoute>
   );
-};
+}
 
-export default MessagesPage; 
+function MessagesContent() {
+  const [chatUsers, setChatUsers] = useState<IUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const { user } = useAuth();
+  const { isConnected } = useChat();
+  const router = useRouter();
+
+  useEffect(() => {
+    const fetchChatUsers = async () => {
+      try {
+        setLoading(true);
+        const response = await getChatUsers();
+        if (response.data) {
+          setChatUsers(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to load chat users:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChatUsers();
+  }, []);
+
+  const handleSelectUser = (userId: string) => {
+    setSelectedUserId(userId);
+  };
+
+  // Find the selected user details
+  const selectedUser = chatUsers.find(u => u._id === selectedUserId);
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <div className="container mx-auto py-6 px-4 flex-grow">
+        <h1 className="text-2xl font-bold mb-6">Messages</h1>
+        
+        <div className="flex gap-4">
+          {/* User list sidebar */}
+          <div className="w-1/3 bg-white rounded-lg shadow overflow-hidden">
+            {loading ? (
+              <div className="flex justify-center items-center h-32">
+                <div className="spinner h-8 w-8 rounded-full border-4 border-t-blue-500 border-r-transparent border-b-blue-500 border-l-transparent animate-spin"></div>
+              </div>
+            ) : (
+              <ConversationList 
+                activeConversationId={selectedUserId || undefined}
+                onSelectConversation={handleSelectUser}
+                friendsList={chatUsers}
+              />
+            )}
+          </div>
+
+          {/* Chat area */}
+          <div className="w-2/3">
+            {selectedUserId ? (
+              <Chat
+                conversationId={`${user?._id}_${selectedUserId}`}
+                receiverId={selectedUserId}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-[calc(100vh-180px)] bg-white rounded-lg shadow">
+                <div className="text-center text-gray-500">
+                  <p className="mb-4">Select a conversation to start chatting</p>
+                  <button
+                    onClick={() => router.push('/friends')}
+                    className="text-blue-500 hover:underline"
+                  >
+                    Find friends to chat with
+                  </button>
+                  <p className="mt-2 text-sm">
+                    {isConnected ? 
+                      "Connected to chat server" : 
+                      "Not connected to chat server. Messages will be sent when connection is restored."}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+} 

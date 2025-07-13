@@ -51,14 +51,14 @@ export default function Friends() {
       setActiveTab(tabParam);
     }
   }, [searchParams]);
-
+ 
   useEffect(() => {
     if (currentUser) {
       loadFriends();
       loadRequests();
     }
   }, [currentUser]);
-
+ 
   const loadFriends = async () => {
     try {
       setIsLoading(prev => ({ ...prev, friends: true }));

@@ -4,6 +4,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { ChatProvider } from "@/context/ChatContext";
 import "./globals.css";
 import ClientAuthDebug from "@/components/ClientAuthDebug";
+import SocketDebug from "@/components/SocketDebug";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,8 +32,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          {children}
-          <ClientAuthDebug />
+          <ChatProvider>
+            {children}
+            <ClientAuthDebug />
+            <SocketDebug />
+          </ChatProvider>
         </AuthProvider>
       </body>
     </html>

@@ -1,10 +1,19 @@
 import { io, Socket } from 'socket.io-client';
 import Cookies from 'js-cookie';
+import { Message, ReadMessageEvent, TypingIndicatorEvent } from '@/types/socket';
 
 let socket: Socket | null = null;
 let isConnecting = false;
 let connectionQueue: (() => void)[] = [];
 let reconnectTimer: NodeJS.Timeout | null = null;
+
+export const getAuthToken = (): string | null => {
+  return Cookies.get('auth_token') || null;
+};
+
+export const getUserId = (): string | null => {
+  return Cookies.get('user_id') || null;
+};
 
 export const initializeSocket = (userId?: string): Promise<Socket> => {
   if (socket?.connected) return Promise.resolve(socket);
@@ -16,6 +25,9 @@ export const initializeSocket = (userId?: string): Promise<Socket> => {
   }
   
   isConnecting = true;
+  console.log('Initializing socket connection...');
+  console.log('User ID:', userId || getUserId());
+  console.log('Auth token exists:', !!getAuthToken());
   
   // Clear any existing reconnect timer
   if (reconnectTimer) {
@@ -24,7 +36,15 @@ export const initializeSocket = (userId?: string): Promise<Socket> => {
   }
   
   return new Promise<Socket>((resolve, reject) => {
-    const token = Cookies.get('auth_token');
+    const token = getAuthToken();
+    const actualUserId = userId || getUserId();
+    
+    console.log('Socket connection attempt details:', {
+      userId: actualUserId,
+      hasToken: !!token,
+      apiUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+      transportModes: ['websocket', 'polling']
+    });
     
     // Try to get the stored socket and close it properly before creating a new one
     if (socket) {
@@ -35,16 +55,27 @@ export const initializeSocket = (userId?: string): Promise<Socket> => {
     
     // Create a new socket connection
     socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001', {
-      query: userId ? { userId } : undefined,
+      query: actualUserId ? { userId: actualUserId } : undefined,
       auth: token ? { token } : undefined,
-      // Try polling first, then upgrade to websocket - helps with some connectivity issues
-      transports: ['polling', 'websocket'],
+      // Try websocket first, then fallback to polling if needed
+      transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionAttempts: 10,
+      reconnectionAttempts: 5,
       reconnectionDelay: 3000,
       timeout: 20000, // Increase timeout to 20 seconds
       withCredentials: true,
     });
+    
+    // Debug socket instance
+    console.log('Socket instance created:', !!socket);
+    
+    // Safely log transport config without accessing protected properties
+    try {
+      // @ts-ignore - accessing internals for debugging
+      console.log('Socket transport options:', socket.io.engine.opts?.transports || 'Not accessible');
+    } catch (err) {
+      console.log('Could not access socket transport details');
+    }
 
     // Set up a timeout for the initial connection
     const connectionTimeout = setTimeout(() => {
@@ -58,7 +89,7 @@ export const initializeSocket = (userId?: string): Promise<Socket> => {
     }, 10000); // 10 second timeout for initial connection
 
     socket.on('connect', () => {
-      console.log('Socket connected:', socket?.id);
+      console.log('Socket connected successfully with ID:', socket?.id);
       clearTimeout(connectionTimeout);
       isConnecting = false;
       
@@ -66,6 +97,11 @@ export const initializeSocket = (userId?: string): Promise<Socket> => {
       connectionQueue = [];
       
       resolve(socket as Socket);
+    });
+
+    socket.on('reconnect', () => {
+      console.log('Reconnected to server, fetching latest messages...');
+      // Additional reconnection logic can be added here
     });
 
     socket.on('disconnect', (reason) => {
@@ -81,10 +117,20 @@ export const initializeSocket = (userId?: string): Promise<Socket> => {
 
     socket.on('connect_error', (error) => {
       console.error('Socket connection error:', error);
+      console.error('Socket connection error details:', {
+        message: error.message,
+        transport: socket?.io?.engine?.transport?.name,
+        // Access additional properties safely
+        ...(error as any)
+      });
       clearTimeout(connectionTimeout);
       isConnecting = false;
       
       reject(error);
+    });
+
+    socket.on('error', (error) => {
+      console.error('Socket error:', error);
     });
   });
 };
@@ -103,25 +149,19 @@ export const closeSocket = (): void => {
   }
 };
 
-// Enhanced emit event with acknowledgment support
-export const emitEvent = async <T, R = any>(
-  eventName: string, 
-  data?: T, 
-  withAck: boolean = false
-): Promise<R | boolean> => {
+export const emitEvent = async <T>(eventName: string, data?: T): Promise<boolean> => {
   try {
     const socket = await getSocket();
-    
-    if (withAck) {
-      return new Promise((resolve) => {
-        socket.emit(eventName, data, (response: R) => {
-          resolve(response);
-        });
+    return new Promise((resolve) => {
+      socket.emit(eventName, data, (response: { status: string; message: any }) => {
+        if (response && response.status === 'ok') {
+          resolve(true);
+        } else {
+          console.error(`Failed to emit ${eventName}:`, response?.message || 'Unknown error');
+          resolve(false);
+        }
       });
-    } else {
-      socket.emit(eventName, data);
-      return true;
-    }
+    });
   } catch (error) {
     console.error(`Socket not connected, cannot emit event: ${eventName}`, error);
     return false;
@@ -133,7 +173,10 @@ export const listenEvent = <T>(eventName: string, callback: (data: T) => void): 
     socket.on(eventName, callback);
   } else {
     console.warn(`Socket not initialized, can't set listener for: ${eventName}`);
-    // We could queue these too, but for now just warn
+    // Queue these listeners for when the socket connects
+    connectionQueue.push(() => {
+      if (socket) socket.on(eventName, callback);
+    });
   }
 };
 
@@ -143,46 +186,92 @@ export const removeListener = (eventName: string): void => {
   }
 };
 
-// Save messages to local storage
-export const saveMessagesToStorage = (userId: string, messages: Record<string, any[]>) => {
+// Message-specific helper methods
+export const sendMessage = async (receiverId: string, text: string): Promise<boolean> => {
+  console.log('Socket sendMessage called with:', { receiverId, text });
   try {
-    localStorage.setItem(`chat_messages_${userId}`, JSON.stringify(messages));
+    const result = await emitEvent('send_message', { receiverId, text });
+    console.log('Socket sendMessage result:', result);
+    return result;
   } catch (error) {
-    console.error('Error saving messages to storage:', error);
+    console.error('Socket sendMessage error:', error);
+    return false;
   }
 };
 
-// Load messages from local storage
-export const loadMessagesFromStorage = (userId: string): Record<string, any[]> => {
-  try {
-    const stored = localStorage.getItem(`chat_messages_${userId}`);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      
-      // Convert date strings back to Date objects
-      Object.keys(parsed).forEach(conversationId => {
-        parsed[conversationId] = parsed[conversationId].map((msg: any) => ({
-          ...msg,
-          createdAt: new Date(msg.createdAt)
-        }));
-      });
-      
-      return parsed;
-    }
-  } catch (error) {
-    console.error('Error loading messages from storage:', error);
-  }
-  return {};
+export const markMessageAsRead = async (messageId: string, senderId: string): Promise<boolean> => {
+  return emitEvent<ReadMessageEvent>('read_message', { messageId, senderId });
 };
 
-// Sound notification for new messages
-export const playMessageSound = () => {
+export const sendTypingIndicator = async (conversationId: string, receiverId: string): Promise<boolean> => {
+  return emitEvent<TypingIndicatorEvent>('typing', { conversationId, receiverId });
+};
+
+/**
+ * Checks if the backend server is reachable
+ * @returns Promise<boolean> True if the server is reachable
+ */
+export const checkServerConnection = async (): Promise<boolean> => {
   try {
-    const audio = new Audio('/notification.mp3'); // You'll need to add this file to your public folder
-    audio.play().catch(error => {
-      console.error('Error playing notification sound:', error);
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    console.log('Checking server connection at:', apiUrl);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    const response = await fetch(`${apiUrl}/health`, { 
+      method: 'GET',
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
+    return response.ok;
   } catch (error) {
-    console.error('Error with audio playback:', error);
+    console.error('Server connection check failed:', error);
+    return false;
   }
 };
+
+/**
+ * Pre-flight check to test connectivity before socket initialization
+ * Tests basic HTTP connection and CORS setup
+ */
+export const testServerConnectivity = async (): Promise<{success: boolean, message: string}> => {
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    console.log('Running server connectivity test to:', apiUrl);
+    
+    // Test simple HTTP GET
+    const httpResponse = await fetch(`${apiUrl}/health`, {
+      method: 'GET',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include'
+    }).catch(err => {
+      console.error('HTTP connection test failed:', err);
+      return null;
+    });
+    
+    if (!httpResponse) {
+      return {
+        success: false,
+        message: 'Cannot reach server via HTTP. Check if server is running and the URL is correct.'
+      };
+    }
+
+    if (httpResponse.status === 404) {
+      console.log('Health endpoint not found, but server is reachable');
+      return { success: true, message: 'Server is reachable but /health endpoint not found' };
+    }
+    
+    console.log('HTTP connection test successful:', httpResponse.status);
+    return { success: true, message: 'Server is reachable via HTTP' };
+  } catch (error) {
+    return {
+      success: false,
+      message: `Connectivity test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    };
+  }
+}; 

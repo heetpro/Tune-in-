@@ -1,6 +1,8 @@
 import { API_BASE_URL, getHeaders, handleApiResponse, ApiResponse } from './config';
 import { IMessage, IUser } from '@/types/index';
-import { emitEvent } from '@/lib/socket';
+import { Message } from '@/types/socket';
+import { emitEvent, sendMessage as socketSendMessage } from '@/lib/socket';
+import { getFriendsList } from './friends';
 
 interface MessagesResponse {
   messages: IMessage[];
@@ -12,13 +14,31 @@ interface MessagesResponse {
  */
 export const getChatUsers = async (): Promise<ApiResponse<IUser[]>> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/messages/users`, {
-      method: 'GET',
-      headers: getHeaders(),
-      credentials: 'include'
-    });
+    // First try the dedicated chat users endpoint
+    try {
+      const response = await fetch(`${API_BASE_URL}/messages/users`, {
+        method: 'GET',
+        headers: getHeaders(),
+        credentials: 'include'
+      });
+      
+      const result = await handleApiResponse<IUser[]>(response);
+      
+      // If we got valid data, return it
+      if (result.success && result.data && result.data.length > 0) {
+        return result;
+      }
+      
+      console.log('Chat users endpoint returned no data, falling back to friends list');
+      
+    } catch (error) {
+      console.error('Failed to fetch chat users from primary endpoint:', error);
+    }
     
-    return await handleApiResponse<IUser[]>(response);
+    // Fallback: use the friends list if chat users endpoint fails or returns empty
+    console.log('Fetching friends list as fallback for chat users');
+    return await getFriendsList();
+    
   } catch (error) {
     console.error('Failed to fetch chat users:', error);
     throw error;
@@ -26,9 +46,9 @@ export const getChatUsers = async (): Promise<ApiResponse<IUser[]>> => {
 };
 
 /**
- * Gets message history for a specific conversation
+ * Fetches message history between current user and specified user
  */
-export const getMessageHistory = async (userId: string): Promise<ApiResponse<MessagesResponse>> => {
+export const getMessageHistory = async (userId: string): Promise<ApiResponse<{ messages: IMessage[] }>> => {
   try {
     const response = await fetch(`${API_BASE_URL}/messages/${userId}`, {
       method: 'GET',
@@ -36,9 +56,9 @@ export const getMessageHistory = async (userId: string): Promise<ApiResponse<Mes
       credentials: 'include'
     });
     
-    return await handleApiResponse<MessagesResponse>(response);
+    return await handleApiResponse<{ messages: IMessage[] }>(response);
   } catch (error) {
-    console.error('Failed to fetch message history:', error);
+    console.error('Failed to fetch messages:', error);
     throw error;
   }
 };
@@ -57,31 +77,8 @@ export const sendMessage = async (recipientId: string, message: string, image?: 
       ...(image && { image })
     };
 
-    // First try to send via socket
-    console.log('Attempting to send message via socket first');
-    const socketSuccess = await emitEvent('send_message', {
-      receiverId: recipientId,
-      ...payload
-    });
-
-    if (socketSuccess) {
-      console.log('Message sent successfully via socket');
-      // Create a minimal message object to satisfy the type
-      const socketMessage: IMessage = {
-        _id: Date.now().toString(), // Temporary ID
-        receiverId: recipientId,
-        senderId: '', // Will be populated by backend
-        text: message,
-        isRead: false,
-        isDelivered: false,
-        isDeleted: false,
-        createdAt: new Date()
-      };
-      return { success: true, data: socketMessage, message: 'Message sent via socket' };
-    }
-
-    // Fall back to HTTP if socket fails
-    console.log('Socket send failed, falling back to HTTP API');
+    // Always use HTTP first to ensure the message is saved to the database
+    console.log('Sending message via HTTP API');
     const response = await fetch(`${API_BASE_URL}/messages/send/${recipientId}`, {
       method: 'POST',
       headers: getHeaders(),
@@ -89,7 +86,23 @@ export const sendMessage = async (recipientId: string, message: string, image?: 
       credentials: 'include'
     });
     
-    return await handleApiResponse<IMessage>(response);
+    const result = await handleApiResponse<IMessage>(response);
+    
+    if (result.success && result.data) {
+      // Message saved to database successfully
+      // Now try to send via socket for real-time delivery if needed
+      try {
+        console.log('Message saved to database, notifying via socket');
+        socketSendMessage(recipientId, message);
+      } catch (socketError) {
+        console.error('Socket notification failed, but message was saved:', socketError);
+        // Don't fail the operation since the message is already saved
+      }
+      
+      return result;
+    }
+    
+    return result;
   } catch (error) {
     console.error('Failed to send message:', error);
     throw error;

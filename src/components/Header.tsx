@@ -41,6 +41,11 @@ export default function Header() {
                   </Link>
                 </li>
                 <li>
+                  <Link href="/messages" className="hover:text-gray-300">
+                    Messages
+                  </Link>
+                </li>
+                <li>
                   <Link href="/profile" className="hover:text-gray-300">
                     Profile
                   </Link>
