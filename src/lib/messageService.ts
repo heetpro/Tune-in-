@@ -86,10 +86,45 @@ class MessageService {
       }
 
       const savedMessage = await response.json();
+      console.log('Message saved to database:', savedMessage);
       
       // Also notify via socket for real-time update
       try {
-        await socketSendMessage(receiverId, text);
+        // Import socket directly to have more control
+        const { getSocket } = await import('./socket');
+        
+        // Get socket connection
+        const socket = await getSocket().catch(err => {
+          console.warn('Could not get socket connection:', err);
+          return null;
+        });
+        
+        if (socket) {
+          // Prepare message for socket with real DB ID
+          const socketMessage = {
+            messageId: savedMessage._id,
+            receiverId,
+            senderId: savedMessage.senderId,
+            text,
+            image,
+            createdAt: savedMessage.createdAt || new Date()
+          };
+          
+          console.log('Emitting message via socket with ID:', savedMessage._id);
+          
+          // Try all possible event names to ensure compatibility
+          socket.emit('message', socketMessage);
+          socket.emit('send_message', socketMessage);
+          
+          // Also emit specific delivery event
+          socket.emit('message_delivered', { 
+            messageId: savedMessage._id,
+            receiverId,
+            text
+          });
+        } else {
+          console.log('Socket unavailable, message sent via HTTP only');
+        }
       } catch (socketError) {
         console.warn('Socket notification failed, but message was saved:', socketError);
       }
@@ -124,7 +159,7 @@ class MessageService {
   // Convert API message format to frontend format
   convertToFrontendMessage(message: IMessage): Message {
     return {
-      id: message._id,
+      id: message._id, // Use _id as the ID field
       senderId: message.senderId,
       receiverId: message.receiverId,
       text: message.text || '',

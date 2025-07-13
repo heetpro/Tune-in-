@@ -72,7 +72,9 @@ export const useChat = (receiverId: string | null) => {
         setMessages(prev => {
           // Check if message already exists
           if (prev.some(m => m.id === formattedMessage.id)) {
-            return prev;
+            return prev.map(m => 
+              m.id === formattedMessage.id ? { ...m, ...formattedMessage } : m
+            );
           }
           return [...prev, formattedMessage].sort((a, b) => 
             new Date(a.createdAt as Date).getTime() - new Date(b.createdAt as Date).getTime()
@@ -119,31 +121,71 @@ export const useChat = (receiverId: string | null) => {
     socket.on('message', handleNewMessage);
     socket.on('newMessage', handleNewMessage);
     
-    // Handle message delivery confirmations
+    // Enhanced delivery confirmation handler that checks all possible message identifiers
     const handleDeliveryConfirmation = (data: any) => {
-      console.log('Message delivery confirmation:', data);
+      console.log('Message delivery confirmation received:', data);
       
-      if (!data.messageId) return;
+      // Get all possible IDs from the data
+      const possibleIds = [
+        data.messageId,
+        data._id,
+        data.id
+      ].filter(Boolean);
+      
+      // Get text from the data for matching
+      const messageText = data.text || data.content || '';
       
       setMessages(prev => prev.map(msg => {
-        // Update any message with matching ID or a temp ID that matches
-        if (msg.id === data.messageId || 
-            (msg.id?.toString().startsWith('temp-') && 
-             msg.senderId === user._id && 
-             msg.text === data.text)) {
+        // Check for ID match or temp message with matching text
+        const isIdMatch = possibleIds.includes(msg.id);
+        const isTempMessageMatch = msg.id?.toString().startsWith('temp-') && 
+                                  msg.senderId === user._id && 
+                                  msg.text === messageText;
+        
+        if (isIdMatch || isTempMessageMatch) {
+          // Extract real ID from data if possible
+          const realId = possibleIds.find(id => !String(id).startsWith('temp-')) || msg.id;
+          
           return { 
-            ...msg, 
-            id: data.messageId, // Replace temp ID with actual ID
-            isDelivered: true 
+            ...msg,
+            id: realId, // Update with real ID from server
+            isDelivered: true,
+            error: false
           };
         }
         return msg;
       }));
     };
     
-    socket.on('message_delivered', handleDeliveryConfirmation);
-    socket.on('message_sent', handleDeliveryConfirmation);
-    socket.on('delivery_confirmation', handleDeliveryConfirmation);
+    // Listen for all possible delivery confirmation events
+    const deliveryEvents = [
+      'message_delivered', 
+      'message_sent', 
+      'delivery_confirmation',
+      'message_confirmed',
+      'message_received'
+    ];
+    
+    deliveryEvents.forEach(event => {
+      socket.on(event, handleDeliveryConfirmation);
+    });
+    
+    // Listen for message ack event that might contain sent message
+    socket.on('message_ack', (data: any) => {
+      console.log('Message ack received:', data);
+      
+      // Handle both object and string formats
+      let messageData = data;
+      if (typeof data === 'string') {
+        try {
+          messageData = JSON.parse(data);
+        } catch (e) {
+          console.error('Failed to parse message_ack data');
+        }
+      }
+      
+      handleDeliveryConfirmation(messageData);
+    });
     
     socket.on('typing', handleTyping);
     socket.on('user_typing', handleTyping);
@@ -157,9 +199,11 @@ export const useChat = (receiverId: string | null) => {
       socket.off('message', handleNewMessage);
       socket.off('newMessage', handleNewMessage);
       
-      socket.off('message_delivered', handleDeliveryConfirmation);
-      socket.off('message_sent', handleDeliveryConfirmation);
-      socket.off('delivery_confirmation', handleDeliveryConfirmation);
+      deliveryEvents.forEach(event => {
+        socket.off(event, handleDeliveryConfirmation);
+      });
+      
+      socket.off('message_ack', handleDeliveryConfirmation);
       
       socket.off('typing', handleTyping);
       socket.off('user_typing', handleTyping);
@@ -173,9 +217,11 @@ export const useChat = (receiverId: string | null) => {
   const sendMessage = useCallback(async (text: string, image: string | null = null): Promise<boolean> => {
     if (!receiverId || !user?._id || !text.trim()) return false;
     
+    // Create the tempId outside try/catch so it's available in both blocks
+    const tempId = `temp-${Date.now()}`;
+    
     try {
       // Create optimistic message
-      const tempId = `temp-${Date.now()}`;
       const optimisticMessage: Message = {
         id: tempId,
         senderId: user._id,
@@ -199,18 +245,16 @@ export const useChat = (receiverId: string | null) => {
         // Find the temporary message we need to update
         if (msg.id === tempId) {
           // Create a properly formatted message with delivered status
+          const updatedMessage = messageService.convertToFrontendMessage(savedMessage);
+          console.log('Replacing temp message with saved message:', updatedMessage);
+          
           return {
-            ...messageService.convertToFrontendMessage(savedMessage),
-            isDelivered: true // Explicitly mark as delivered
+            ...updatedMessage,
+            isDelivered: true // Explicitly mark as delivered since it was saved in DB
           };
         }
         return msg;
       }));
-      
-      // Try socket notification
-      if (socket?.connected) {
-        socket.emit('send_message', { receiverId, text, image });
-      }
       
       return true;
     } catch (err) {
@@ -218,13 +262,13 @@ export const useChat = (receiverId: string | null) => {
       
       // Mark optimistic message as failed
       setMessages(prev => prev.map(msg => 
-        msg.id?.toString().startsWith('temp-') ? { ...msg, error: true } : msg
+        msg.id === tempId ? { ...msg, error: true } : msg
       ));
       
       setError('Failed to send message');
       return false;
     }
-  }, [socket, receiverId, user?._id]);
+  }, [receiverId, user?._id]);
 
   // Send typing indicator
   const sendTypingIndicator = useCallback(() => {
