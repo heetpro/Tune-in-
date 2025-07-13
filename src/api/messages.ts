@@ -71,10 +71,7 @@ export const sendMessage = async (recipientId: string, message: string, image?: 
     // Create the message payload with all required fields
     const payload = {
       text: message,
-      isRead: false,
-      isDelivered: false,
-      isDeleted: false,
-      ...(image && { image })
+      image: image || null
     };
 
     // Always use HTTP first to ensure the message is saved to the database

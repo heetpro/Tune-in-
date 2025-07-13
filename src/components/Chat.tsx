@@ -2,73 +2,48 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useChat } from '@/context/ChatContext';
-import { Message } from '@/types/socket';
-import { getMessageHistory } from '@/api';
+import { useChat } from '@/hooks/useChat';
 
 interface ChatProps {
-  conversationId: string;
   receiverId: string;
 }
 
-const Chat: React.FC<ChatProps> = ({ conversationId, receiverId }) => {
+const Chat: React.FC<ChatProps> = ({ receiverId }) => {
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
   const { user } = useAuth();
-  const { 
-    messages, 
-    sendMessage, 
-    markAsRead, 
+  
+  const {
+    messages,
+    loading,
+    error,
+    sendMessage,
     sendTypingIndicator,
-    isConnected,
-    connectionError,
-    typingUsers,
-    onlineUsers
-  } = useChat();
-
-  // Get messages for this conversation
-  const conversationMessages = messages[receiverId] || [];
-  const isTyping = typingUsers[conversationId]?.userId === receiverId;
-  const isOnline = onlineUsers.includes(receiverId);
-
-  // Fetch initial messages if not in the context
-  useEffect(() => {
-    const fetchMessages = async () => {
-      if (conversationMessages.length === 0) {
-        try {
-          const response = await getMessageHistory(receiverId);
-          if (response.data?.messages) {
-            // Messages will be added to context by the ChatContext provider
-          }
-        } catch (error) {
-          console.error('Error fetching messages:', error);
-        }
-      }
-    };
-    
-    fetchMessages();
-  }, [conversationId, receiverId, conversationMessages.length]);
-
-  // Mark messages as read
-  useEffect(() => {
-    conversationMessages.forEach(message => {
-      if (message.senderId !== user?._id && !message.isRead) {
-        markAsRead(message.id as string, message.senderId);
-      }
-    });
-  }, [conversationMessages, markAsRead, user?._id]);
+    markAsRead,
+    isOnline,
+    isTyping,
+    isConnected
+  } = useChat(receiverId);
 
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [conversationMessages]);
+  }, [messages]);
+
+  // Mark messages as read when they come into view
+  useEffect(() => {
+    messages.forEach(message => {
+      if (message.senderId !== user?._id && !message.isRead) {
+        markAsRead(message.id as string, message.senderId);
+      }
+    });
+  }, [messages, markAsRead, user?._id]);
 
   // Handle message input and send typing indicator
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNewMessage(e.target.value);
-    sendTypingIndicator(conversationId, receiverId);
+    sendTypingIndicator();
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -77,11 +52,8 @@ const Chat: React.FC<ChatProps> = ({ conversationId, receiverId }) => {
     
     try {
       setSending(true);
-      const success = await sendMessage(receiverId, newMessage);
-      
-      if (success) {
-        setNewMessage('');
-      }
+      await sendMessage(newMessage);
+      setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
     } finally {
@@ -100,17 +72,21 @@ const Chat: React.FC<ChatProps> = ({ conversationId, receiverId }) => {
     <div className="flex flex-col h-[calc(100vh-180px)] bg-white rounded-lg shadow">
       {!isConnected && (
         <div className="p-2 bg-yellow-100 text-yellow-800 text-center text-sm">
-          {connectionError || "Socket disconnected. Messages may be delayed."}
+          {error || "Socket disconnected. Messages may be delayed."}
         </div>
       )}
       
       <div className="flex-1 p-4 overflow-y-auto">
-        {conversationMessages.length === 0 ? (
+        {loading ? (
+          <div className="flex justify-center items-center h-32">
+            <div className="spinner h-8 w-8 rounded-full border-4 border-t-blue-500 border-r-transparent border-b-blue-500 border-l-transparent animate-spin"></div>
+          </div>
+        ) : messages.length === 0 ? (
           <div className="flex items-center justify-center h-full text-gray-500">
             No messages yet. Start the conversation!
           </div>
         ) : (
-          conversationMessages.map((message, index) => (
+          messages.map((message, index) => (
             <div 
               key={message.id || `msg-${message.senderId}-${message.receiverId}-${index}`} 
               className={`mb-4 ${message.senderId === user?._id ? 'text-right' : 'text-left'}`}
@@ -131,9 +107,13 @@ const Chat: React.FC<ChatProps> = ({ conversationId, receiverId }) => {
                   }`}
                 >
                   {formatTime(message.createdAt)}
-                  {!message.id?.startsWith('temp-') ? 
-                    (message.isRead ? " • Read" : message.isDelivered ? " • Delivered" : "") : 
-                    " • Sending..."}
+                  {message.id?.toString().startsWith('temp-') 
+                    ? " • Sending..." 
+                    : (message.isRead 
+                        ? " • Read" 
+                        : message.isDelivered 
+                          ? " • Delivered" 
+                          : "")}
                   {message.error && " • Failed"}
                 </div>
               </div>

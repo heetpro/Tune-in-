@@ -1,87 +1,68 @@
 "use client";
 
-import React, { useState } from 'react';
-import { testServerConnectivity } from '@/lib/socket';
-import { useChat } from '@/context/ChatContext';
+import { useState } from 'react';
+import { useSocket } from '@/context/SocketContext';
 
-const SocketDebug: React.FC = () => {
-  const [testResult, setTestResult] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
-  const { isConnected, connectionError } = useChat();
+export default function SocketDebug() {
+  const [expanded, setExpanded] = useState(false);
+  const { isConnected, onlineUsers, connectionError, socket } = useSocket();
 
-  const runConnectionTest = async () => {
-    setLoading(true);
-    try {
-      const result = await testServerConnectivity();
-      setTestResult(JSON.stringify(result, null, 2));
-    } catch (error) {
-      setTestResult(`Error running test: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (!expanded) {
+    return (
+      <button
+        onClick={() => setExpanded(true)}
+        className="fixed bottom-4 right-4 bg-gray-700 text-white p-2 rounded-lg text-xs z-50 opacity-70 hover:opacity-100"
+      >
+        Socket: {isConnected ? '🟢' : '🔴'}
+      </button>
+    );
+  }
 
   return (
-    <div className="fixed bottom-0 right-0 mb-4 mr-4 bg-white shadow-lg rounded-lg p-3 text-sm max-w-md">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <div 
-            className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}
-          ></div>
-          <span>Socket: {isConnected ? 'Connected' : 'Disconnected'}</span>
-        </div>
-        <button 
-          onClick={() => setShowDetails(!showDetails)}
-          className="text-blue-500 hover:underline text-xs"
+    <div className="fixed bottom-4 right-4 bg-gray-800 text-white p-4 rounded-lg shadow-lg z-50 max-w-md text-xs font-mono">
+      <div className="flex justify-between items-center mb-2">
+        <h3 className="font-bold">Socket Debug</h3>
+        <button
+          onClick={() => setExpanded(false)}
+          className="text-gray-400 hover:text-white"
         >
-          {showDetails ? 'Hide Details' : 'Show Details'}
+          &times;
         </button>
       </div>
       
-      {showDetails && (
-        <div className="mt-2">
-          {connectionError && (
-            <div className="text-red-500 mb-2">
-              <div className="font-bold">Error:</div>
-              <div className="text-xs">{connectionError}</div>
-            </div>
+      <div className="space-y-2 max-h-80 overflow-y-auto">
+        <p>
+          Status:{' '}
+          <span
+            className={`font-bold ${
+              isConnected ? 'text-green-500' : 'text-red-500'
+            }`}
+          >
+            {isConnected ? 'Connected' : 'Disconnected'}
+          </span>
+        </p>
+        
+        {connectionError && (
+          <p className="text-red-400">Error: {connectionError}</p>
+        )}
+        
+        <p>Socket ID: {socket?.id || 'N/A'}</p>
+        
+        <div>
+          <p className="mb-1">Online Users ({onlineUsers.length}):</p>
+          {onlineUsers.length > 0 ? (
+            <ul className="pl-4 space-y-1">
+              {onlineUsers.map(userId => (
+                <li key={userId} className="text-green-400">
+                  {userId}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-400 pl-4">No users online</p>
           )}
-          
-          <div className="flex space-x-2 mt-2">
-            <button
-              onClick={runConnectionTest}
-              disabled={loading}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs"
-            >
-              {loading ? 'Testing...' : 'Test Connection'}
-            </button>
-          </div>
-          
-          {testResult && (
-            <div className="mt-2 p-2 bg-gray-100 rounded overflow-auto max-h-40">
-              <pre className="text-xs whitespace-pre-wrap">{testResult}</pre>
-            </div>
-          )}
-          
-          <div className="mt-2">
-            <details className="text-xs">
-              <summary className="cursor-pointer hover:text-blue-500">
-                Troubleshooting Tips
-              </summary>
-              <ul className="pl-5 mt-1 list-disc space-y-1">
-                <li>Check if backend server is running at the correct URL</li>
-                <li>Verify NEXT_PUBLIC_API_URL is set correctly in .env</li>
-                <li>Check CORS settings on your backend server</li>
-                <li>Ensure user ID and authentication token are valid</li>
-                <li>Try using different transport (websocket/polling)</li>
-              </ul>
-            </details>
-          </div>
         </div>
-      )}
+      </div>
     </div>
   );
-};
-
-export default SocketDebug; 
+} 

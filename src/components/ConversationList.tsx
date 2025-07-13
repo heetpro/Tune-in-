@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useChat } from '@/context/ChatContext';
+import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
 import { ChatUser, Message } from '@/types/socket';
 import { IUser } from '@/types';
 import Link from 'next/link';
+import { messageService } from '@/lib/messageService';
 
 interface ConversationListProps {
   activeConversationId?: string;
@@ -18,61 +19,64 @@ const ConversationList: React.FC<ConversationListProps> = ({
   onSelectConversation,
   friendsList = []
 }) => {
-  const { messages, onlineUsers, isConnected } = useChat();
+  const { onlineUsers, isConnected } = useSocket();
   const { user } = useAuth();
   const [conversations, setConversations] = useState<ChatUser[]>([]);
+  const [messages, setMessages] = useState<{[userId: string]: Message[]}>({});
   
-  // Process messages and friendsList to create a list of conversations
+  // Process friendsList to create conversation list
   useEffect(() => {
-    if (!user) return;
+    if (!user || friendsList.length === 0) return;
     
     const conversationMap = new Map<string, ChatUser>();
     
     // First add friends from friendsList
-    if (friendsList.length > 0) {
-      friendsList.forEach((friend) => {
-        if (!friend._id) return;
-        
-        conversationMap.set(friend._id, {
-          id: friend._id,
-          name: friend.displayName || friend.username || `User ${friend._id.substring(0, 5)}...`,
-          avatar: friend.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.displayName || friend.username || 'U')}`,
-          isOnline: onlineUsers.includes(friend._id)
-        });
+    friendsList.forEach((friend) => {
+      if (!friend._id) return;
+      
+      conversationMap.set(friend._id, {
+        id: friend._id,
+        name: friend.displayName || friend.username || `User ${friend._id.substring(0, 5)}...`,
+        avatar: friend.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.displayName || friend.username || 'U')}`,
+        isOnline: onlineUsers.includes(friend._id)
       });
-    }
-    
-    // Process all messages to find unique conversations
-    Object.entries(messages).forEach(([userId, conversationMessages]) => {
-      // Skip if there are no messages
-      if (conversationMessages.length === 0) return;
-      
-      // Get the latest message to extract user info
-      const latestMessage = conversationMessages[conversationMessages.length - 1];
-      const isOwnMessage = latestMessage.senderId === user._id;
-      const otherUserId = isOwnMessage ? latestMessage.receiverId : latestMessage.senderId;
-      
-      // Check if we already have this user in our map
-      if (!conversationMap.has(otherUserId)) {
-        // Add user from messages
-        conversationMap.set(otherUserId, {
-          id: otherUserId,
-          name: `User ${otherUserId.substring(0, 5)}...`, // Placeholder
-          avatar: `https://ui-avatars.com/api/?name=${otherUserId.substring(0, 2)}`,
-          isOnline: onlineUsers.includes(otherUserId)
-        });
-      }
     });
     
-    // Convert map to array and sort by most recent message
+    // Convert map to array
     setConversations(Array.from(conversationMap.values()));
-  }, [messages, user, onlineUsers, friendsList]);
+    
+    // Load message snippets for each conversation
+    friendsList.forEach(async (friend) => {
+      if (!friend._id) return;
+      
+      try {
+        // Try to fetch just the latest message for each friend
+        const messages = await messageService.getMessages(friend._id);
+        if (messages && messages.length > 0) {
+          const formattedMessages = messages.map(msg => 
+            messageService.convertToFrontendMessage(msg)
+          );
+          
+          setMessages(prev => ({
+            ...prev,
+            [friend._id]: formattedMessages
+          }));
+        }
+      } catch (error) {
+        console.error(`Failed to load messages for ${friend._id}:`, error);
+      }
+    });
+  }, [friendsList, user, onlineUsers]);
   
   // Get the last message for a conversation
   const getLastMessage = (userId: string): Message | null => {
     const conversationMessages = messages[userId] || [];
     if (conversationMessages.length === 0) return null;
-    return conversationMessages[conversationMessages.length - 1];
+    // Sort by date to get the most recent message
+    const sorted = [...conversationMessages].sort((a, b) => 
+      new Date(b.createdAt as Date).getTime() - new Date(a.createdAt as Date).getTime()
+    );
+    return sorted[0];
   };
   
   // Format the timestamp for the last message
@@ -117,7 +121,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
     <div className="conversations-list">
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <h2 className="text-xl font-semibold">Messages</h2>
-        <div className={`status-indicator ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}>
+        <div className={`text-xs px-2 py-1 rounded-full ${isConnected ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
           {isConnected ? 'Connected' : 'Offline'}
         </div>
       </div>
@@ -135,6 +139,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
             const lastMessage = getLastMessage(conv.id);
             const unreadCount = getUnreadCount(conv.id);
             const isActive = activeConversationId === conv.id;
+            const isUserOnline = onlineUsers.includes(conv.id);
             
             return (
               <li 
@@ -150,7 +155,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
                       alt={conv.name} 
                       className="w-12 h-12 rounded-full"
                     />
-                    {conv.isOnline && (
+                    {isUserOnline && (
                       <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
                     )}
                   </div>
@@ -165,7 +170,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
                     
                     <div className="flex justify-between items-center">
                       <p className="text-sm text-gray-600 truncate max-w-[180px]">
-                        {lastMessage?.text || ''}
+                        {lastMessage?.text || 'No messages yet'}
                       </p>
                       
                       {unreadCount > 0 && (

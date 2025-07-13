@@ -8,7 +8,7 @@ import { IUser } from '@/types';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Chat from '@/components/Chat';
 import ConversationList from '@/components/ConversationList';
-import { useChat } from '@/context/ChatContext';
+import { useSocket } from '@/context/SocketContext';
 import Header from '@/components/Header';
 
 export default function MessagesPage() {
@@ -24,7 +24,7 @@ function MessagesContent() {
   const [loading, setLoading] = useState(true);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const { user } = useAuth();
-  const { isConnected } = useChat();
+  const { isConnected } = useSocket();
   const router = useRouter();
 
   useEffect(() => {
@@ -48,9 +48,6 @@ function MessagesContent() {
   const handleSelectUser = (userId: string) => {
     setSelectedUserId(userId);
   };
-
-  // Find the selected user details
-  const selectedUser = chatUsers.find(u => u._id === selectedUserId);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -78,7 +75,6 @@ function MessagesContent() {
           <div className="w-2/3">
             {selectedUserId ? (
               <Chat
-                conversationId={`${user?._id}_${selectedUserId}`}
                 receiverId={selectedUserId}
               />
             ) : (

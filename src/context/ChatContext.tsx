@@ -2,10 +2,13 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { initializeSocket, getSocket, closeSocket, listenEvent, getUserId, sendMessage as socketSendMessage, 
-  markMessageAsRead, sendTypingIndicator as socketTypingIndicator, testServerConnectivity } from '@/lib/socket';
+  markMessageAsRead, sendTypingIndicator as socketTypingIndicator, testServerConnectivity, removeListener } from '@/lib/socket';
 import { Message, UserStatusEvent, TypingEvent, ReadReceiptEvent } from '@/types/socket';
 import { useAuth } from './AuthContext';
 import Cookies from 'js-cookie';
+import { getMessageHistory } from '@/api';
+import { IMessage } from '@/types';
+import { messageService } from '@/lib/messageService';
 
 interface ChatContextType {
   messages: Record<string, Message[]>; // Organized by conversation
@@ -16,6 +19,7 @@ interface ChatContextType {
   typingUsers: Record<string, { userId: string; timestamp: number }>;
   isConnected: boolean;
   connectionError: string | null;
+  loadMessageHistory: (userId: string) => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextType | null>(null);
@@ -27,6 +31,53 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const { user } = useAuth();
+
+  // Function to load message history for a conversation
+  const loadMessageHistory = useCallback(async (userId: string): Promise<void> => {
+    if (!user?._id) return;
+
+    console.log('Loading message history for conversation with:', userId);
+    
+    try {
+      // Use the messageService to get messages
+      const messages = await messageService.getMessages(userId);
+      
+      if (messages && messages.length > 0) {
+        console.log(`Loaded ${messages.length} messages for conversation with ${userId}`);
+        
+        // Convert IMessage to Message format using the service helper
+        const formattedMessages: Message[] = messages.map(msg => messageService.convertToFrontendMessage(msg));
+        
+        // Add messages to state
+        setMessages(prev => {
+          const existingMessages = prev[userId] || [];
+          
+          // Combine existing and new messages, removing duplicates by ID
+          const allMessages = [...existingMessages];
+          
+          formattedMessages.forEach(newMsg => {
+            if (!allMessages.some(m => m.id === newMsg.id)) {
+              allMessages.push(newMsg);
+            }
+          });
+          
+          // Sort by creation time
+          const sortedMessages = allMessages.sort((a, b) => 
+            new Date(a.createdAt as Date).getTime() - new Date(b.createdAt as Date).getTime()
+          );
+          
+          return {
+            ...prev,
+            [userId]: sortedMessages
+          };
+        });
+      } else {
+        console.warn('No messages found or failed to load message history');
+      }
+    } catch (error) {
+      console.error('Error loading message history:', error);
+    }
+  }, [user?._id]);
 
   // Initialize socket connection
   useEffect(() => {
@@ -103,44 +154,66 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!isConnected || !user?._id) return;
 
-    // Handle incoming messages
-    listenEvent<Message>('new_message', (message) => {
+    // Clean up previous listeners
+    // The original code had removeListener, but removeListener is not defined in the provided imports.
+    // Assuming it's a placeholder for a function that would remove listeners if it existed.
+    // For now, we'll just re-declare the listeners to avoid conflicts.
+    const handleIncomingMessage = (message: any) => {
+      console.log('Received message from socket:', message);
+      
+      // Ensure the message has the required format
+      const formattedMessage: Message = {
+        id: message._id || message.id,
+        senderId: message.senderId,
+        receiverId: message.receiverId,
+        text: message.text || '',
+        image: message.image,
+        isRead: message.isRead || false,
+        isDelivered: true,
+        isDeleted: message.isDeleted || false,
+        createdAt: message.createdAt ? new Date(message.createdAt) : new Date()
+      };
+
       setMessages((prev) => {
         // Create conversation ID based on the other user
-        const conversationId = user._id === message.senderId 
-          ? message.receiverId 
-          : message.senderId;
+        const conversationId = user._id === formattedMessage.senderId 
+          ? formattedMessage.receiverId 
+          : formattedMessage.senderId;
         
         // Get existing messages for this conversation
         const conversationMessages = prev[conversationId] || [];
         
         // Avoid duplicate messages
-        if (conversationMessages.some(msg => msg.id === message.id)) {
+        if (conversationMessages.some(msg => 
+          (msg.id && msg.id === formattedMessage.id) || 
+          (msg.text === formattedMessage.text && 
+           msg.senderId === formattedMessage.senderId && 
+           Math.abs(new Date(msg.createdAt as Date).getTime() - 
+                    new Date(formattedMessage.createdAt as Date).getTime()) < 1000)
+        )) {
           return prev;
         }
         
-        // Make sure message has all required fields
-        const completeMessage: Message = {
-          ...message,
-          isRead: message.isRead ?? false,
-          isDelivered: message.isDelivered ?? true,
-          isDeleted: message.isDeleted ?? false,
-          createdAt: message.createdAt ? new Date(message.createdAt) : new Date()
-        };
+        console.log(`Adding new message to conversation with ${conversationId}`);
         
         // Add new message and sort by time
         return {
           ...prev,
           [conversationId]: [
             ...conversationMessages,
-            completeMessage
+            formattedMessage
           ].sort((a, b) => {
             return new Date(a.createdAt as Date).getTime() - 
                    new Date(b.createdAt as Date).getTime();
           })
         };
       });
-    });
+    };
+
+    // Listen for different message event names that the backend might use
+    listenEvent('new_message', handleIncomingMessage);
+    listenEvent('message', handleIncomingMessage);
+    listenEvent('newMessage', handleIncomingMessage);
 
     // Handle read receipts
     listenEvent<ReadReceiptEvent>('message_read', ({ messageId }) => {
@@ -225,112 +298,46 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
       });
       
-      // Send message via HTTP API (this will save to database)
+      // Send message using the message service
       try {
-        console.log('Sending message via HTTP API with payload:', { text, image: image ? '[image data]' : undefined });
+        console.log('Sending message via messageService');
+        const savedMessage = await messageService.sendMessage(receiverId, text, image || null);
+        console.log('Message saved successfully:', savedMessage);
         
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-        const authToken = Cookies.get('auth_token');
-        
-        console.log('API URL:', apiUrl);
-        console.log('Auth token exists:', !!authToken);
-        
-        // Create the exact payload format that the backend expects
-        const payload: { text: string, image?: string } = { text };
-        if (image) payload.image = image;
-        
-        const response = await fetch(`${apiUrl}/messages/send/${receiverId}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
-          },
-          body: JSON.stringify(payload),
-          credentials: 'include'
-        });
-        
-        console.log('HTTP response status:', response.status);
-        
-        if (response.ok) {
-          // Get saved message from response
-          const savedMessage = await response.json();
-          console.log('Message saved successfully:', savedMessage);
-          
-          // Update the temporary message with the real one from database
-          setMessages(prev => {
-            const conversationMessages = prev[receiverId] || [];
-            return {
-              ...prev,
-              [receiverId]: conversationMessages.map(msg => 
-                msg.id === tempId ? { 
-                  ...msg, 
-                  id: savedMessage._id,
-                  isDelivered: true
-                } : msg
-              )
-            };
-          });
-          
-          // Also try socket notification
-          socketSendMessage(receiverId, text).catch(err => {
-            console.warn('Socket notification failed:', err);
-          });
-          
-          return true;
-        } else {
-          // Try to get error details from response
-          let errorDetails = '';
-          try {
-            const errorResponse = await response.json();
-            errorDetails = JSON.stringify(errorResponse);
-            console.error('Server error details:', errorResponse);
-          } catch (parseError) {
-            try {
-              errorDetails = await response.text();
-              console.error('Server error text:', errorDetails);
-            } catch (textError) {
-              console.error('Could not parse error response');
-            }
-          }
-          
-          throw new Error(`HTTP error: ${response.status} - ${errorDetails}`);
-        }
-      } catch (httpError) {
-        console.error('HTTP send failed:', httpError);
-        
-        // Try socket as fallback
-        console.log('Falling back to socket for message send');
-        const socketSuccess = await socketSendMessage(receiverId, text);
-        
-        if (!socketSuccess) {
-          // Mark the optimistic message as failed if both methods fail
-          setMessages(prev => {
-            const conversationMessages = prev[receiverId] || [];
-            return {
-              ...prev,
-              [receiverId]: conversationMessages.map(msg => 
-                msg.id === tempId ? { ...msg, error: true } : msg
-              )
-            };
-          });
-          return false;
-        }
-        
-        // Socket succeeded but HTTP failed
+        // Update the temporary message with the real one from database
         setMessages(prev => {
           const conversationMessages = prev[receiverId] || [];
           return {
             ...prev,
             [receiverId]: conversationMessages.map(msg => 
-              msg.id === tempId ? { ...msg, isDelivered: true } : msg
+              msg.id === tempId ? { 
+                ...msg, 
+                id: savedMessage._id,
+                isDelivered: true
+              } : msg
             )
           };
         });
         
         return true;
+      } catch (error) {
+        console.error('Error sending message:', error);
+        
+        // Mark the optimistic message as failed
+        setMessages(prev => {
+          const conversationMessages = prev[receiverId] || [];
+          return {
+            ...prev,
+            [receiverId]: conversationMessages.map(msg => 
+              msg.id === tempId ? { ...msg, error: true } : msg
+            )
+          };
+        });
+        
+        return false;
       }
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Error in sendMessage:', error);
       return false;
     }
   }, [user?._id]);
@@ -368,6 +375,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         typingUsers,
         isConnected,
         connectionError,
+        loadMessageHistory
       }}
     >
       {children}

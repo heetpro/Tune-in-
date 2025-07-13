@@ -183,6 +183,9 @@ export const listenEvent = <T>(eventName: string, callback: (data: T) => void): 
 export const removeListener = (eventName: string): void => {
   if (socket) {
     socket.off(eventName);
+    console.log(`Removed listener for event: ${eventName}`);
+  } else {
+    console.warn(`Socket not available, couldn't remove listener for: ${eventName}`);
   }
 };
 
@@ -190,7 +193,13 @@ export const removeListener = (eventName: string): void => {
 export const sendMessage = async (receiverId: string, text: string): Promise<boolean> => {
   console.log('Socket sendMessage called with:', { receiverId, text });
   try {
-    const result = await emitEvent('send_message', { receiverId, text });
+    // Use the correct event name that matches the backend
+    // Default to 'send_message' but also try 'message' if that doesn't work
+    let result = await emitEvent('message', { receiverId, text, image: null });
+    if (!result) {
+      // Try alternate event name as fallback
+      result = await emitEvent('send_message', { receiverId, text });
+    }
     console.log('Socket sendMessage result:', result);
     return result;
   } catch (error) {

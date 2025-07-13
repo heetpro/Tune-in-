@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
-import { ChatProvider } from "@/context/ChatContext";
+import { SocketProvider } from "@/context/SocketContext";
 import "./globals.css";
 import ClientAuthDebug from "@/components/ClientAuthDebug";
 import SocketDebug from "@/components/SocketDebug";
@@ -32,11 +32,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <ChatProvider>
+          <SocketProvider >
             {children}
             <ClientAuthDebug />
             <SocketDebug />
-          </ChatProvider>
+          </SocketProvider>
         </AuthProvider>
       </body>
     </html>
