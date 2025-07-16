@@ -5,6 +5,8 @@ import { loginWithSpotify } from '@/api';
 import Header from '@/components/Header';
 import Link from 'next/link';
 import { useEffect } from 'react';
+import Intro from '@/components/Home/Intro';
+import Info from '@/components/Home/Info';
 
 export default function Home() {
   // const { user, loading, isAuthenticated } = useAuth();
@@ -19,10 +21,9 @@ export default function Home() {
   // }, []);
 
   return (
-    <div className="min-h-screen bg-black flex flex-col">
-      <div className="flex flex-col items-center justify-center h-screen">
-        {/* <h1 className={`${poppins.className} text-4xl text-black font-bold`}>Hello World</h1> */}
-      </div>
+      <div className="min-h-screen flex flex-col">
+        <Intro />
+        <Info />
     </div>
   );
 }
