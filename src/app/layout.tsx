@@ -4,8 +4,7 @@ import { SocketProvider } from "@/context/SocketContext";
 import "./globals.css";
 import ClientAuthDebug from "@/components/ClientAuthDebug";
 import SocketDebug from "@/components/SocketDebug";
-
-
+import Header from "@/components/Header";
 
 
 export const metadata: Metadata = {
@@ -19,15 +18,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={``}>
       <body
         className={` bg-white antialiased`}
       >
         <AuthProvider>
           <SocketProvider >
+            <Header />
+            
             {children}
-            <ClientAuthDebug />
-            <SocketDebug />
+            {/* <ClientAuthDebug />
+            <SocketDebug /> */}
           </SocketProvider>
         </AuthProvider>
       </body>

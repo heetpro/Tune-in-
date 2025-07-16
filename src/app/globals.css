@@ -24,3 +24,12 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@font-face {
+  font-family: "HelveticaNeueMedium";
+  src: url("/fonts/HelveticaNeueMedium.otf") format("opentype");
+}
+
+.helve {
+  font-family: "HelveticaNeueMedium", sans-serif;
+}
