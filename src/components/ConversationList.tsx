@@ -7,6 +7,8 @@ import { ChatUser, Message } from '@/types/socket';
 import { IUser } from '@/types';
 import Link from 'next/link';
 import { messageService } from '@/lib/messageService';
+import { CircleDashedIcon } from 'lucide-react';
+import { spaceGrotesk } from '@/app/fonts';
 
 interface ConversationListProps {
   activeConversationId?: string;
@@ -118,11 +120,15 @@ const ConversationList: React.FC<ConversationListProps> = ({
   };
 
   return (
-    <div className="conversations-list">
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
-        <h2 className="text-xl font-semibold">Messages</h2>
-        <div className={`text-xs px-2 py-1 rounded-full ${isConnected ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
-          {isConnected ? 'Connected' : 'Offline'}
+    <div className={`${spaceGrotesk.className} `}>
+      <div className="flex items-center justify-between py-2 ">
+        <div className="flex gap-1 bg-[#964FFF]/70 text-white rounded-full px-4 py-2">
+        <h2 className="text-xl font-semibold">Convo </h2>
+        <h2 className="text-xl font-semibold">{"/"}</h2>
+        <h2 className="text-xl font-semibold">Buddies </h2>
+        </div>
+        <div className={`text-xs p-2 rounded-full ${isConnected ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+          <div className="flex p-1 rounded-full bg-white"></div>
         </div>
       </div>
 
@@ -144,7 +150,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
             const isUserOnline = onlineUsers.includes(conv.id);
 
             return (
-              <div key={conv.id} className=" rounded-full">
+              <div key={conv.id} className={`${spaceGrotesk.className} rounded-full`}>
                 <li
 
                   className={`p-1 hover:opacity-90 rounded-full cursor-pointer
@@ -155,7 +161,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
                   //   }}
                   onClick={() => handleClick(conv.id)}
                 >
-                  <div className="flex items-center"
+                  <div className="flex justify-start"
 
                   >
                     <div className="relative">
@@ -169,23 +175,23 @@ const ConversationList: React.FC<ConversationListProps> = ({
                       )}
                     </div>
 
-                    <div className={`ml-3 flex-grow ${isActive ? 'text-white' : 'text-black'}`}>
-                      <div className={`flex  justify-between items-center`}>
+                    <div className={`ml-2 flex justify-between items-center w-[80%] ${isActive ? 'text-white' : 'text-black'}`}>
+                      <div className={`flex w-[80%] flex-col justify-between items-start`}>
                         <h3 className="font-medium ">{conv.name}</h3>
                         {/* <span className="text-xs">
                         {formatLastMessageTime(conv.id)}
                       </span> */}
-                      </div>
-
-                      <div className="flex justify-between items-center">
                         <p className="text-sm  truncate max-w-[180px]">
                           {lastMessage?.text || ''}
                         </p>
+                      </div>
 
+
+                      <div className="flex w-[20%] justify-center">
                         {unreadCount > 0 && (
-                          <span className="bg-[#964FFF] text-white text-xs px-2 py-1 rounded-full">
-                            {unreadCount}
-                          </span>
+                          <div className={`p-1 aspect-square w-7 h-7 text-sm font-semibold flex items-center justify-center rounded-full ${isActive ? 'bg-white text-[#964FFF]' : 'bg-[#964FFF] text-white'}`}>
+                          <CircleDashedIcon />
+                          </div>
                         )}
                       </div>
                     </div>

@@ -71,7 +71,15 @@ const Chat: React.FC<ChatProps> = ({ receiverId }) => {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-180px)] bg-white rounded-lg shadow">
+    <div className="flex flex-col h-[calc(100vh-180px)] bg-white rounded-3xl"
+      style={{
+  backgroundImage: "url('/back.jpg')",
+  
+      }}
+    >
+      <div className=""
+      
+      ></div>
       {!isConnected && (
         <div className="p-2 bg-yellow-100 text-yellow-800 text-center text-sm">
           {error || "Socket disconnected. Messages may be delayed."}

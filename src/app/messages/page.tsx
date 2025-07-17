@@ -97,10 +97,10 @@ function MessagesContent() {
 
         <div className="flex gap-4">
           {/* User list sidebar */}
-          <div className="w-[20%] bg-white rounded-lg shadow overflow-hidden">
+          <div className="w-[20%] bg-white rounded-lg  overflow-hidden">
             {loading ? (
               <div className="flex justify-center items-center h-32">
-                <div className="spinner h-8 w-8 rounded-full border-4 border-t-blue-500 border-r-transparent border-b-blue-500 border-l-transparent animate-spin"></div>
+                <div className="spinner h-8 w-8 rounded-full animate-spin"></div>
               </div>
             ) : (
               <ConversationList
@@ -112,7 +112,7 @@ function MessagesContent() {
           </div>
 
           {/* Chat area */}
-          <div className="w-1/3">
+          <div className="w-1/3 mt-2">
             {selectedUserId ? (
               <Chat
                 receiverId={selectedUserId}
