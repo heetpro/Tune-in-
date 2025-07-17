@@ -10,6 +10,7 @@ import Chat from '@/components/Chat';
 import ConversationList from '@/components/ConversationList';
 import { useSocket } from '@/context/SocketContext';
 import Header from '@/components/Header';
+import Logo2 from '@/components/Logo2';
 
 export default function MessagesPage() {
   return (
@@ -50,11 +51,15 @@ function MessagesContent() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <div className="container mx-auto py-6 px-4 flex-grow">
-        <h1 className="text-2xl font-bold mb-6">Messages</h1>
-        
+    <div className="min-h-screen w-full flex flex-col">
+      <div className="w-full py-4 px-4 flex-grow">
+        <div className="flex">
+        <Logo2 />
+        <div className="">
+            
+        </div>
+        </div>
+   
         <div className="flex gap-4">
           {/* User list sidebar */}
           <div className="w-1/3 bg-white rounded-lg shadow overflow-hidden">

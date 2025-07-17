@@ -24,7 +24,6 @@ export default function RootLayout({
       >
         <AuthProvider>
           <SocketProvider >
-            <Header />
             
             {children}
             {/* <ClientAuthDebug />
