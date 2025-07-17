@@ -63,9 +63,14 @@ export default function Friends() {
     try {
       setIsLoading(prev => ({ ...prev, friends: true }));
       const response = await getFriendsList();
-      setFriends(response.data || []);
+      if (response.success && Array.isArray(response.data)) {
+        setFriends(response.data.filter(friend => friend && friend._id));
+      } else {
+        setFriends([]);
+      }
     } catch (error) {
       console.error('Error loading friends:', error);
+      setFriends([]);
     } finally {
       setIsLoading(prev => ({ ...prev, friends: false }));
     }
@@ -75,9 +80,19 @@ export default function Friends() {
     try {
       setIsLoading(prev => ({ ...prev, requests: true }));
       const response = await getFriendRequestsList();
-      setRequests(response.data || { incoming: [], outgoing: [] });
+      if (response.success && response.data) {
+        const validIncoming = response.data.incoming.filter(req => req && req.sender && req.sender._id);
+        const validOutgoing = response.data.outgoing.filter(req => req && req.receiver && req.receiver._id);
+        setRequests({ 
+          incoming: validIncoming, 
+          outgoing: validOutgoing 
+        });
+      } else {
+        setRequests({ incoming: [], outgoing: [] });
+      }
     } catch (error) {
       console.error('Error loading friend requests:', error);
+      setRequests({ incoming: [], outgoing: [] });
     } finally {
       setIsLoading(prev => ({ ...prev, requests: false }));
     }
@@ -92,13 +107,13 @@ export default function Friends() {
       const response = await searchForUsers(searchQuery);
       console.log('Search response:', response);
       
-      // Handle different response formats
+      // Handle different response formats and ensure valid data
       if (Array.isArray(response)) {
-        console.log('Setting direct array search results:', response);
-        setSearchResults(response);
-      } else if (response.success && response.data) {
-        console.log('Setting search results from standard response:', response.data);
-        setSearchResults(response.data);
+        const validResults = response.filter(user => user && user._id);
+        setSearchResults(validResults);
+      } else if (response.success && Array.isArray(response.data)) {
+        const validResults = response.data.filter(user => user && user._id);
+        setSearchResults(validResults);
       } else {
         console.error('Search API returned unexpected format:', response);
         setSearchResults([]);
@@ -112,6 +127,11 @@ export default function Friends() {
   };
 
   const sendRequest = async (userId: string) => {
+    if (!userId) {
+      console.error('Invalid user ID for friend request');
+      return;
+    }
+
     try {
       console.log('Sending friend request to user ID:', userId);
       const response = await sendFriendRequestToUser(userId);
@@ -119,21 +139,21 @@ export default function Friends() {
       
       if (response.success) {
         console.log('Friend request sent successfully');
-        // Update outgoing requests list
         await loadRequests();
-        // Don't clear search results or query after sending request
-        // This allows users to continue sending requests to other users
       } else {
         console.error('Failed to send friend request:', response.message || 'Unknown error');
-        // Show error notification here if you have a notification system
       }
     } catch (error) {
       console.error('Error sending friend request:', error);
-      // Show error notification here if you have a notification system
     }
   };
 
   const acceptRequest = async (requestId: string) => {
+    if (!requestId) {
+      console.error('Invalid request ID for accepting');
+      return;
+    }
+
     try {
       await acceptFriendRequestById(requestId);
       await loadRequests();
@@ -144,6 +164,11 @@ export default function Friends() {
   };
 
   const rejectRequest = async (requestId: string) => {
+    if (!requestId) {
+      console.error('Invalid request ID for rejecting');
+      return;
+    }
+
     try {
       await rejectFriendRequestById(requestId);
       await loadRequests();
@@ -153,6 +178,11 @@ export default function Friends() {
   };
 
   const removeFriend = async (friendId: string) => {
+    if (!friendId) {
+      console.error('Invalid friend ID for removal');
+      return;
+    }
+
     try {
       await removeFriendById(friendId);
       await loadFriends();
@@ -174,7 +204,6 @@ export default function Friends() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
       <main className="container mx-auto p-4 flex-grow">
         <h1 className="text-2xl font-bold mb-6">Friends</h1>
         
@@ -205,6 +234,86 @@ export default function Friends() {
             </button>
           </div>
         </div>
+
+        {activeTab === 'search' && (
+          <div>
+            <div className="mb-4 flex gap-2">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search for users..."
+                className="flex-grow p-2 border rounded"
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              />
+              <button
+                onClick={handleSearch}
+                disabled={isLoading.search}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300"
+              >
+                {isLoading.search ? 'Searching...' : 'Search'}
+              </button>
+            </div>
+
+            {searchResults.length > 0 && (
+              <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {searchResults.map((user) => {
+                  if (!user || !user._id) return null;
+                  
+                  const isCurrentUser = user._id === currentUser._id;
+                  const isFriend = friends.some(friend => friend._id === user._id);
+                  const hasPendingOutgoing = requests.outgoing.some(req => req.receiver._id === user._id);
+                  const hasPendingIncoming = requests.incoming.some(req => req.sender._id === user._id);
+
+                  return (
+                    <li key={user._id} className="border p-4 rounded-lg flex items-center justify-between">
+                      <div className="flex items-center">
+                        {user.profilePicture ? (
+                          <img 
+                            src={user.profilePicture} 
+                            alt={user.displayName || 'User'} 
+                            className="w-12 h-12 rounded-full mr-3" 
+                          />
+                        ) : (
+                          <div className="w-12 h-12 bg-gray-200 rounded-full mr-3 flex items-center justify-center">
+                            <span className="text-xl text-gray-500">{user.displayName?.[0] || '?'}</span>
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-medium">{user.displayName || 'User'}</p>
+                          {user.username && <p className="text-sm text-gray-500">@{user.username}</p>}
+                        </div>
+                      </div>
+                      {!isCurrentUser && (
+                        <div>
+                          {isFriend ? (
+                            <button
+                              onClick={() => removeFriend(user._id)}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              Remove Friend
+                            </button>
+                          ) : hasPendingOutgoing ? (
+                            <span className="text-gray-500">Request Sent</span>
+                          ) : hasPendingIncoming ? (
+                            <span className="text-blue-500">Respond to Request</span>
+                          ) : (
+                            <button
+                              onClick={() => sendRequest(user._id)}
+                              className="text-blue-500 hover:text-blue-700"
+                            >
+                              Add Friend
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        )}
         
         {activeTab === 'friends' && (
           <div>
@@ -213,33 +322,37 @@ export default function Friends() {
               <p>Loading friends...</p>
             ) : friends.length > 0 ? (
               <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {friends.map((friend) => (
-                  <li key={friend._id} className="border p-4 rounded-lg flex items-center justify-between">
-                    <div className="flex items-center">
-                      {friend.profilePicture ? (
-                        <img 
-                          src={friend.profilePicture} 
-                          alt={friend.displayName || 'User'} 
-                          className="w-12 h-12 rounded-full mr-3" 
-                        />
-                      ) : (
-                        <div className="w-12 h-12 bg-gray-200 rounded-full mr-3 flex items-center justify-center">
-                          <span className="text-xl text-gray-500">{friend.displayName?.[0] || '?'}</span>
+                {friends.map((friend) => {
+                  if (!friend || !friend._id) return null;
+                  
+                  return (
+                    <li key={friend._id} className="border p-4 rounded-lg flex items-center justify-between">
+                      <div className="flex items-center">
+                        {friend.profilePicture ? (
+                          <img 
+                            src={friend.profilePicture} 
+                            alt={friend.displayName || 'User'} 
+                            className="w-12 h-12 rounded-full mr-3" 
+                          />
+                        ) : (
+                          <div className="w-12 h-12 bg-gray-200 rounded-full mr-3 flex items-center justify-center">
+                            <span className="text-xl text-gray-500">{friend.displayName?.[0] || '?'}</span>
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-medium">{friend.displayName || 'User'}</p>
+                          {friend.username && <p className="text-sm text-gray-500">@{friend.username}</p>}
                         </div>
-                      )}
-                      <div>
-                        <p className="font-medium">{friend.displayName || 'User'}</p>
-                        {friend.username && <p className="text-sm text-gray-500">@{friend.username}</p>}
                       </div>
-                    </div>
-                    <button
-                      onClick={() => removeFriend(friend._id)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      Remove
-                    </button>
-                  </li>
-                ))}
+                      <button
+                        onClick={() => removeFriend(friend._id)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
               <p>You don't have any friends yet.</p>
@@ -249,173 +362,94 @@ export default function Friends() {
         
         {activeTab === 'requests' && (
           <div>
-            <div className="mb-8">
-              <h2 className="text-xl mb-4">Incoming Requests</h2>
-              {isLoading.requests ? (
-                <p>Loading requests...</p>
-              ) : requests.incoming.length > 0 ? (
+            {requests.incoming.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-lg font-medium mb-4">Incoming Requests</h3>
                 <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {requests.incoming.map((request) => (
-                    <li key={request._id} className="border p-4 rounded-lg">
-                      <div className="flex items-center mb-3">
-                        {request.sender?.profilePicture ? (
-                          <img 
-                            src={request.sender.profilePicture} 
-                            alt={request.sender?.displayName || 'User'} 
-                            className="w-12 h-12 rounded-full mr-3" 
-                          />
-                        ) : (
-                          <div className="w-12 h-12 bg-gray-200 rounded-full mr-3 flex items-center justify-center">
-                            <span className="text-xl text-gray-500">{(request.sender?.displayName?.[0] || '?')}</span>
-                          </div>
-                        )}
-                        <div>
-                          <p className="font-medium">{request.sender?.displayName || 'User'}</p>
-                          {request.sender?.username && <p className="text-sm text-gray-500">@{request.sender.username}</p>}
-                        </div>
-                      </div>
-                      <div className="flex justify-end space-x-2">
-                        <button
-                          onClick={() => acceptRequest(request._id)}
-                          className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
-                        >
-                          Accept
-                        </button>
-                        <button
-                          onClick={() => rejectRequest(request._id)}
-                          className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p>No incoming friend requests.</p>
-              )}
-            </div>
-            
-            <div>
-              <h2 className="text-xl mb-4">Outgoing Requests</h2>
-              {isLoading.requests ? (
-                <p>Loading requests...</p>
-              ) : requests.outgoing.length > 0 ? (
-                <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {requests.outgoing.map((request) => (
-                    <li key={request._id} className="border p-4 rounded-lg flex items-center justify-between">
-                      <div className="flex items-center">
-                        {request.receiver?.profilePicture ? (
-                          <img 
-                            src={request.receiver.profilePicture} 
-                            alt={request.receiver?.displayName || 'User'} 
-                            className="w-12 h-12 rounded-full mr-3" 
-                          />
-                        ) : (
-                          <div className="w-12 h-12 bg-gray-200 rounded-full mr-3 flex items-center justify-center">
-                            <span className="text-xl text-gray-500">{(request.receiver?.displayName?.[0] || '?')}</span>
-                          </div>
-                        )}
-                        <div>
-                          <p className="font-medium">{request.receiver?.displayName || 'User'}</p>
-                          {request.receiver?.username && <p className="text-sm text-gray-500">@{request.receiver.username}</p>}
-                        </div>
-                      </div>
-                      <span className="text-gray-500 text-sm">Pending</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p>No outgoing friend requests.</p>
-              )}
-            </div>
-          </div>
-        )}
-        
-        {activeTab === 'search' && (
-          <div>
-            <h2 className="text-xl mb-4">Find Friends</h2>
-            <div className="flex mb-4">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name or username"
-                className="flex-grow p-2 border rounded-l"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSearch();
-                  }
-                }}
-              />
-              <button
-                onClick={handleSearch}
-                className="bg-blue-500 text-white px-4 rounded-r hover:bg-blue-600"
-                disabled={isLoading.search}
-              >
-                {isLoading.search ? 'Searching...' : 'Search'}
-              </button>
-            </div>
-            
-            {isLoading.search ? (
-              <p>Searching users...</p>
-            ) : searchResults.length > 0 ? (
-              <div>
-                <h3 className="text-lg mb-2">Search Results</h3>
-                <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {searchResults.map((user) => {
-                    // Check if the user is already a friend or has a pending request
-                    const isFriend = friends.some(friend => friend._id === user._id);
-                    const isRequested = requests.outgoing.some(req => req.receiver._id === user._id);
-                    const isRequesting = requests.incoming.some(req => req.sender._id === user._id);
-                    const isCurrentUser = user?._id === currentUser?._id;
+                  {requests.incoming.map((request) => {
+                    if (!request || !request.sender || !request.sender._id) return null;
                     
                     return (
-                      <li key={user._id} className="border p-4 rounded-lg flex items-center justify-between">
-                        <div className="flex items-center">
-                          {user.profilePicture ? (
+                      <li key={request._id} className="border p-4 rounded-lg">
+                        <div className="flex items-center mb-3">
+                          {request.sender.profilePicture ? (
                             <img 
-                              src={user.profilePicture} 
-                              alt={user.displayName} 
+                              src={request.sender.profilePicture} 
+                              alt={request.sender.displayName || 'User'} 
                               className="w-12 h-12 rounded-full mr-3" 
                             />
                           ) : (
                             <div className="w-12 h-12 bg-gray-200 rounded-full mr-3 flex items-center justify-center">
-                              <span className="text-xl text-gray-500">{user.displayName?.[0] || '?'}</span>
+                              <span className="text-xl text-gray-500">{request.sender.displayName?.[0] || '?'}</span>
                             </div>
                           )}
                           <div>
-                            <p className="font-medium">{user.displayName}</p>
-                            {user.username && <p className="text-sm text-gray-500">@{user.username}</p>}
+                            <p className="font-medium">{request.sender.displayName || 'User'}</p>
+                            {request.sender.username && (
+                              <p className="text-sm text-gray-500">@{request.sender.username}</p>
+                            )}
                           </div>
                         </div>
-                        {!isCurrentUser && (
+                        <div className="flex gap-2">
                           <button
-                            onClick={() => sendRequest(user._id)}
-                            className={`px-3 py-1 rounded ${
-                              isFriend || isRequested || isRequesting
-                                ? 'bg-gray-300 text-gray-700'
-                                : 'bg-blue-500 text-white hover:bg-blue-600'
-                            }`}
-                            disabled={isFriend || isRequested || isRequesting || isCurrentUser}
+                            onClick={() => acceptRequest(request._id)}
+                            className="flex-1 bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
                           >
-                            {isFriend 
-                              ? 'Friends' 
-                              : isRequested 
-                                ? 'Request Sent' 
-                                : isRequesting 
-                                  ? 'Requesting You' 
-                                  : 'Add Friend'}
+                            Accept
                           </button>
-                        )}
+                          <button
+                            onClick={() => rejectRequest(request._id)}
+                            className="flex-1 bg-gray-200 text-gray-800 px-3 py-1 rounded hover:bg-gray-300"
+                          >
+                            Reject
+                          </button>
+                        </div>
                       </li>
                     );
                   })}
                 </ul>
               </div>
-            ) : searchQuery && !isLoading.search ? (
-              <p>No users found matching "{searchQuery}"</p>
-            ) : null}
+            )}
+
+            {requests.outgoing.length > 0 && (
+              <div>
+                <h3 className="text-lg font-medium mb-4">Sent Requests</h3>
+                <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {requests.outgoing.map((request) => {
+                    if (!request || !request.receiver || !request.receiver._id) return null;
+                    
+                    return (
+                      <li key={request._id} className="border p-4 rounded-lg">
+                        <div className="flex items-center">
+                          {request.receiver.profilePicture ? (
+                            <img 
+                              src={request.receiver.profilePicture} 
+                              alt={request.receiver.displayName || 'User'} 
+                              className="w-12 h-12 rounded-full mr-3" 
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-gray-200 rounded-full mr-3 flex items-center justify-center">
+                              <span className="text-xl text-gray-500">{request.receiver.displayName?.[0] || '?'}</span>
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-medium">{request.receiver.displayName || 'User'}</p>
+                            {request.receiver.username && (
+                              <p className="text-sm text-gray-500">@{request.receiver.username}</p>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-2">Request pending...</p>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
+            {requests.incoming.length === 0 && requests.outgoing.length === 0 && (
+              <p>No friend requests.</p>
+            )}
           </div>
         )}
       </main>

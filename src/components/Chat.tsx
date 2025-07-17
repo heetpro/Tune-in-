@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useChat } from '@/hooks/useChat';
+import { ArrowUpRight } from 'lucide-react';
+import { spaceGrotesk } from '@/app/fonts';
 
 interface ChatProps {
   receiverId: string;
@@ -89,20 +91,20 @@ const Chat: React.FC<ChatProps> = ({ receiverId }) => {
           messages.map((message, index) => (
             <div 
               key={message.id || `msg-${message.senderId}-${message.receiverId}-${index}`} 
-              className={`mb-4 ${message.senderId === user?._id ? 'text-right' : 'text-left'}`}
+              className={`mb-0.5 ${message.senderId === user?._id ? 'text-right' : 'text-left'}`}
             >
               <div 
-                className={`inline-block max-w-[70%] p-3 rounded-lg ${
+                className={`inline-block ${spaceGrotesk.className} max-w-[70%] px-3.5 py-2 rounded-3xl ${
                   message.senderId === user?._id 
-                    ? `bg-blue-500 text-white rounded-br-none ${
+                    ? `bg-[#964FFF] text-white ${
                         message.error ? 'bg-red-400' : ''
                       }`
                     : 'bg-gray-200 text-gray-800 rounded-bl-none'
                 }`}
               >
                 {message.text}
-                <div 
-                  className={`text-xs mt-1 ${
+                {/* <div 
+                  className={`text-xs flex items-center gap-1 mt-1 ${
                     message.senderId === user?._id ? 'text-blue-100' : 'text-gray-500'
                   }`}
                 >
@@ -112,10 +114,16 @@ const Chat: React.FC<ChatProps> = ({ receiverId }) => {
                     : (message.isRead 
                         ? " • Read" 
                         : message.isDelivered 
-                          ? " • Delivered" 
+                          ? 
+                          <div className="flex">
+                          <ArrowUpRight size={15}
+                          />
+                          <ArrowUpRight size={15}
+                           className='-ml-1'/>
+                          </div> 
                           : "")}
                   {message.error && " • Failed"}
-                </div>
+                </div> */}
               </div>
             </div>
           ))
