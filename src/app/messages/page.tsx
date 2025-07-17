@@ -11,6 +11,9 @@ import ConversationList from '@/components/ConversationList';
 import { useSocket } from '@/context/SocketContext';
 import Header from '@/components/Header';
 import Logo2 from '@/components/Logo2';
+import Image from 'next/image';
+import { spaceGrotesk } from '../fonts';
+import { Settings } from 'lucide-react';
 
 export default function MessagesPage() {
   return (
@@ -52,14 +55,46 @@ function MessagesContent() {
 
   return (
     <div className="min-h-screen w-full flex flex-col">
-      <div className="w-full py-4 px-4 flex-grow">
-        <div className="flex">
-        <Logo2 />
-        <div className="">
-            
+      <div className="w-full py-4 px-4 flex-grow h-fit">
+        <div className="flex items-start gap-2 h-full w-full">
+          <Logo2 />
+          <div className="flex gap-2 h-full">
+            {user && (
+              <>
+                <div className="relative w-[100px] h-full aspect-square rounded-2xl border-4 border-[#964FFF] overflow-hidden"
+                >
+                  {user.profilePicture ? (
+                    <Image
+                      src={user.profilePicture}
+                      alt={user.displayName}
+                      fill
+                      className="object-cover scale-95 rounded-2xl "
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <span className="text-3xl text-black/30">
+                        {user.displayName.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className={`flex justify-end pb-1 h-full py-2 px-3 rounded-2xl w-[200px] bg-[#964FFF] flex-col ${spaceGrotesk.className}`}>
+                  <span className="font-semibold text-white text-xl">{user.displayName}</span>
+                  {user.username && (
+                    <span className="text-sm text-white/80 -mt-1 font-medium">@{user.username}</span>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="bg-[#964FFF] rounded-2xl p-2 w-[100px] aspect-square h-full flex items-center justify-center">
+<div className="flex w-10 h-10 rounded-full bg-white p-1">
+
+</div>
+          </div>
         </div>
-        </div>
-   
+
         <div className="flex gap-4">
           {/* User list sidebar */}
           <div className="w-1/3 bg-white rounded-lg shadow overflow-hidden">
@@ -68,7 +103,7 @@ function MessagesContent() {
                 <div className="spinner h-8 w-8 rounded-full border-4 border-t-blue-500 border-r-transparent border-b-blue-500 border-l-transparent animate-spin"></div>
               </div>
             ) : (
-              <ConversationList 
+              <ConversationList
                 activeConversationId={selectedUserId || undefined}
                 onSelectConversation={handleSelectUser}
                 friendsList={chatUsers}
@@ -93,8 +128,8 @@ function MessagesContent() {
                     Find friends to chat with
                   </button>
                   <p className="mt-2 text-sm">
-                    {isConnected ? 
-                      "Connected to chat server" : 
+                    {isConnected ?
+                      "Connected to chat server" :
                       "Not connected to chat server. Messages will be sent when connection is restored."}
                   </p>
                 </div>
