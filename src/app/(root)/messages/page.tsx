@@ -12,8 +12,9 @@ import { useSocket } from '@/context/SocketContext';
 import Header from '@/components/Header';
 import Logo2 from '@/components/Logo2';
 import Image from 'next/image';
-import { spaceGrotesk } from '../fonts';
+import { spaceGrotesk } from '@/app/fonts';
 import { Settings } from 'lucide-react';
+import Navbar from '@/components/Navbar';
 
 export default function MessagesPage() {
   return (
@@ -54,65 +55,29 @@ function MessagesContent() {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col">
-      <div className="w-full py-4 px-4 flex-grow h-fit">
-        <div className="flex items-start gap-2 h-full w-full">
-          <Logo2 />
-          <div className="flex gap-2 h-full">
-            {user && (
-              <>
-                <div className="relative w-[100px] h-full aspect-square rounded-2xl border-4 border-[#964FFF] overflow-hidden"
-                >
-                  {user.profilePicture ? (
-                    <Image
-                      src={user.profilePicture}
-                      alt={user.displayName}
-                      fill
-                      className="object-cover scale-95 rounded-2xl "
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <span className="text-3xl text-black/30">
-                        {user.displayName.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <div className={`flex justify-end pb-1 h-full py-2 px-3 rounded-2xl w-[200px] bg-[#964FFF] flex-col ${spaceGrotesk.className}`}>
-                  <span className="font-semibold text-white text-xl">{user.displayName}</span>
-                  {user.username && (
-                    <span className="text-sm text-white/80 -mt-1 font-medium">@{user.username}</span>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-
-          <div className="bg-[#964FFF] rounded-2xl p-2 w-[100px] aspect-square h-full flex items-center justify-center">
-<div className="flex w-10 h-10 rounded-full bg-white p-1">
-
-</div>
-          </div>
-        </div>
-
-        <div className="flex gap-4">
+    <div className=" w-full h-full  flex flex-col">
+      <div className="w-full px-3  flex-grow h-full ">
+        <div className="flex gap-4  h-full ">
           {/* User list sidebar */}
-          <div className="w-[20%] bg-white rounded-lg  overflow-hidden">
-            {loading ? (
-              <div className="flex justify-center items-center h-32">
-                <div className="spinner h-8 w-8 rounded-full animate-spin"></div>
-              </div>
-            ) : (
-              <ConversationList
-                activeConversationId={selectedUserId || undefined}
-                onSelectConversation={handleSelectUser}
-                friendsList={chatUsers}
-              />
-            )}
+          <div className="w-[20%] h-full bg-[#964FFF] p-2 rounded-3xl overflow-hidden">
+            <div className=" bg-white w-[100%] rounded-2xl h-full">
+              {loading ? (
+                <div className="flex justify-center items-center h-32">
+                  <div className="spinner h-8 w-8 rounded-full animate-spin"></div>
+                </div>
+              ) : (
+                <ConversationList
+                  activeConversationId={selectedUserId || undefined}
+                  onSelectConversation={handleSelectUser}
+                  friendsList={chatUsers}
+                />
+              )}
+            </div>
           </div>
+
 
           {/* Chat area */}
-          <div className="w-1/3 mt-2">
+          <div className="w-1/3 ">
             {selectedUserId ? (
               <Chat
                 receiverId={selectedUserId}
@@ -133,6 +98,7 @@ function MessagesContent() {
                       "Not connected to chat server. Messages will be sent when connection is restored."}
                   </p>
                 </div>
+
               </div>
             )}
           </div>

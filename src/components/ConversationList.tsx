@@ -120,20 +120,20 @@ const ConversationList: React.FC<ConversationListProps> = ({
   };
 
   return (
-    <div className={`${spaceGrotesk.className} `}>
-      <div className="flex items-center justify-between py-2 ">
+    <div className={`${spaceGrotesk.className} flex flex-col gap-4 h-full w-full`}>
+      <div className="flex items-center w-full justify-center py-2 ">
         <div className="flex gap-1 bg-[#964FFF]/70 text-white rounded-full px-4 py-2">
-        <h2 className="text-xl font-semibold">Convo </h2>
-        <h2 className="text-xl font-semibold">{"/"}</h2>
-        <h2 className="text-xl font-semibold">Buddies </h2>
+          <h2 className="text-xl font-semibold">Convo </h2>
+          <h2 className="text-xl font-semibold">{"/"}</h2>
+          <h2 className="text-xl font-semibold">Buddies </h2>
         </div>
-        <div className={`text-xs p-2 rounded-full ${isConnected ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+        {/* <div className={`text-xs p-2 rounded-full ${isConnected ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
           <div className="flex p-1 rounded-full bg-white"></div>
-        </div>
+        </div> */}
       </div>
 
       {conversations.length === 0 ? (
-        <div className="p-4 text-gray-500 text-center"
+        <div className="p-4  text-gray-500 h-full text-center"
 
         >
           <p>No conversations yet</p>
@@ -142,7 +142,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
           </Link>
         </div>
       ) : (
-        <ul>
+        <ul className="flex flex-col gap-1 w-full h-full">
           {conversations.map(conv => {
             const lastMessage = getLastMessage(conv.id);
             const unreadCount = getUnreadCount(conv.id);
@@ -150,11 +150,11 @@ const ConversationList: React.FC<ConversationListProps> = ({
             const isUserOnline = onlineUsers.includes(conv.id);
 
             return (
-              <div key={conv.id} className={`${spaceGrotesk.className} rounded-full`}>
+              <div key={conv.id} className={`${spaceGrotesk.className} rounded-full `}>
                 <li
 
-                  className={`p-1 hover:opacity-90 rounded-full cursor-pointer
-                  ${isActive ? 'bg-[#964FFF]/90' : ''}`}
+                  className={`p-1 mx-2 hover:opacity-90 rounded-full cursor-pointer
+                  ${isActive ? 'bg-[#964FFF]' : ''}`}
 
                   // style={{
                   //   clipPath: "polygon(41% 3%, 0 0, 0 100%, 75% 93%, 47% 81%, 100% 32%, 80% 100%, 100% 80%, 60% 8%, 100% 20%, 80% 0%, 77% 62%)"  
@@ -164,7 +164,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
                   <div className="flex justify-start"
 
                   >
-                    <div className="relative">
+                    <div className="relative ">
                       <img
                         src={conv.avatar}
                         alt={conv.name}
@@ -190,7 +190,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
                       <div className="flex w-[20%] justify-center">
                         {unreadCount > 0 && (
                           <div className={`p-1 aspect-square w-7 h-7 text-sm font-semibold flex items-center justify-center rounded-full ${isActive ? 'bg-white text-[#964FFF]' : 'bg-[#964FFF] text-white'}`}>
-                          <CircleDashedIcon />
+                            <CircleDashedIcon />
                           </div>
                         )}
                       </div>
