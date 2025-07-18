@@ -3,8 +3,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useChat } from '@/hooks/useChat';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Smile, SmilePlus, Sticker } from 'lucide-react';
 import { spaceGrotesk } from '@/app/fonts';
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
 
 interface ChatProps {
   receiverId: string;
@@ -13,7 +15,9 @@ interface ChatProps {
 const Chat: React.FC<ChatProps> = ({ receiverId }) => {
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const emojiButtonRef = useRef<HTMLButtonElement>(null);
   const { user } = useAuth();
   
   const {
@@ -63,6 +67,11 @@ const Chat: React.FC<ChatProps> = ({ receiverId }) => {
     }
   };
 
+  const handleEmojiSelect = (emoji: any) => {
+    setNewMessage(prev => prev + emoji.native);
+    // Removed setShowEmojiPicker(false) to keep the picker open
+  };
+
   // Format timestamp
   const formatTime = (date?: Date) => {
     if (!date) return '';
@@ -71,12 +80,15 @@ const Chat: React.FC<ChatProps> = ({ receiverId }) => {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-180px)] bg-white rounded-3xl"
-      style={{
-  backgroundImage: "url('/back.jpg')",
-  
-      }}
-    >
+    <div className="flex flex-col h-full bg-white rounded-3xl">
+      <div className="absolute inset-0 opacity-90 rounded-3xl"
+        style={{
+          backgroundImage: "url('/back.jpg')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          zIndex: -1
+        }}
+      ></div>
       <div className=""
       
       ></div>
@@ -146,24 +158,46 @@ const Chat: React.FC<ChatProps> = ({ receiverId }) => {
         <div ref={messagesEndRef} />
       </div>
       
-      <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200">
-        <div className="flex">
-          <input
-            type="text"
-            value={newMessage}
-            onChange={handleInputChange}
-            placeholder="Type a message..."
-            className="flex-1 p-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={sending}
-          />
+      <form onSubmit={handleSendMessage} className={`${spaceGrotesk.className} p-4 relative`}>
+        <div className="flex gap-2">
+          <div className="relative flex-1 flex gap-2">
+            <button
+              type="button"
+              ref={emojiButtonRef}
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className="p-0 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+            >
+              <Sticker className="w-8 h-8 text-[#000000]/50" />
+            </button>
+            <input
+              type="text"
+              value={newMessage}
+              onChange={handleInputChange}
+              placeholder="Type a message..."
+              className="flex-1 px-4 p-2 border border-gray-300 rounded-2xl focus:outline-none focus:border-[#964FFF]"
+              disabled={sending}
+            />
+          </div>
           <button 
             type="submit"
-            className="bg-blue-500 text-white px-4 py-2 rounded-r-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-blue-300"
+            className="bg-[#964FFF] border-2 border-[#964FFF] text-white px-4 py-2 rounded-2xl hover:bg-blue-600 focus:outline-none disabled:bg-[#964FFF]/50"
             disabled={sending || !newMessage.trim() || !isConnected}
           >
             {sending ? 'Sending...' : 'Send'}
           </button>
         </div>
+        
+        {showEmojiPicker && (
+          <div className="absolute bottom-full mb-2">
+            <Picker
+              data={data}
+              onEmojiSelect={handleEmojiSelect}
+              theme="light"
+              previewPosition="none"
+              skinTonePosition="none"
+            />
+          </div>
+        )}
       </form>
     </div>
   );

@@ -57,7 +57,7 @@ function MessagesContent() {
   return (
     <div className=" w-full h-full  flex flex-col">
       <div className="w-full px-3  flex-grow h-full ">
-        <div className="flex gap-4  h-full ">
+        <div className="flex gap-2  h-full ">
           {/* User list sidebar */}
           <div className="w-[20%] h-full bg-[#964FFF] p-2 rounded-3xl overflow-hidden">
             <div className=" bg-white w-[100%] rounded-2xl h-full">
@@ -77,7 +77,7 @@ function MessagesContent() {
 
 
           {/* Chat area */}
-          <div className="w-1/3 ">
+          <div className="w-1/3 h-full ">
             {selectedUserId ? (
               <Chat
                 receiverId={selectedUserId}
