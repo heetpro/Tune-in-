@@ -54,6 +54,7 @@ export interface IUser {
 
 export interface OnboardingFormData {
     username: string;
+    displayName: string;
     dateOfBirth: string;
     gender: 'male' | 'female' | 'non-binary' | 'other';
     intrestedIn: string[];

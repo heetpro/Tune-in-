@@ -5,18 +5,17 @@ import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/Header';
 import MusicProfile from '@/components/MusicProfile';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { setUsername } from '@/api/user';
+import { setUsername, editProfile } from '@/api/user';
 import { syncSpotifyData } from '@/api/spotify';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { spaceGrotesk } from '@/app/fonts';
-import { Ellipsis, SearchCheck, Share2, Edit, RefreshCcw, UserMinus, Eye, EyeOff, MapPin, Calendar, ChevronRight, User2 } from 'lucide-react';
+import { Ellipsis, SearchCheck, Share2, Edit, RefreshCcw, UserMinus, Eye, EyeOff, MapPin, Calendar, ChevronRight, User2, AtSign } from 'lucide-react';
 import type { OnboardingFormData } from '@/types';
 import { useGeocoding } from '@/lib/geocoding';
 
 export const Profile = () => {
   const { user, loading, refreshUser } = useAuth();
   const router = useRouter();
-  const [username, setUsernameState] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -25,10 +24,10 @@ export const Profile = () => {
   const [showAge, setShowAge] = useState(true);
   const [currentStep, setCurrentStep] = useState(0);
   const { reverseGeocode, loading: isLoadingLocation } = useGeocoding();
-  const [showUsernameSetup, setShowUsernameSetup] = useState(false);
   
   const [formData, setFormData] = useState<OnboardingFormData>({
     username: '',
+    displayName: '',
     dateOfBirth: '',
     gender: 'male',
     intrestedIn: [],
@@ -39,38 +38,32 @@ export const Profile = () => {
   });
 
   const steps = [
+    { title: 'Display Name', field: 'displayName', icon: User2 },
     { title: 'Date of Birth', field: 'dateOfBirth', icon: Calendar },
     { title: 'Gender', field: 'gender', icon: User2 },
     { title: 'Interested In', field: 'intrestedIn', icon: User2 },
-    { title: 'Location', field: 'location', icon: MapPin }
+    { title: 'Location', field: 'location', icon: MapPin },
+    { title: 'Username', field: 'username', icon: AtSign }
   ];
 
   const needsUserInfo = () => {
     if (!user) return false;
     
-    // Check if any required field is missing
     return !user.hasCompletedOnboarding || 
            !user.age || 
            !user.gender ||
            !user.location?.city ||
-           !user.intrestedIn?.length;
+           !user.intrestedIn?.length ||
+           !user.username;
   };
-
-  const needsUsername = () => {
-    return user && !user.username && !needsUserInfo();
-  };
-
-  useEffect(() => {
-    if (user?.username) {
-      setUsernameState(user.username);
-    }
-  }, [user]);
 
   // Pre-fill form data with existing user info
   useEffect(() => {
     if (user && needsUserInfo()) {
       setFormData(prev => ({
         ...prev,
+        username: user.username || prev.username,
+        displayName: user.displayName || prev.displayName,
         gender: user.gender || prev.gender,
         intrestedIn: user.intrestedIn || prev.intrestedIn,
         location: {
@@ -144,6 +137,13 @@ export const Profile = () => {
     
     // Validation for each step
     switch (currentField) {
+      case 'displayName':
+        if (!formData.displayName.trim()) {
+          setError('Display name cannot be empty');
+          return;
+        }
+        break;
+        
       case 'dateOfBirth':
         const age = calculateAge(formData.dateOfBirth);
         if (age < 18) {
@@ -165,17 +165,57 @@ export const Profile = () => {
           return;
         }
         break;
+        
+      case 'username':
+        if (!formData.username.trim()) {
+          setError('Username cannot be empty');
+          return;
+        }
+        if (formData.username.length < 3 || formData.username.length > 30) {
+          setError('Username must be between 3 and 30 characters');
+          return;
+        }
+        break;
     }
 
     setError(null);
     
     if (currentStep === steps.length - 1) {
-      // Submit user info data
+      // Submit all user info data
       try {
         setIsSubmitting(true);
-        // TODO: Add API call to save user info
-        await refreshUser();
-        setShowUsernameSetup(true);
+        
+        // Calculate age from date of birth
+        const age = calculateAge(formData.dateOfBirth);
+        
+        // Prepare profile data
+        const profileData = {
+          username: formData.username,
+          displayName: formData.displayName,
+          age: age,
+          gender: formData.gender,
+          intrestedIn: formData.intrestedIn,
+          location: {
+            city: formData.location.city,
+            country: 'Unknown', // Add a default country value
+            coordinates: formData.location.coordinates || {
+              lat: 0,
+              lng: 0
+            }
+          },
+          hasCompletedOnboarding: true
+        };
+        
+        // Save all profile data at once
+        const response = await editProfile(profileData);
+        
+        if (response.success) {
+          setSuccess('Profile updated successfully');
+          await refreshUser();
+          router.push('/profile');
+        } else {
+          setError(response.message || 'Failed to update profile');
+        }
       } catch (err: any) {
         setError(err.message || 'Failed to save profile data');
       } finally {
@@ -186,92 +226,11 @@ export const Profile = () => {
     }
   };
 
-  const handleUsernameSubmit = async () => {
-    if (!username.trim()) {
-      setError('Username cannot be empty');
-      return;
-    }
-    
-    if (username.length < 3 || username.length > 30) {
-      setError('Username must be between 3 and 30 characters');
-      return;
-    }
-    
-    try {
-      setIsSubmitting(true);
-      setError(null);
-      
-      const response = await setUsername(username);
-      
-      if (response.success) {
-        setSuccess('Username updated successfully');
-        await refreshUser();
-        router.push('/profile');
-      } else {
-        setError(response.message || 'Failed to update username');
-      }
-    } catch (err: any) {
-      console.error('Error updating username:', err);
-      setError(err.message || 'An error occurred while updating username');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
         <div className="container mx-auto p-4 flex-grow flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show username setup after completing user info
-  if (needsUsername() || showUsernameSetup) {
-    return (
-      <div className={`fixed inset-0 bg-black/50 flex items-center justify-center p-2 z-50 ${spaceGrotesk.className}`}>
-        <div className="flex w-[20vw]">
-          <div className="bg-[#964FFF] rounded-2xl p-4 w-full">
-            <div className="mb-4">
-              <h2 className="text-lg text-white font-bold">Set username{"."}</h2>
-            </div>
-
-            <div className="flex-col flex gap-3">
-              <div>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsernameState(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && !isSubmitting && handleUsernameSubmit()}
-                  placeholder="Enter username"
-                  className="w-full p-2 border-2 rounded-lg 
-                  text-sm placeholder:text-white  
-                  focus:bg-white
-                  focus:text-black
-                  transition-all duration-300
-                  focus:placeholder:text-black
-                  text-white focus:border-white outline-none"
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              {error && (
-                <div className="-mt-1 text-sm text-black font-semibold px-2 bg-yellow-300 p-1 w-fit rounded-lg">
-                  {error}
-                </div>
-              )}
-
-              <button
-                onClick={handleUsernameSubmit}
-                disabled={isSubmitting}
-                className="w-fit px-5 md:hidden bg-white hover:bg-transparent border-2 border-white hover:text-white cursor-pointer text-black py-2.5 rounded-xl font-medium disabled:opacity-50"
-              >
-                {isSubmitting ? 'Setting Username...' : 'Set Username'}
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     );
@@ -300,6 +259,19 @@ export const Profile = () => {
             <div className="flex-col flex gap-4">
               {currentStep === 0 && (
                 <div className="flex items-center gap-2">
+                  <User2 className="text-white" />
+                  <input
+                    type="text"
+                    value={formData.displayName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, displayName: e.target.value }))}
+                    placeholder="Enter display name"
+                    className="w-full p-3 border-2 rounded-lg text-sm placeholder:text-white focus:bg-white focus:text-black transition-all duration-300 focus:placeholder:text-black text-white focus:border-white outline-none"
+                  />
+                </div>
+              )}
+
+              {currentStep === 1 && (
+                <div className="flex items-center gap-2">
                   <Calendar className="text-white" />
                   <input
                     type="date"
@@ -311,7 +283,7 @@ export const Profile = () => {
                 </div>
               )}
 
-              {currentStep === 1 && (
+              {currentStep === 2 && (
                 <div className="grid grid-cols-2 gap-3">
                   {['male', 'female', 'non-binary', 'other'].map((option) => (
                     <button
@@ -329,7 +301,7 @@ export const Profile = () => {
                 </div>
               )}
 
-              {currentStep === 2 && (
+              {currentStep === 3 && (
                 <div className="grid grid-cols-2 gap-3">
                   {['male', 'female', 'everyone'].map((option) => (
                     <button
@@ -352,7 +324,7 @@ export const Profile = () => {
                 </div>
               )}
 
-              {currentStep === 3 && (
+              {currentStep === 4 && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <MapPin className="text-white" />
@@ -376,10 +348,30 @@ export const Profile = () => {
                   </button>
                 </div>
               )}
+              
+              {currentStep === 5 && (
+                <div className="flex items-center gap-2">
+                  <AtSign className="text-white" />
+                  <input
+                    type="text"
+                    value={formData.username}
+                    onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+                    onKeyPress={(e) => e.key === 'Enter' && !isSubmitting && handleNextStep()}
+                    placeholder="Enter username"
+                    className="w-full p-3 border-2 rounded-lg text-sm placeholder:text-white focus:bg-white focus:text-black transition-all duration-300 focus:placeholder:text-black text-white focus:border-white outline-none"
+                  />
+                </div>
+              )}
 
               {error && (
                 <div className="-mt-1 text-sm text-black font-semibold px-2 bg-yellow-300 p-1 w-fit rounded-lg">
                   {error}
+                </div>
+              )}
+              
+              {success && (
+                <div className="-mt-1 text-sm text-black font-semibold px-2 bg-green-300 p-1 w-fit rounded-lg">
+                  {success}
                 </div>
               )}
 

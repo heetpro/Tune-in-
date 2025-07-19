@@ -151,14 +151,12 @@ export class GeocodingService {
 
   constructor(apiKey?: string) {
     this.apiKey = apiKey || OPENCAGE_API_KEY || '';
-    if (!this.apiKey) {
+    if (!this.apiKey && process.env.NODE_ENV === 'production') {
       throw new Error('OpenCage API key is required');
     }
   }
 
-  /**
-   * Reverse geocode coordinates to get location information
-   */
+
   async reverseGeocode(
     latitude: number,
     longitude: number,

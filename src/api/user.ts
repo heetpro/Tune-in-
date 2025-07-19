@@ -1,5 +1,5 @@
 import { API_BASE_URL, getHeaders, handleApiResponse, ApiResponse } from './config';
-import { IUser } from '@/types/index';
+import { IUser, OnboardingFormData } from '@/types/index';
 import Cookies from 'js-cookie';
 
 /**
@@ -162,6 +162,63 @@ export const setUsername = async (username: string): Promise<ApiResponse<null>> 
     };
   } catch (error) {
     console.error('Failed to update username:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error occurred',
+      error
+    };
+  }
+}; 
+
+/**
+ * Updates the user's profile information
+ */
+export const editProfile = async (profileData: Partial<IUser>): Promise<ApiResponse<null>> => {
+  try {
+    const token = Cookies.get('auth_token');
+    console.log('Updating profile data');
+    
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    };
+    
+    const response = await fetch(`${API_BASE_URL}/profile/edit`, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(profileData),
+      credentials: 'include',
+      mode: 'cors'
+    });
+    
+    if (!response.ok) {
+      console.error('Error updating profile:', response.status, response.statusText);
+      const errorText = await response.text();
+      console.error('Error response body:', errorText);
+      
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { message: errorText || 'Unknown error' };
+      }
+      
+      return {
+        success: false,
+        message: errorData.message || `API error: ${response.status} ${response.statusText}`,
+        error: errorData
+      };
+    }
+    
+    const responseData = await response.json();
+    
+    return {
+      success: true,
+      message: responseData.message || 'Profile updated successfully',
+      data: null
+    };
+  } catch (error) {
+    console.error('Failed to update profile:', error);
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Unknown error occurred',
