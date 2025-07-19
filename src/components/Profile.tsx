@@ -9,9 +9,10 @@ import { setUsername, editProfile } from '@/api/user';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { spaceGrotesk } from '@/app/fonts';
 import { Ellipsis, SearchCheck, Share2, Edit, RefreshCcw, UserMinus, Eye, EyeOff, MapPin, Calendar, ChevronRight, User2, AtSign, Mars, Venus } from 'lucide-react';
-import type { OnboardingFormData } from '@/types';
+import type { OnboardingFormData, SpotifyArtist, SpotifyGenre, SpotifyTrack } from '@/types';
 import { useGeocoding } from '@/lib/geocoding';
 import EditProfile from '@/components/EditProfile';
+import { getMusicProfile } from '@/api';
 
 export const Profile = () => {
   const { user, loading, refreshUser } = useAuth();
@@ -25,6 +26,93 @@ export const Profile = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const { reverseGeocode, loading: isLoadingLocation } = useGeocoding();
   const [showEditProfile, setShowEditProfile] = useState(false);
+
+
+  const [topArtists, setTopArtists] = useState<SpotifyArtist[]>([]);
+  const [topTracks, setTopTracks] = useState<SpotifyTrack[]>([]);
+  const [topGenres, setTopGenres] = useState<SpotifyGenre[]>([]);
+  const [timeRange, setTimeRange] = useState<'short_term' | 'medium_term' | 'long_term'>('medium_term');
+  const [activeTab, setActiveTab] = useState<'artists' | 'tracks' | 'genres'>('artists');
+  const [dataAvailable, setDataAvailable] = useState(true);
+
+  const fetchMusicData = async () => {
+    setError(null);
+
+    try {
+      console.log(`Fetching music profile data, will display ${timeRange} data`);
+
+      // Only use the music profile endpoint
+      const musicProfileResponse = await getMusicProfile();
+      console.log('Music profile response:', musicProfileResponse);
+
+      if (musicProfileResponse.success && musicProfileResponse.data?.musicProfile) {
+        const { musicProfile } = musicProfileResponse.data;
+        console.log('Music profile data:', musicProfile);
+
+        let artistsData: SpotifyArtist[] = [];
+        let tracksData: SpotifyTrack[] = [];
+        let genresData: SpotifyGenre[] = [];
+
+        // Handle nested structure for top artists
+        if (musicProfile.topArtists && musicProfile.topArtists[timeRange]) {
+          console.log(`Found ${timeRange} artists:`, musicProfile.topArtists[timeRange]);
+          artistsData = musicProfile.topArtists[timeRange] || [];
+        } else {
+          console.log('No artists data for the selected time range');
+        }
+
+        // Handle nested structure for top tracks
+        if (musicProfile.topTracks && musicProfile.topTracks[timeRange]) {
+          console.log(`Found ${timeRange} tracks:`, musicProfile.topTracks[timeRange]);
+          tracksData = musicProfile.topTracks[timeRange] || [];
+        } else {
+          console.log('No tracks data for the selected time range');
+        }
+
+        // Handle top genres (may not be time-range specific)
+        if (musicProfile.topGenres) {
+          if (Array.isArray(musicProfile.topGenres)) {
+            // If topGenres is a simple array
+            console.log('Found genres:', musicProfile.topGenres);
+            genresData = musicProfile.topGenres;
+          } else if (musicProfile.topGenres[timeRange]) {
+            // If topGenres is also nested by time range
+            console.log(`Found ${timeRange} genres:`, musicProfile.topGenres[timeRange]);
+            genresData = musicProfile.topGenres[timeRange];
+          } else {
+            console.log('No genres data for the selected time range');
+          }
+        }
+
+        // Update all state at once
+        setTopArtists(artistsData);
+        setTopTracks(tracksData);
+        setTopGenres(genresData);
+
+        // Check if any data is available
+        const hasData = artistsData.length > 0 || tracksData.length > 0 || genresData.length > 0;
+        setDataAvailable(hasData);
+
+      } else {
+        console.error('Failed to get music profile data');
+        setTopArtists([]);
+        setTopTracks([]);
+        setTopGenres([]);
+        setDataAvailable(false);
+      }
+    } catch (error: any) {
+      console.error('Failed to fetch music data:', error);
+      setError(error.message || 'Failed to load music profile');
+      setTopArtists([]);
+      setTopTracks([]);
+      setTopGenres([]);
+      setDataAvailable(false);
+    } finally {
+
+    }
+  };
+
+
 
   const [formData, setFormData] = useState<OnboardingFormData>({
     username: '',
@@ -331,8 +419,8 @@ export const Profile = () => {
                       key={option}
                       onClick={() => setFormData(prev => ({ ...prev, gender: option as any }))}
                       className={`p-3 border-2 rounded-lg text-sm capitalize ${formData.gender === option
-                          ? 'bg-white text-[#964FFF] border-white'
-                          : 'text-white border-white/50 hover:border-white'
+                        ? 'bg-white text-[#964FFF] border-white'
+                        : 'text-white border-white/50 hover:border-white'
                         }`}
                     >
                       {option}
@@ -353,8 +441,8 @@ export const Profile = () => {
                         setFormData(prev => ({ ...prev, intrestedIn: newInterested }));
                       }}
                       className={`p-3 border-2 rounded-lg text-sm capitalize ${formData.intrestedIn.includes(option)
-                          ? 'bg-white text-[#964FFF] border-white'
-                          : 'text-white border-white/50 hover:border-white'
+                        ? 'bg-white text-[#964FFF] border-white'
+                        : 'text-white border-white/50 hover:border-white'
                         }`}
                     >
                       {option}
@@ -534,7 +622,7 @@ export const Profile = () => {
             </div>
           </div>
 
-          
+
 
           {/* Music Profile Section */}
           {user && user._id && (
