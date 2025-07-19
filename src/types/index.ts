@@ -1,38 +1,68 @@
 // User interfaces
 export interface IUser {
-  _id: string;
-  spotifyId: string;
-  username?: string;
-  displayName: string;
-  firstName: string;
-  lastName?: string;
-  profilePicture?: string;
-  bio?: string;
-  age?: number;
-  gender?: string;
-  intrestedIn?: string[];
-  location?: { 
-    city?: string;
-    country?: string;
-  };
-  isOnline: boolean;
-  lastSeen?: Date;
-  isActive: boolean;
-  friends: string[];
-  friendRequests: {
-    incoming: string[];
-    outgoing: string[];
-  };
-  spotifyFollowers?: number;
-  country?: string;
-  city?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-  hasCompletedOnboarding?: boolean;
-  isPremium?: boolean;
-  isVerified?: boolean;
-  isBanned?: boolean;
-  isAdmin?: boolean;
+    _id: string;
+    spotifyId: string;
+    username?: string;
+    displayName: string;
+    firstName: string;
+    lastName?: string;
+    profilePicture?: string;
+    bio?: string;
+    age?: number;
+    gender?: 'male' | 'female' | 'non-binary' | 'other';
+    intrestedIn?: string[];
+    location?: {
+        city?: string;
+        coordinates?: {
+            latitude: number;
+            longitude: number;
+        };
+    };
+    lastSeen?: Date;
+    dailyRolls?: {
+        date: Date;
+        count: number;
+    };
+    musicProfile?: string; // ObjectId as string
+    friends: string[];
+    friendRequests: {
+        incoming: string[];
+        outgoing: string[];
+    };
+    privacySettings: {
+        showAge: boolean;
+        showLocation: boolean;
+        showLastSeen: boolean;
+    };
+    notifications: {
+        newMessages: boolean;
+        newLikes: boolean;
+        newMatches: boolean;
+        newFriendRequests: boolean;
+    };
+    isPremium: boolean;
+    isVerified: boolean;
+    isBanned: boolean;
+    banReason?: string;
+    banExpiresAt?: Date;
+    isAdmin: boolean;
+    hasCompletedOnboarding: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+export interface OnboardingFormData {
+    username: string;
+    dateOfBirth: string;
+    gender: 'male' | 'female' | 'non-binary' | 'other';
+    intrestedIn: string[];
+    location: {
+        city: string;
+        coordinates?: {
+            latitude: number;
+            longitude: number;
+        };
+    };
 }
 
 // Music profile interfaces
