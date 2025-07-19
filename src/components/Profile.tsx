@@ -496,7 +496,7 @@ export const Profile = () => {
                   <img
                     src={user.profilePicture}
                     alt={user.displayName}
-                    className="w-48 h-48 p-1 object-cover rounded-3xl select-none"
+                    className="w-32 h-32 p-1 object-cover rounded-3xl select-none"
                   />
                 </div>
               ) : (
