@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { getTopArtists, getTopTracks, getTopGenres } from '@/api/spotify';
+import { getTopArtists, getTopTracks, getTopGenres, getMusicProfile } from '@/api/spotify';
 import { SpotifyArtist, SpotifyTrack, SpotifyGenre } from '@/types/index';
 
 interface MusicProfileProps {
@@ -23,51 +23,70 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
     setError(null);
     
     try {
-      // Fetch data in parallel
-      const [artistsResponse, tracksResponse, genresResponse] = await Promise.all([
-        getTopArtists(timeRange),
-        getTopTracks(timeRange),
-        getTopGenres()
-      ]);
+      console.log(`Fetching music profile data, will display ${timeRange} data`);
       
-      console.log('Artists response:', artistsResponse);
-      console.log('Tracks response:', tracksResponse);
-      console.log('Genres response:', genresResponse);
+      // Only use the music profile endpoint
+      const musicProfileResponse = await getMusicProfile();
+      console.log('Music profile response:', musicProfileResponse);
       
-      // Check if any data is available
-      const hasArtists = !!(artistsResponse.success && artistsResponse.data && Array.isArray(artistsResponse.data) && artistsResponse.data.length > 0);
-      const hasTracks = !!(tracksResponse.success && tracksResponse.data && Array.isArray(tracksResponse.data) && tracksResponse.data.length > 0);
-      const hasGenres = !!(genresResponse.success && genresResponse.data && Array.isArray(genresResponse.data) && genresResponse.data.length > 0);
-      
-      setDataAvailable(hasArtists || hasTracks || hasGenres);
-      
-      if (artistsResponse.success && artistsResponse.data) {
-        // Ensure data is an array
-        const artistsData = Array.isArray(artistsResponse.data) ? artistsResponse.data : [];
+      if (musicProfileResponse.success && musicProfileResponse.data?.musicProfile) {
+        const { musicProfile } = musicProfileResponse.data;
+        console.log('Music profile data:', musicProfile);
+        
+        let artistsData: SpotifyArtist[] = [];
+        let tracksData: SpotifyTrack[] = [];
+        let genresData: SpotifyGenre[] = [];
+        
+        // Handle nested structure for top artists
+        if (musicProfile.topArtists && musicProfile.topArtists[timeRange]) {
+          console.log(`Found ${timeRange} artists:`, musicProfile.topArtists[timeRange]);
+          artistsData = musicProfile.topArtists[timeRange] || [];
+        } else {
+          console.log('No artists data for the selected time range');
+        }
+        
+        // Handle nested structure for top tracks
+        if (musicProfile.topTracks && musicProfile.topTracks[timeRange]) {
+          console.log(`Found ${timeRange} tracks:`, musicProfile.topTracks[timeRange]);
+          tracksData = musicProfile.topTracks[timeRange] || [];
+        } else {
+          console.log('No tracks data for the selected time range');
+        }
+        
+        // Handle top genres (may not be time-range specific)
+        if (musicProfile.topGenres) {
+          if (Array.isArray(musicProfile.topGenres)) {
+            // If topGenres is a simple array
+            console.log('Found genres:', musicProfile.topGenres);
+            genresData = musicProfile.topGenres;
+          } else if (musicProfile.topGenres[timeRange]) {
+            // If topGenres is also nested by time range
+            console.log(`Found ${timeRange} genres:`, musicProfile.topGenres[timeRange]);
+            genresData = musicProfile.topGenres[timeRange];
+          } else {
+            console.log('No genres data for the selected time range');
+          }
+        }
+        
+        // Update all state at once
         setTopArtists(artistsData);
-      } else {
-        setTopArtists([]);
-      }
-      
-      if (tracksResponse.success && tracksResponse.data) {
-        // Ensure data is an array
-        const tracksData = Array.isArray(tracksResponse.data) ? tracksResponse.data : [];
         setTopTracks(tracksData);
-      } else {
-        setTopTracks([]);
-      }
-      
-      if (genresResponse.success && genresResponse.data) {
-        // Ensure data is an array
-        const genresData = Array.isArray(genresResponse.data) ? genresResponse.data : [];
         setTopGenres(genresData);
+        
+        // Check if any data is available
+        const hasData = artistsData.length > 0 || tracksData.length > 0 || genresData.length > 0;
+        setDataAvailable(hasData);
+        
       } else {
+        console.error('Failed to get music profile data');
+        setTopArtists([]);
+        setTopTracks([]);
         setTopGenres([]);
+        setDataAvailable(false);
       }
     } catch (error: any) {
       console.error('Failed to fetch music data:', error);
       setError(error.message || 'Failed to load music profile');
-      // Reset states to empty arrays on error
       setTopArtists([]);
       setTopTracks([]);
       setTopGenres([]);
@@ -78,6 +97,7 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
   };
 
   useEffect(() => {
+    console.log(`Time range changed to: ${timeRange}, fetching new data...`);
     fetchMusicData();
   }, [timeRange, userId]);
 
@@ -85,6 +105,12 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
     short_term: 'Last 4 Weeks',
     medium_term: 'Last 6 Months',
     long_term: 'All Time'
+  };
+
+  const handleTimeRangeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newTimeRange = e.target.value as 'short_term' | 'medium_term' | 'long_term';
+    console.log(`Changing time range from ${timeRange} to ${newTimeRange}`);
+    setTimeRange(newTimeRange);
   };
 
   if (loading) {
@@ -144,11 +170,6 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
     );
   }
 
-  // Safe array accessors with fallbacks
-  const safeTopArtists = Array.isArray(topArtists) ? topArtists : [];
-  const safeTopTracks = Array.isArray(topTracks) ? topTracks : [];
-  const safeTopGenres = Array.isArray(topGenres) ? topGenres : [];
-
   return (
     <div className=" rounded-lg shadow-sm p-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
@@ -157,7 +178,7 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
         <div className="flex space-x-2">
           <select
             value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value as typeof timeRange)}
+            onChange={handleTimeRangeChange}
             className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             {Object.entries(timeRangeLabels).map(([value, label]) => (
@@ -166,14 +187,17 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
           </select>
         </div>
       </div>
+      <div className="text-xs text-gray-500 mt-1">
+        Active time range: {timeRangeLabels[timeRange]}
+      </div>
 
       {/* Tab Navigation */}
       <div className="border-b border-gray-200 mb-6">
         <nav className="flex space-x-8">
           {[
-            { id: 'artists', label: 'Top Artists', count: safeTopArtists.length },
-            { id: 'tracks', label: 'Top Tracks', count: safeTopTracks.length },
-            { id: 'genres', label: 'Top Genres', count: safeTopGenres.length }
+            { id: 'artists', label: 'Top Artists', count: Array.isArray(topArtists) ? topArtists.length : 0 },
+            { id: 'tracks', label: 'Top Tracks', count: Array.isArray(topTracks) ? topTracks.length : 0 },
+            { id: 'genres', label: 'Top Genres', count: Array.isArray(topGenres) ? topGenres.length : 0 }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -193,7 +217,7 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
       {/* Artists Tab */}
       {activeTab === 'artists' && (
         <div className="grid gap-4">
-          {safeTopArtists.slice(0, 10).map((artist, index) => (
+          {topArtists.slice(0, 10).map((artist, index) => (
             <div key={artist.spotifyId || artist.id || index} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
               <div className="flex-shrink-0">
                 <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-500 text-white rounded-full text-sm font-medium">
@@ -221,7 +245,7 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
             </div>
           ))}
 
-          {safeTopArtists.length === 0 && (
+          {topArtists.length === 0 && (
             <div className="text-center p-6 bg-gray-50 rounded-lg">
               <p className="text-gray-500">No artist data available. Try syncing your Spotify data.</p>
             </div>
@@ -232,7 +256,7 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
       {/* Tracks Tab */}
       {activeTab === 'tracks' && (
         <div className="grid gap-4">
-          {safeTopTracks.slice(0, 10).map((track, index) => (
+          {topTracks.slice(0, 10).map((track, index) => (
             <div key={track.spotifyId || track.id || index} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
               <div className="flex-shrink-0">
                 <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-500 text-white rounded-full text-sm font-medium">
@@ -260,7 +284,7 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
             </div>
           ))}
 
-          {safeTopTracks.length === 0 && (
+          {topTracks.length === 0 && (
             <div className="text-center p-6 bg-gray-50 rounded-lg">
               <p className="text-gray-500">No track data available. Try syncing your Spotify data.</p>
             </div>
@@ -271,7 +295,7 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
       {/* Genres Tab */}
       {activeTab === 'genres' && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {safeTopGenres.slice(0, 15).map((genre, index) => (
+          {topGenres.slice(0, 15).map((genre, index) => (
             <div key={genre.name || index} className="bg-gray-50 rounded-lg p-4 text-center">
               <div className="text-2xl font-bold text-blue-600 mb-1">
                 #{index + 1}
@@ -285,7 +309,7 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
             </div>
           ))}
 
-          {safeTopGenres.length === 0 && (
+          {topGenres.length === 0 && (
             <div className="col-span-full text-center p-6 bg-gray-50 rounded-lg">
               <p className="text-gray-500">No genre data available. Try syncing your Spotify data.</p>
             </div>

@@ -6,7 +6,6 @@ import Header from '@/components/Header';
 import MusicProfile from '@/components/MusicProfile';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { setUsername, editProfile } from '@/api/user';
-import { syncSpotifyData } from '@/api/spotify';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { spaceGrotesk } from '@/app/fonts';
 import { Ellipsis, SearchCheck, Share2, Edit, RefreshCcw, UserMinus, Eye, EyeOff, MapPin, Calendar, ChevronRight, User2, AtSign, Mars, Venus } from 'lucide-react';

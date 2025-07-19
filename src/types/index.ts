@@ -75,15 +75,12 @@ export interface SpotifyImage {
 }
 
 export interface SpotifyArtist {
-  spotifyId?: string;
-  id?: string;
+  id: string;
   name: string;
-  genres?: string[];
-  popularity?: number;
-  images?: SpotifyImage[];
-  externalUrl?: {
-    spotify?: string;
-  };
+  popularity: number;
+  genres: string[];
+  images: Array<{url: string}>;
+  spotifyId?: string;
 }
 
 export interface SpotifyAlbum {
@@ -102,20 +99,16 @@ export interface SpotifyAlbum {
 }
 
 export interface SpotifyTrack {
-  spotifyId?: string;
-  id?: string;
+  id: string;
   name: string;
-  artists?: SpotifyArtist[];
-  album?: SpotifyAlbum;
-  duration?: number;
-  popularity?: number;
-  explicit?: boolean;
-  previewUrl?: string;
-  externalUrl?: {
-    spotify?: string;
+  album: {
+    name: string;
+    images: Array<{url: string}>;
+    spotifyId?: string;
   };
-  audioFeatures?: IAudioFeatures | Record<string, number>;
-  href?: string;
+  artists: Array<{name: string, id: string, spotifyId?: string}>;
+  popularity: number;
+  spotifyId?: string;
 }
 
 export interface SpotifyCurrentTrack extends SpotifyTrack {
@@ -156,49 +149,46 @@ export interface SpotifyPlaylist {
 
 export interface SpotifyGenre {
   name: string;
-  weight?: number;
   count?: number;
+  weight?: number;
 }
 
-export interface IAudioFeatures {
-  danceability?: number;
-  energy?: number;
-  key?: number;
-  mode?: number;
-  speechiness?: number;
-  acousticness?: number;
-  instrumentalness?: number;
-  liveness?: number;
-  valence?: number;
-  tempo?: number;
-  duration?: number;
-  timeSignature?: number;
-  loudness?: number;
+export interface AudioFeatures {
+  danceability: number;
+  energy: number;
+  key: number;
+  loudness: number;
+  mode: number;
+  speechiness: number;
+  acousticness: number;
+  instrumentalness: number;
+  liveness: number;
+  valence: number;
+  tempo: number;
 }
 
 export interface IMusicProfile {
-  spotifyConnected?: boolean;
-  spotifyAccessToken?: string;
-  spotifyRefreshToken?: string;
-  spotifyTokenExpiresAt?: Date;
-  currentlyPlaying?: SpotifyCurrentTrack;
+  topArtists: {
+    short_term: SpotifyArtist[];
+    medium_term: SpotifyArtist[];
+    long_term: SpotifyArtist[];
+  };
+  topTracks: {
+    short_term: SpotifyTrack[];
+    medium_term: SpotifyTrack[];
+    long_term: SpotifyTrack[];
+  };
+  topGenres: SpotifyGenre[] | {
+    short_term: SpotifyGenre[];
+    medium_term: SpotifyGenre[];
+    long_term: SpotifyGenre[];
+  };
   recentTracks?: SpotifyTrack[];
-  recentlyPlayed?: SpotifyRecentlyPlayedTrack[];
-  topArtists?: {
-    short_term?: SpotifyArtist[];
-    medium_term?: SpotifyArtist[];
-    long_term?: SpotifyArtist[];
-  };
-  topTracks?: {
-    short_term?: SpotifyTrack[];
-    medium_term?: SpotifyTrack[];
-    long_term?: SpotifyTrack[];
-  };
-  topGenres?: SpotifyGenre[];
-  audioFeatures?: IAudioFeatures;
-  playlists?: SpotifyPlaylist[];
-  compatibilityScore?: Record<string, number>;
-  lastSyncAt?: Date;
+  currentlyPlaying?: SpotifyTrack;
+  audioFeatures?: AudioFeatures;
+  playlistCount?: number;
+  lastSyncAt?: string;
+  spotifyConnected?: boolean;
 }
 
 // Friend request interfaces

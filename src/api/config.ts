@@ -120,3 +120,74 @@ export async function handleApiResponse<T>(response: Response, cacheKey?: string
     throw new Error('Failed to process response');
   }
 } 
+
+interface ApiRequestOptions {
+  url: string;
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  data?: any;
+  headers?: Record<string, string>;
+}
+
+export const apiRequest = async ({ url, method = 'GET', data = null, headers = {} }: ApiRequestOptions) => {
+  try {
+    const token = Cookies.get('auth_token');
+    
+    const requestHeaders = {
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : '',
+      ...headers
+    };
+    
+    const requestOptions: RequestInit = {
+      method,
+      headers: requestHeaders,
+      credentials: 'include',
+      mode: 'cors'
+    };
+    
+    if (data && method !== 'GET') {
+      requestOptions.body = JSON.stringify(data);
+    }
+    
+    const response = await fetch(`${API_BASE_URL}${url}`, requestOptions);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorData;
+      
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { message: errorText || 'Unknown error' };
+      }
+      
+      if (response.status === 401) {
+        Cookies.remove('auth_token');
+        Cookies.remove('refresh_token');
+      }
+      
+      return {
+        success: false,
+        message: errorData.message || `API error: ${response.status} ${response.statusText}`,
+        error: errorData
+      };
+    }
+    
+    const responseData = await response.json();
+    
+    if (responseData.hasOwnProperty('success')) {
+      return responseData;
+    }
+    
+    return {
+      success: true,
+      data: responseData
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error occurred',
+      error
+    };
+  }
+}; 
