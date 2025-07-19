@@ -49,12 +49,31 @@ export const Profile = () => {
   const needsUserInfo = () => {
     if (!user) return false;
     
-    return !user.hasCompletedOnboarding || 
-           !user.age || 
-           !user.gender ||
-           !user.location?.city ||
-           !user.intrestedIn?.length ||
-           !user.username;
+    // If onboarding is explicitly marked as completed, don't show the form
+    if (user.hasCompletedOnboarding === true) {
+      return false;
+    }
+    
+    // Check if any required field is missing
+    const missingInfo = !user.displayName || 
+                       !user.age || 
+                       !user.gender ||
+                       !user.location?.city ||
+                       !user.intrestedIn?.length ||
+                       !user.username;
+    
+    console.log("User onboarding status:", {
+      hasCompletedOnboarding: user.hasCompletedOnboarding,
+      displayName: !!user.displayName,
+      age: !!user.age,
+      gender: !!user.gender,
+      location: !!user.location?.city,
+      interestedIn: !!user.intrestedIn?.length,
+      username: !!user.username,
+      missingInfo
+    });
+    
+    return missingInfo;
   };
 
   // Pre-fill form data with existing user info
@@ -188,36 +207,58 @@ export const Profile = () => {
         // Calculate age from date of birth
         const age = calculateAge(formData.dateOfBirth);
         
-        // Prepare profile data
-        const profileData = {
-          username: formData.username,
-          displayName: formData.displayName,
-          age: age,
-          gender: formData.gender,
-          intrestedIn: formData.intrestedIn,
-          location: {
+        // Prepare profile data - only include fields that have values
+        const profileData: any = {
+          hasCompletedOnboarding: true
+        };
+        
+        // Only add fields that have actual values
+        if (formData.username) profileData.username = formData.username;
+        if (formData.displayName) profileData.displayName = formData.displayName;
+        if (age) profileData.age = age;
+        if (formData.gender) profileData.gender = formData.gender;
+        if (formData.intrestedIn && formData.intrestedIn.length > 0) {
+          profileData.intrestedIn = formData.intrestedIn;
+        }
+        
+        // Only add location if city is provided
+        if (formData.location.city) {
+          profileData.location = {
             city: formData.location.city,
             country: 'Unknown', // Add a default country value
             coordinates: formData.location.coordinates || {
               lat: 0,
               lng: 0
             }
-          },
-          hasCompletedOnboarding: true
-        };
+          };
+        }
+        
+        console.log("Submitting profile data:", profileData);
         
         // Save all profile data at once
         const response = await editProfile(profileData);
         
         if (response.success) {
           setSuccess('Profile updated successfully');
+          
+          // Force a complete refresh of user data
           await refreshUser();
-          router.push('/profile');
+          
+          // Add a small delay to ensure the refreshed data is processed
+          setTimeout(() => {
+            // Check if we still need user info after refresh
+            if (!needsUserInfo()) {
+              router.push('/profile');
+            } else {
+              console.log("Still missing user info after refresh, not redirecting");
+            }
+          }, 1000);
         } else {
           setError(response.message || 'Failed to update profile');
         }
       } catch (err: any) {
         setError(err.message || 'Failed to save profile data');
+        console.error("Error saving profile:", err);
       } finally {
         setIsSubmitting(false);
       }

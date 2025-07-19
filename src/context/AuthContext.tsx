@@ -47,6 +47,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       const response = await getMyProfile();
       console.log('Profile refresh response:', response);
+      console.log('User data received:', {
+        hasCompletedOnboarding: response.data?.hasCompletedOnboarding,
+        username: response.data?.username,
+        displayName: response.data?.displayName,
+        age: response.data?.age,
+        gender: response.data?.gender,
+        location: response.data?.location,
+        intrestedIn: response.data?.intrestedIn
+      });
       
       if (response.success && response.data) {
         console.log('User profile refreshed successfully');

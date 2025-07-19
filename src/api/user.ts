@@ -73,12 +73,12 @@ export const getMyProfile = async (): Promise<ApiResponse<IUser>> => {
         lastSeen: userData.lastSeen,
         friends: userData.friends || [],
         friendRequests: userData.friendRequests || { incoming: [], outgoing: [] },
-        location: {
+        location: userData.location || {
           city: userData.city || '',
           country: userData.country || '',
           coordinates: {
-            lat: userData.location.lat,
-            lng: userData.location.lng
+            lat: 0,
+            lng: 0
           }
         },
         privacySettings: userData.privacySettings || {
@@ -92,10 +92,10 @@ export const getMyProfile = async (): Promise<ApiResponse<IUser>> => {
           newMatches: true,
           newFriendRequests: true
         },
-        hasCompletedOnboarding: userData.hasCompletedOnboarding,
-        isPremium: userData.isPremium,
-        isVerified: userData.isVerified,
-        isBanned: userData.isBanned,
+        hasCompletedOnboarding: userData.hasCompletedOnboarding === true,
+        isPremium: userData.isPremium || false,
+        isVerified: userData.isVerified || false,
+        isBanned: userData.isBanned || false,
         isAdmin: userData.isAdmin || false,
         createdAt: userData.createdAt,
         updatedAt: userData.updatedAt
@@ -172,24 +172,48 @@ export const setUsername = async (username: string): Promise<ApiResponse<null>> 
 
 /**
  * Updates the user's profile information
+ * Only sends fields that are actually provided
  */
 export const editProfile = async (profileData: Partial<IUser>): Promise<ApiResponse<null>> => {
   try {
     const token = Cookies.get('auth_token');
-    console.log('Updating profile data');
+    console.log('Updating profile data:', profileData);
+    
+    // Clean up the profile data to remove any undefined or empty values
+    const cleanProfileData = Object.entries(profileData).reduce((acc, [key, value]) => {
+      // Only include defined values
+      if (value !== undefined && value !== null) {
+        // For objects like location, only include if they have properties
+        if (typeof value === 'object' && !Array.isArray(value)) {
+          const objValue = value as Record<string, any>;
+          if (Object.keys(objValue).length > 0) {
+            acc[key] = objValue;
+          }
+        } else {
+          acc[key] = value;
+        }
+      }
+      return acc;
+    }, {} as Record<string, any>);
+    
+    console.log('Cleaned profile data for API:', cleanProfileData);
     
     const headers = {
       'Content-Type': 'application/json',
       'Authorization': token ? `Bearer ${token}` : ''
     };
     
+    console.log('Making API call to:', `${API_BASE_URL}/profile/edit`);
+    
     const response = await fetch(`${API_BASE_URL}/profile/edit`, {
       method: 'POST',
       headers: headers,
-      body: JSON.stringify(profileData),
+      body: JSON.stringify(cleanProfileData),
       credentials: 'include',
       mode: 'cors'
     });
+    
+    console.log('API response status:', response.status);
     
     if (!response.ok) {
       console.error('Error updating profile:', response.status, response.statusText);
@@ -211,6 +235,7 @@ export const editProfile = async (profileData: Partial<IUser>): Promise<ApiRespo
     }
     
     const responseData = await response.json();
+    console.log('Profile update success response:', responseData);
     
     return {
       success: true,
