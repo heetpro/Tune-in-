@@ -89,9 +89,9 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow-sm p-6">
+      <div className=" rounded-lg shadow-sm p-6">
         <div className="animate-pulse">
-          <div className="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="h-6  rounded w-1/4 mb-4"></div>
           <div className="space-y-3">
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="flex items-center space-x-4">
@@ -110,7 +110,7 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
 
   if (error) {
     return (
-      <div className="bg-white rounded-lg shadow-sm p-6">
+      <div className=" rounded-lg shadow-sm p-6">
         <div className="text-center">
           <p className="text-red-600 mb-4">{error}</p>
           <button
@@ -126,7 +126,7 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
 
   if (!dataAvailable && !loading) {
     return (
-      <div className="bg-white rounded-lg shadow-sm p-6">
+      <div className=" rounded-lg shadow-sm p-6">
         <h2 className="text-xl font-semibold mb-4">Your Music Profile</h2>
         <div className="text-center p-8">
           <p className="text-gray-600 mb-4">No music data available yet.</p>
@@ -150,7 +150,7 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
   const safeTopGenres = Array.isArray(topGenres) ? topGenres : [];
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
+    <div className=" rounded-lg shadow-sm p-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
         <h2 className="text-xl font-semibold mb-4 sm:mb-0">Your Music Profile</h2>
         

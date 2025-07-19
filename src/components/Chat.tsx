@@ -84,8 +84,6 @@ const Chat: React.FC<ChatProps> = ({ receiverId }) => {
       <div className="absolute inset-0 opacity-90 rounded-3xl"
         style={{
           backgroundImage: "url('/back.jpg')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
           zIndex: -1
         }}
       ></div>
