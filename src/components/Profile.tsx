@@ -535,52 +535,7 @@ export const Profile = () => {
             </div>
           </div>
 
-          {/* Account Info Section */}
-          <div className="p-6 rounded-lg  mb-6">
-            <h2 className="text-xl font-semibold mb-4">Account Information</h2>
-            <div className="space-y-3">
-              <div>
-                <span className="text-gray-600">Display Name:</span>
-                <span className="ml-2">{user?.displayName}</span>
-              </div>
-              {user?.firstName && (
-                <div>
-                  <span className="text-gray-600">Name:</span>
-                  <span className="ml-2">{user.firstName} {user.lastName}</span>
-                </div>
-              )}
-              {showAge && user?.age && (
-                <div>
-                  <span className="text-gray-600">Age:</span>
-                  <span className="ml-2">{user.age}</span>
-                </div>
-              )}
-              {user?.gender && (
-                <div>
-                  <span className="text-gray-600">Gender:</span>
-                  <span className="ml-2">{user.gender}</span>
-                </div>
-              )}
-              {user?.bio && (
-                <div>
-                  <span className="text-gray-600">Bio:</span>
-                  <span className="ml-2">{user.bio}</span>
-                </div>
-              )}
-              {user?.location?.city && (
-                <div>
-                  <span className="text-gray-600">City:</span>
-                  <span className="ml-2">{user.location.city}</span>
-                </div>
-              )}
-              {user?.intrestedIn && user.intrestedIn.length > 0 && (
-                <div>
-                  <span className="text-gray-600">Interested In:</span>
-                  <span className="ml-2">{user.intrestedIn.join(', ')}</span>
-                </div>
-              )}
-            </div>
-          </div>
+          
 
           {/* Music Profile Section */}
           {user && user._id && (
