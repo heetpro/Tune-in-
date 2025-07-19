@@ -10,18 +10,20 @@ const Navbar = () => {
   return (
     <div className="w-full h-[14vh] p-3">
       <div className="flex items-start gap-2 h-full w-full">
-          <Logo2 />
+          <div className="w-fit h-full">
+            <Logo2 />
+          </div>
           <div className="flex gap-2 h-full">
             {user && (
               <>
-                <div className="relative w-[100px] h-full aspect-square rounded-2xl border-4 border-[#964FFF] overflow-hidden"
+                <div className="relative h-full aspect-square rounded-2xl border-4 border-[#964FFF] overflow-hidden"
                 >
                   {user.profilePicture ? (
                     <Image
                       src={user.profilePicture}
                       alt={user.displayName}
                       fill
-                      className="object-cover scale-95 rounded-2xl "
+                      className="object-cover scale-95 aspect-square w-full h-full rounded-2xl "
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
@@ -41,8 +43,13 @@ const Navbar = () => {
             )}
           </div>
 
-          <div className="bg-[#964FFF] rounded-2xl p-2 w-[100px] aspect-square h-full flex items-center justify-center">
-            <div className="flex w-10 h-10 rounded-full bg-white p-1">
+          <div className="bg-[#964FFF] rounded-2xl p-2  aspect-square h-full flex items-center justify-center">
+            <div className="flex rounded-full bg-white p-1"
+            style={{
+              width: 'clamp(20px, 1.25vw, 100px)',
+              height: 'clamp(20px, 1.25vw, 100px)',
+            }}
+            >
 
             </div>
           </div>

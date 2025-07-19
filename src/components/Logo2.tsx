@@ -3,8 +3,12 @@ import React from 'react'
 
 const Logo2 = () => {
   return (
-    <div className='flex items-center w-fit h-full aspect-square bg-[#964FFF] rounded-2xl gap-1.5'>
-      <Image src="logo/logo.svg" alt="Logo" width={100} height={100} className='scale-75 aspect-square' />
+    <div className='flex items-center w-full h-full aspect-square bg-[#964FFF] rounded-2xl gap-1.5'>
+      <Image src="logo/logo.svg" alt="Logo" width={100} height={100} 
+      style={{
+      padding: 'clamp(0.75rem, 0.75vw, 10rem)',
+      }}
+      className=' aspect-square w-full h-full' />
     </div>
   )
 }
