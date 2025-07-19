@@ -39,9 +39,7 @@ export const Profile = () => {
     setError(null);
 
     try {
-      console.log(`Fetching music profile data, will display ${timeRange} data`);
 
-      // Only use the music profile endpoint
       const musicProfileResponse = await getMusicProfile();
       console.log('Music profile response:', musicProfileResponse);
 
@@ -53,18 +51,14 @@ export const Profile = () => {
         let tracksData: SpotifyTrack[] = [];
         let genresData: SpotifyGenre[] = [];
 
-        // Handle nested structure for top artists
-        if (musicProfile.topArtists && musicProfile.topArtists[timeRange]) {
-          console.log(`Found ${timeRange} artists:`, musicProfile.topArtists[timeRange]);
-          artistsData = musicProfile.topArtists[timeRange] || [];
+        if (musicProfile.topArtists) {
+          artistsData = musicProfile.topArtists || [];
         } else {
           console.log('No artists data for the selected time range');
         }
 
-        // Handle nested structure for top tracks
-        if (musicProfile.topTracks && musicProfile.topTracks[timeRange]) {
-          console.log(`Found ${timeRange} tracks:`, musicProfile.topTracks[timeRange]);
-          tracksData = musicProfile.topTracks[timeRange] || [];
+        if (musicProfile.topTracks) {
+          tracksData = musicProfile.topTracks || [];
         } else {
           console.log('No tracks data for the selected time range');
         }
@@ -75,10 +69,7 @@ export const Profile = () => {
             // If topGenres is a simple array
             console.log('Found genres:', musicProfile.topGenres);
             genresData = musicProfile.topGenres;
-          } else if (musicProfile.topGenres[timeRange]) {
-            // If topGenres is also nested by time range
-            console.log(`Found ${timeRange} genres:`, musicProfile.topGenres[timeRange]);
-            genresData = musicProfile.topGenres[timeRange];
+          
           } else {
             console.log('No genres data for the selected time range');
           }
@@ -110,7 +101,10 @@ export const Profile = () => {
     } finally {
 
     }
+
+
   };
+
 
 
 
@@ -356,6 +350,8 @@ export const Profile = () => {
     }
   };
 
+  console.log("hey :::::::::::::::::::::::::",topTracks)
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -579,6 +575,7 @@ export const Profile = () => {
           {/* User Profile Section */}
           <div className="rounded-lg  mb-6">
             <div className="">
+              <div className="flex gap-2">
               {user?.profilePicture ? (
                 <div className="inline-block border-4 border-white rounded-3xl">
                   <img
@@ -592,8 +589,16 @@ export const Profile = () => {
                   <span className="text-3xl text-white">{user?.displayName?.charAt(0) || '?'}</span>
                 </div>
               )}
+               <div className="inline-block border-4 border-white rounded-3xl">
+                  <img
+                    src={(topTracks as any)?.short_term?.[0]?.album?.images?.[0]?.url}
+                    alt={user?.displayName}
+                    className="w-64 h-32 p-1 object-cover rounded-3xl select-none"
+                  />
+                  </div>
+                </div>
               <div className='flex flex-col gap-2'>
-                <div className="flex flex-col"><h2 className="text-2xl font-semibold text-white">{user?.displayName}
+                <div className="flex mt-2 flex-col"><h2 className="text-2xl font-semibold text-white">{user?.displayName}
                   <span className="text-sm ml-1  font-semibold text-white/80">
                     {user?.gender == "female" ? "(she/her)" : user?.gender == "male" ? "(he/him)" : "(they/them)"}
                   </span>
