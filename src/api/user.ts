@@ -170,10 +170,6 @@ export const setUsername = async (username: string): Promise<ApiResponse<null>> 
   }
 }; 
 
-/**
- * Updates the user's profile information
- * Only sends fields that are actually provided
- */
 export const editProfile = async (profileData: Partial<IUser>): Promise<ApiResponse<null>> => {
   try {
     const token = Cookies.get('auth_token');

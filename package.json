@@ -16,10 +16,11 @@
     "js-cookie": "^3.0.5",
     "lucide-react": "^0.525.0",
     "next": "15.3.4",
+    "next-cloudinary": "^6.16.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "socket.io-client": "^4.8.1",
-      "tailwind-scrollbar": "^4.0.2"
+    "tailwind-scrollbar": "^4.0.2"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -29,6 +30,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",
+    "cloudinary": "^2.7.0",
+    "dotenv": "^17.2.0",
     "eslint": "^9",
     "eslint-config-next": "15.3.4",
     "tailwindcss": "^4",

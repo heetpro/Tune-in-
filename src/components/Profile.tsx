@@ -12,6 +12,7 @@ import { spaceGrotesk } from '@/app/fonts';
 import { Ellipsis, SearchCheck, Share2, Edit, RefreshCcw, UserMinus, Eye, EyeOff, MapPin, Calendar, ChevronRight, User2, AtSign } from 'lucide-react';
 import type { OnboardingFormData } from '@/types';
 import { useGeocoding } from '@/lib/geocoding';
+import EditProfile from '@/components/EditProfile';
 
 export const Profile = () => {
   const { user, loading, refreshUser } = useAuth();
@@ -24,6 +25,7 @@ export const Profile = () => {
   const [showAge, setShowAge] = useState(true);
   const [currentStep, setCurrentStep] = useState(0);
   const { reverseGeocode, loading: isLoadingLocation } = useGeocoding();
+  const [showEditProfile, setShowEditProfile] = useState(false);
   
   const [formData, setFormData] = useState<OnboardingFormData>({
     username: '',
@@ -452,7 +454,7 @@ export const Profile = () => {
                 <button 
                   className="w-full px-4 cursor-pointer py-2 text-left hover:bg-gray-100 flex items-center gap-2"
                   onClick={() => {
-                    router.push('/profile/edit');
+                    setShowEditProfile(true);
                     setShowDropdown(false);
                   }}
                 >
@@ -574,6 +576,12 @@ export const Profile = () => {
           )}
         </div>
       </main>
+      
+      {/* Edit Profile Modal */}
+      <EditProfile 
+        isOpen={showEditProfile} 
+        onClose={() => setShowEditProfile(false)} 
+      />
     </div>
   );
 }; 
