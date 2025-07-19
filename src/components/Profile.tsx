@@ -11,11 +11,11 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { spaceGrotesk } from '@/app/fonts';
 import { Ellipsis, SearchCheck, Share2, Edit, RefreshCcw, UserMinus, Eye, EyeOff, MapPin, Calendar, ChevronRight, User2 } from 'lucide-react';
 import type { OnboardingFormData } from '@/types';
+import { useGeocoding } from '@/lib/geocoding';
 
 export const Profile = () => {
   const { user, loading, refreshUser } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [username, setUsernameState] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +24,7 @@ export const Profile = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showAge, setShowAge] = useState(true);
   const [currentStep, setCurrentStep] = useState(0);
-  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const { reverseGeocode, loading: isLoadingLocation } = useGeocoding();
   const [showUsernameSetup, setShowUsernameSetup] = useState(false);
   
   const [formData, setFormData] = useState<OnboardingFormData>({
@@ -45,9 +45,42 @@ export const Profile = () => {
     { title: 'Location', field: 'location', icon: MapPin }
   ];
 
+  const needsUserInfo = () => {
+    if (!user) return false;
+    
+    // Check if any required field is missing
+    return !user.hasCompletedOnboarding || 
+           !user.age || 
+           !user.gender ||
+           !user.location?.city ||
+           !user.intrestedIn?.length;
+  };
+
+  const needsUsername = () => {
+    return user && !user.username && !needsUserInfo();
+  };
+
   useEffect(() => {
     if (user?.username) {
       setUsernameState(user.username);
+    }
+  }, [user]);
+
+  // Pre-fill form data with existing user info
+  useEffect(() => {
+    if (user && needsUserInfo()) {
+      setFormData(prev => ({
+        ...prev,
+        gender: user.gender || prev.gender,
+        intrestedIn: user.intrestedIn || prev.intrestedIn,
+        location: {
+          city: user.location?.city || prev.location.city,
+          coordinates: user.location?.coordinates ? {
+            lat: user.location.coordinates.lat,
+            lng: user.location.coordinates.lng
+          } : undefined
+        }
+      }));
     }
   }, [user]);
 
@@ -78,7 +111,6 @@ export const Profile = () => {
   };
 
   const detectLocation = async () => {
-    setIsLoadingLocation(true);
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject);
@@ -86,25 +118,24 @@ export const Profile = () => {
 
       const { latitude, longitude } = position.coords;
       
-      // Use reverse geocoding to get city name
-      const response = await fetch(
-        `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=${process.env.NEXT_PUBLIC_OPENCAGE_API_KEY}`
-      );
-      const data = await response.json();
-      const city = data.results[0]?.components?.city || 'Unknown City';
-
-      setFormData(prev => ({
-        ...prev,
-        location: {
-          city,
-          coordinates: { latitude, longitude }
-        }
-      }));
+      // Use our geocoding service
+      const locationData = await reverseGeocode(latitude, longitude);
+      
+      if (locationData) {
+        setFormData(prev => ({
+          ...prev,
+          location: {
+            city: locationData.city,
+            coordinates: {
+              lat: locationData.latitude,
+              lng: locationData.longitude
+            }
+          }
+        }));
+      }
     } catch (error) {
       console.error('Error getting location:', error);
       setError('Failed to detect location. Please enter manually.');
-    } finally {
-      setIsLoadingLocation(false);
     }
   };
 
@@ -187,21 +218,6 @@ export const Profile = () => {
     }
   };
 
-  const needsUserInfo = () => {
-    if (!user) return false;
-    
-    // Check if any required field is missing
-    return !user.hasCompletedOnboarding || 
-           !user.age || 
-           !user.gender ||
-           !user.location?.city ||
-           !user.intrestedIn?.length;
-  };
-
-  const needsUsername = () => {
-    return user && !user.username && !needsUserInfo();
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -263,26 +279,6 @@ export const Profile = () => {
 
   // Show user info form if required fields are missing
   if (needsUserInfo()) {
-    // Pre-fill form data with existing user info
-    useEffect(() => {
-      if (user) {
-        const coordinates = user.location?.coordinates ? {
-          latitude: Number(user.location.coordinates.latitude),
-          longitude: Number(user.location.coordinates.longitude)
-        } : undefined;
-
-        setFormData(prev => ({
-          ...prev,
-          gender: user.gender || prev.gender,
-          intrestedIn: user.intrestedIn || prev.intrestedIn,
-          location: {
-            city: user.location?.city || prev.location.city,
-            coordinates
-          }
-        }));
-      }
-    }, [user]);
-
     return (
       <div className={`fixed inset-0 bg-black/50 flex items-center justify-center p-2 z-50 ${spaceGrotesk.className}`}>
         <div className="flex w-[90vw] md:w-[400px]">

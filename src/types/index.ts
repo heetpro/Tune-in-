@@ -12,10 +12,11 @@ export interface IUser {
     gender?: 'male' | 'female' | 'non-binary' | 'other';
     intrestedIn?: string[];
     location?: {
-        city?: string;
-        coordinates?: {
-            latitude: number;
-            longitude: number;
+        city: string;
+        country: string;
+        coordinates: {
+            lat: number;
+            lng: number;
         };
     };
     lastSeen?: Date;
@@ -59,8 +60,8 @@ export interface OnboardingFormData {
     location: {
         city: string;
         coordinates?: {
-            latitude: number;
-            longitude: number;
+            lat: number;
+            lng: number;
         };
     };
 }

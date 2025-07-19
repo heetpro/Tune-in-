@@ -70,16 +70,27 @@ export const getMyProfile = async (): Promise<ApiResponse<IUser>> => {
         age: userData.age,
         gender: userData.gender,
         intrestedIn: userData.intrestedIn || [],
-        isOnline: userData.isOnline,
-        isActive: userData.isActive || true, // Default to true if missing
         lastSeen: userData.lastSeen,
         friends: userData.friends || [],
         friendRequests: userData.friendRequests || { incoming: [], outgoing: [] },
-        spotifyFollowers: userData.spotifyFollowers,
-        country: userData.country,
         location: {
           city: userData.city || '',
-          country: userData.country || ''
+          country: userData.country || '',
+          coordinates: {
+            lat: userData.location.lat,
+            lng: userData.location.lng
+          }
+        },
+        privacySettings: userData.privacySettings || {
+          showAge: true,
+          showLocation: true,
+          showLastSeen: true
+        },
+        notifications: userData.notifications || {
+          newMessages: true,
+          newLikes: true,
+          newMatches: true,
+          newFriendRequests: true
         },
         hasCompletedOnboarding: userData.hasCompletedOnboarding,
         isPremium: userData.isPremium,
