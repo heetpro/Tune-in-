@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { editProfile } from '@/api/user';
-import { CldUploadButton } from 'next-cloudinary';
-import { X, Camera, MapPin, AtSign, User2, AlertCircle } from 'lucide-react';
+import { X, MapPin, AtSign, User2 } from 'lucide-react';
 import { spaceGrotesk } from '@/app/fonts';
+import { ImageUpload } from './ImageUpload';
 
 interface EditProfileProps {
   isOpen: boolean;
@@ -17,7 +17,6 @@ const EditProfile = ({ isOpen, onClose }: EditProfileProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [uploadError, setUploadError] = useState<boolean>(false);
   
   const [formData, setFormData] = useState({
     username: '',
@@ -63,26 +62,11 @@ const EditProfile = ({ isOpen, onClose }: EditProfileProps) => {
     }
   };
 
-  const handleUploadSuccess = (result: any) => {
-    console.log('Cloudinary upload success:', result);
-    
-    try {
-      if (result.event === 'success' && result.info && result.info.secure_url) {
-        setFormData(prev => ({
-          ...prev,
-          profilePicture: result.info.secure_url
-        }));
-        setUploadError(false);
-      }
-    } catch (error) {
-      console.error('Error processing upload:', error);
-      setUploadError(true);
-    }
-  };
-
-  const handleUploadError = (error: any) => {
-    console.error('Cloudinary upload error:', error);
-    setUploadError(true);
+  const handleImageChange = (url: string) => {
+    setFormData(prev => ({
+      ...prev,
+      profilePicture: url
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -164,43 +148,11 @@ const EditProfile = ({ isOpen, onClose }: EditProfileProps) => {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Profile Picture Upload */}
-          <div className="flex flex-col items-center mb-6">
-            <div className="relative mb-4">
-              {formData.profilePicture ? (
-                <img 
-                  src={formData.profilePicture} 
-                  alt="Profile" 
-                  className="w-24 h-24 rounded-full object-cover border-2 border-white"
-                />
-              ) : (
-                <div className="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center border-2 border-white">
-                  <User2 className="w-12 h-12 text-white" />
-                </div>
-              )}
-              
-              <CldUploadButton
-                uploadPreset="dating_app_uploads"
-                onSuccess={handleUploadSuccess}
-                onError={handleUploadError}
-                options={{
-                  maxFiles: 1,
-                  sources: ["local", "camera", "url"],
-                  clientAllowedFormats: ["jpg", "jpeg", "png", "gif"],
-                  maxFileSize: 2000000
-                }}
-                className="absolute bottom-0 right-0 bg-white text-[#964FFF] p-2 rounded-full hover:bg-gray-100"
-              >
-                <Camera className="w-4 h-4" />
-              </CldUploadButton>
-            </div>
-            
-            {uploadError && (
-              <div className="text-yellow-300 text-xs flex items-center justify-center gap-1 mt-1">
-                <AlertCircle className="w-3 h-3" />
-                <span>Error uploading image</span>
-              </div>
-            )}
-          </div>
+          <ImageUpload 
+            initialImage={formData.profilePicture}
+            onImageChange={handleImageChange}
+            className="mb-6"
+          />
 
           {/* Display Name */}
           <div>

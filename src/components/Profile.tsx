@@ -9,7 +9,7 @@ import { setUsername, editProfile } from '@/api/user';
 import { syncSpotifyData } from '@/api/spotify';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { spaceGrotesk } from '@/app/fonts';
-import { Ellipsis, SearchCheck, Share2, Edit, RefreshCcw, UserMinus, Eye, EyeOff, MapPin, Calendar, ChevronRight, User2, AtSign } from 'lucide-react';
+import { Ellipsis, SearchCheck, Share2, Edit, RefreshCcw, UserMinus, Eye, EyeOff, MapPin, Calendar, ChevronRight, User2, AtSign, Mars, Venus } from 'lucide-react';
 import type { OnboardingFormData } from '@/types';
 import { useGeocoding } from '@/lib/geocoding';
 import EditProfile from '@/components/EditProfile';
@@ -26,7 +26,7 @@ export const Profile = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const { reverseGeocode, loading: isLoadingLocation } = useGeocoding();
   const [showEditProfile, setShowEditProfile] = useState(false);
-  
+
   const [formData, setFormData] = useState<OnboardingFormData>({
     username: '',
     displayName: '',
@@ -50,20 +50,20 @@ export const Profile = () => {
 
   const needsUserInfo = () => {
     if (!user) return false;
-    
+
     // If onboarding is explicitly marked as completed, don't show the form
     if (user.hasCompletedOnboarding === true) {
       return false;
     }
-    
+
     // Check if any required field is missing
-    const missingInfo = !user.displayName || 
-                       !user.age || 
-                       !user.gender ||
-                       !user.location?.city ||
-                       !user.intrestedIn?.length ||
-                       !user.username;
-    
+    const missingInfo = !user.displayName ||
+      !user.age ||
+      !user.gender ||
+      !user.location?.city ||
+      !user.intrestedIn?.length ||
+      !user.username;
+
     console.log("User onboarding status:", {
       hasCompletedOnboarding: user.hasCompletedOnboarding,
       displayName: !!user.displayName,
@@ -74,7 +74,7 @@ export const Profile = () => {
       username: !!user.username,
       missingInfo
     });
-    
+
     return missingInfo;
   };
 
@@ -116,11 +116,11 @@ export const Profile = () => {
     const birth = new Date(birthDate);
     let age = today.getFullYear() - birth.getFullYear();
     const monthDiff = today.getMonth() - birth.getMonth();
-    
+
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
       age--;
     }
-    
+
     return age;
   };
 
@@ -131,10 +131,10 @@ export const Profile = () => {
       });
 
       const { latitude, longitude } = position.coords;
-      
+
       // Use our geocoding service
       const locationData = await reverseGeocode(latitude, longitude);
-      
+
       if (locationData) {
         setFormData(prev => ({
           ...prev,
@@ -155,7 +155,7 @@ export const Profile = () => {
 
   const handleNextStep = async () => {
     const currentField = steps[currentStep].field;
-    
+
     // Validation for each step
     switch (currentField) {
       case 'displayName':
@@ -164,7 +164,7 @@ export const Profile = () => {
           return;
         }
         break;
-        
+
       case 'dateOfBirth':
         const age = calculateAge(formData.dateOfBirth);
         if (age < 18) {
@@ -172,21 +172,21 @@ export const Profile = () => {
           return;
         }
         break;
-        
+
       case 'intrestedIn':
         if (formData.intrestedIn.length === 0) {
           setError('Please select at least one option');
           return;
         }
         break;
-        
+
       case 'location':
         if (!formData.location.city) {
           setError('Please enter your city or use location detection');
           return;
         }
         break;
-        
+
       case 'username':
         if (!formData.username.trim()) {
           setError('Username cannot be empty');
@@ -200,20 +200,20 @@ export const Profile = () => {
     }
 
     setError(null);
-    
+
     if (currentStep === steps.length - 1) {
       // Submit all user info data
       try {
         setIsSubmitting(true);
-        
+
         // Calculate age from date of birth
         const age = calculateAge(formData.dateOfBirth);
-        
+
         // Prepare profile data - only include fields that have values
         const profileData: any = {
           hasCompletedOnboarding: true
         };
-        
+
         // Only add fields that have actual values
         if (formData.username) profileData.username = formData.username;
         if (formData.displayName) profileData.displayName = formData.displayName;
@@ -222,7 +222,7 @@ export const Profile = () => {
         if (formData.intrestedIn && formData.intrestedIn.length > 0) {
           profileData.intrestedIn = formData.intrestedIn;
         }
-        
+
         // Only add location if city is provided
         if (formData.location.city) {
           profileData.location = {
@@ -234,18 +234,18 @@ export const Profile = () => {
             }
           };
         }
-        
+
         console.log("Submitting profile data:", profileData);
-        
+
         // Save all profile data at once
         const response = await editProfile(profileData);
-        
+
         if (response.success) {
           setSuccess('Profile updated successfully');
-          
+
           // Force a complete refresh of user data
           await refreshUser();
-          
+
           // Add a small delay to ensure the refreshed data is processed
           setTimeout(() => {
             // Check if we still need user info after refresh
@@ -291,9 +291,8 @@ export const Profile = () => {
                 {steps.map((_, index) => (
                   <div
                     key={index}
-                    className={`h-1 flex-1 rounded-full ${
-                      index <= currentStep ? 'bg-white' : 'bg-white/30'
-                    }`}
+                    className={`h-1 flex-1 rounded-full ${index <= currentStep ? 'bg-white' : 'bg-white/30'
+                      }`}
                   />
                 ))}
               </div>
@@ -332,11 +331,10 @@ export const Profile = () => {
                     <button
                       key={option}
                       onClick={() => setFormData(prev => ({ ...prev, gender: option as any }))}
-                      className={`p-3 border-2 rounded-lg text-sm capitalize ${
-                        formData.gender === option
+                      className={`p-3 border-2 rounded-lg text-sm capitalize ${formData.gender === option
                           ? 'bg-white text-[#964FFF] border-white'
                           : 'text-white border-white/50 hover:border-white'
-                      }`}
+                        }`}
                     >
                       {option}
                     </button>
@@ -355,11 +353,10 @@ export const Profile = () => {
                           : [...formData.intrestedIn, option];
                         setFormData(prev => ({ ...prev, intrestedIn: newInterested }));
                       }}
-                      className={`p-3 border-2 rounded-lg text-sm capitalize ${
-                        formData.intrestedIn.includes(option)
+                      className={`p-3 border-2 rounded-lg text-sm capitalize ${formData.intrestedIn.includes(option)
                           ? 'bg-white text-[#964FFF] border-white'
                           : 'text-white border-white/50 hover:border-white'
-                      }`}
+                        }`}
                     >
                       {option}
                     </button>
@@ -391,7 +388,7 @@ export const Profile = () => {
                   </button>
                 </div>
               )}
-              
+
               {currentStep === 5 && (
                 <div className="flex items-center gap-2">
                   <AtSign className="text-white" />
@@ -411,7 +408,7 @@ export const Profile = () => {
                   {error}
                 </div>
               )}
-              
+
               {success && (
                 <div className="-mt-1 text-sm text-black font-semibold px-2 bg-green-300 p-1 w-fit rounded-lg">
                   {success}
@@ -437,12 +434,10 @@ export const Profile = () => {
   return (
     <div className={`h-[90vh] overflow-y-auto mt-[10vh] w-[40%] flex border-4 rounded-t-4xl border-[#964FFF] bg-[#964FFF] flex-col ${spaceGrotesk.className}`}>
       <main className="p-4 flex-grow">
-        <div className="">
-          <div className="flex justify-between relative dropdown-container">
-            <h1 className="text-lg text-white font-semibold mb-6">
-              @{user?.username}
-            </h1>
-            <Ellipsis 
+        <div className="w-full h-full relative">
+          <div className="flex absolute justify-end right-0 dropdown-container">
+
+            <Ellipsis
               className='w-10 h-10 cursor-pointer hover:bg-white/10 rounded-full px-1 text-white'
               onClick={(e) => {
                 e.stopPropagation();
@@ -451,7 +446,7 @@ export const Profile = () => {
             />
             {showDropdown && (
               <div className="absolute right-0 top-12 w-48 bg-white rounded-xl shadow-lg py-2 z-50">
-                <button 
+                <button
                   className="w-full px-4 cursor-pointer py-2 text-left hover:bg-gray-100 flex items-center gap-2"
                   onClick={() => {
                     setShowEditProfile(true);
@@ -460,7 +455,7 @@ export const Profile = () => {
                 >
                   <Edit className="w-4 h-4" /> Edit Profile
                 </button>
-                <button 
+                <button
                   className="w-full px-4 cursor-pointer  py-2 text-left hover:bg-gray-100 flex items-center gap-2"
                   onClick={() => {
                     setShowAge(!showAge);
@@ -470,7 +465,7 @@ export const Profile = () => {
                   {showAge ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   {showAge ? 'Hide Age' : 'Show Age'}
                 </button>
-                <button 
+                <button
                   className="w-full px-4 cursor-pointer py-2 text-left hover:bg-gray-100 flex items-center gap-2"
                   onClick={() => {
                     navigator.clipboard.writeText(window.location.href);
@@ -481,7 +476,7 @@ export const Profile = () => {
                 >
                   <Share2 className="w-4 h-4" /> Share Profile
                 </button>
-                <button 
+                <button
                   className="w-full px-4 py-2 cursor-pointer text-left hover:bg-gray-100 text-red-600 flex items-center gap-2"
                   onClick={() => {
                     // TODO: Implement deactivate profile
@@ -493,94 +488,111 @@ export const Profile = () => {
               </div>
             )}
           </div>
-          
+
           {/* User Profile Section */}
-          <div className="rounded-lg shadow-md mb-6">
+          <div className="rounded-lg  mb-6">
             <div className="">
               {user?.profilePicture ? (
                 <div className="inline-block border-4 border-white rounded-3xl">
-                  <img 
-                    src={user.profilePicture} 
-                    alt={user.displayName} 
-                    className="w-48 h-48 p-1 rounded-3xl" 
+                  <img
+                    src={user.profilePicture}
+                    alt={user.displayName}
+                    className="w-48 h-48 p-1 object-cover rounded-3xl select-none"
                   />
                 </div>
               ) : (
                 <div className="w-20 h-20 rounded-full mr-4 flex items-center justify-center">
-                  <span className="text-2xl text-white">{user?.displayName?.charAt(0) || '?'}</span>
+                  <span className="text-3xl text-white">{user?.displayName?.charAt(0) || '?'}</span>
                 </div>
               )}
-              <div>
-                <h2 className="text-xl font-semibold text-white">{user?.displayName}</h2>
-                {user?.spotifyId && (
-                  <div className="text-sm text-gray-600">
-                    <span className="flex items-center font-semibold w-fit text-white gap-1 bg-green-500 text-[10px] px-2 py-1 rounded-full mr-2">
-                      <div className="">Spotify</div><SearchCheck className='w-3 h-3 text-white' />
-                    </span>
+              <div className='flex flex-col gap-2'>
+                <div className="flex flex-col"><h2 className="text-2xl font-semibold text-white">{user?.displayName}
+                  <span className="text-sm ml-1  font-semibold text-white/80">
+                    {user?.gender == "female" ? "(she/her)" : user?.gender == "male" ? "(he/him)" : "(they/them)"}
+                  </span>
+                </h2>
+                  <h2 className="text-md -mt-1 font-semibold text-white/80">@{user?.username}</h2>
+                </div>
+
+                <div className="flex text-md font-semibold max-w-md text-white">{user?.bio}</div>
+
+                <div className="flex text-white gap-2">
+                  <div className="flex items-center gap-0.5">
+                    <MapPin className="w-4 h-4 text-white" />
+                    <div className="text-md font-semibold text-white/80">{user?.location?.city}</div>
                   </div>
-                )}
+                  <div className=""> {"|"}</div>
+                  <div className="flex items-center gap-0.5">
+                    {user?.gender == "female" ? <Venus className="w-4 h-4 text-white" /> : <Mars className="w-4 h-4 text-white" />}
+
+                    <div className="text-md font-semibold text-white/80">{user?.age}</div>
+                  </div>
+
+
+
+                </div>
               </div>
             </div>
           </div>
-          
+
           {/* Account Info Section */}
-          <div className="p-6 rounded-lg shadow-md mb-6">
+          <div className="p-6 rounded-lg  mb-6">
             <h2 className="text-xl font-semibold mb-4">Account Information</h2>
             <div className="space-y-3">
               <div>
-                <span className="text-gray-600">Display Name:</span> 
+                <span className="text-gray-600">Display Name:</span>
                 <span className="ml-2">{user?.displayName}</span>
               </div>
               {user?.firstName && (
                 <div>
-                  <span className="text-gray-600">Name:</span> 
+                  <span className="text-gray-600">Name:</span>
                   <span className="ml-2">{user.firstName} {user.lastName}</span>
                 </div>
               )}
               {showAge && user?.age && (
                 <div>
-                  <span className="text-gray-600">Age:</span> 
+                  <span className="text-gray-600">Age:</span>
                   <span className="ml-2">{user.age}</span>
                 </div>
               )}
               {user?.gender && (
                 <div>
-                  <span className="text-gray-600">Gender:</span> 
+                  <span className="text-gray-600">Gender:</span>
                   <span className="ml-2">{user.gender}</span>
                 </div>
               )}
               {user?.bio && (
                 <div>
-                  <span className="text-gray-600">Bio:</span> 
+                  <span className="text-gray-600">Bio:</span>
                   <span className="ml-2">{user.bio}</span>
                 </div>
               )}
               {user?.location?.city && (
                 <div>
-                  <span className="text-gray-600">City:</span> 
+                  <span className="text-gray-600">City:</span>
                   <span className="ml-2">{user.location.city}</span>
                 </div>
               )}
               {user?.intrestedIn && user.intrestedIn.length > 0 && (
                 <div>
-                  <span className="text-gray-600">Interested In:</span> 
+                  <span className="text-gray-600">Interested In:</span>
                   <span className="ml-2">{user.intrestedIn.join(', ')}</span>
                 </div>
               )}
             </div>
           </div>
-          
+
           {/* Music Profile Section */}
           {user && user._id && (
             <MusicProfile userId={user._id} />
           )}
         </div>
       </main>
-      
+
       {/* Edit Profile Modal */}
-      <EditProfile 
-        isOpen={showEditProfile} 
-        onClose={() => setShowEditProfile(false)} 
+      <EditProfile
+        isOpen={showEditProfile}
+        onClose={() => setShowEditProfile(false)}
       />
     </div>
   );
