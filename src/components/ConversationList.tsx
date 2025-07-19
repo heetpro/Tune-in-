@@ -142,7 +142,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
           </Link>
         </div>
       ) : (
-        <ul className="flex flex-col gap-1 w-full h-full">
+        <ul className="flex flex-col w-full h-full">
           {conversations.map(conv => {
             const lastMessage = getLastMessage(conv.id);
             const unreadCount = getUnreadCount(conv.id);
@@ -153,7 +153,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
               <div key={conv.id} className={`${spaceGrotesk.className} rounded-full `}>
                 <li
 
-                  className={`p-1 mx-2 hover:opacity-90 rounded-full cursor-pointer
+                  className={`p-1 mx-2 hover:opacity-90 rounded-full items-center cursor-pointer
                   ${isActive ? 'bg-[#964FFF]' : ''}`}
 
                   // style={{
@@ -164,11 +164,15 @@ const ConversationList: React.FC<ConversationListProps> = ({
                   <div className="flex justify-start"
 
                   >
-                    <div className="relative ">
+                    <div className="relative  "
+                    style={{
+                      height: 'clamp(2rem, 3.25vw, 100rem)',
+                    }}
+                    >
                       <img
                         src={conv.avatar}
                         alt={conv.name}
-                        className="w-14 h-14 rounded-full"
+                        className="w-auto h-full aspect-square rounded-full"
                       />
                       {isUserOnline && (
                         <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
@@ -181,7 +185,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
                         {/* <span className="text-xs">
                         {formatLastMessageTime(conv.id)}
                       </span> */}
-                        <p className="text-sm  truncate max-w-[180px]">
+                        <p className="text-sm -mt-1  truncate max-w-[180px]">
                           {lastMessage?.text || ''}
                         </p>
                       </div>
@@ -197,6 +201,8 @@ const ConversationList: React.FC<ConversationListProps> = ({
                     </div>
                   </div>
                 </li>
+                <hr className='w-[80%] opacity-70 mx-auto my-1'/>
+
               </div>
             );
           })}

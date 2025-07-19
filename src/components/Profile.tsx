@@ -9,8 +9,7 @@ import { setUsername } from '@/api/user';
 import { syncSpotifyData } from '@/api/spotify';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { spaceGrotesk } from '@/app/fonts';
-
-
+import { Ellipsis, SearchCheck, Share2, Edit, RefreshCcw, UserMinus, Eye, EyeOff, X } from 'lucide-react';
 
 export const Profile = () => {
   const { user, loading, refreshUser } = useAuth();
@@ -21,6 +20,8 @@ export const Profile = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [syncingData, setSyncingData] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [showAge, setShowAge] = useState(true);
   const isSetup = searchParams.get('setup') === 'true';
 
   useEffect(() => {
@@ -29,8 +30,23 @@ export const Profile = () => {
     }
   }, [user]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    // Close dropdown when clicking outside
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.dropdown-container')) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
     
     if (!username.trim()) {
       setError('Username cannot be empty');
@@ -50,10 +66,8 @@ export const Profile = () => {
       
       if (response.success) {
         setSuccess('Username updated successfully');
-        // Refresh user data to get the updated username
         await refreshUser();
         
-        // If this is initial setup, redirect to profile without query params
         if (isSetup) {
           setTimeout(() => {
             router.push('/profile');
@@ -70,10 +84,17 @@ export const Profile = () => {
     }
   };
 
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !isSubmitting) {
+      handleSubmit();
+    }
+  };
+
   const handleSyncSpotifyData = async () => {
     try {
       setSyncingData(true);
       setError(null);
+      setShowDropdown(false);
       
       const response = await syncSpotifyData();
       
@@ -90,6 +111,13 @@ export const Profile = () => {
     }
   };
 
+  const handleShareProfile = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setSuccess('Profile link copied to clipboard!');
+    setShowDropdown(false);
+    setTimeout(() => setSuccess(null), 3000);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -100,17 +128,116 @@ export const Profile = () => {
     );
   }
 
-  return (
-    <div className={`h-[90vh] overflow-y-auto mt-[10vh] w-[40%] flex border-4 rounded-4xl border-[#964FFF] bg-[#964FFF]  flex-col ${spaceGrotesk.className}`}>
-      <main className="  p-4 flex-grow">
-        <div className="">
-          <h1 className="text-lg text-white font-semibold    mb-6"> {isSetup ? '@me' : `@${user?.username}`}</h1>
-          
-          {isSetup && (
-            <div className="bg- border-l-4 border-blue-500 p-4 mb-6">
-              <p className="text-blue-700">Welcome! Please set a username to complete your profile setup.</p>
+  if (!user?.username) {
+    return (
+      <div className={`fixed inset-0 bg-black/50 flex items-center justify-center p-2 z-50 ${spaceGrotesk.className}`}>
+        <div className="flex w-[20vw]">
+        <div className="bg-[#964FFF] rounded-2xl p-4 w-full ">
+          <div className="mb-4  ">
+            <h2 className="text-lg text-white font-bold">Set username{"."}</h2>
+          </div>
+
+          <div className="flex-col flex gap-3">
+            <div>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsernameState(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Enter username"
+                className="w-full p-2 border-2 rounded-lg 
+                text-sm placeholder:text-white  
+                focus:bg-white
+                focus:text-black
+                transition-all duration-300
+                focus:placeholder:text-black
+                text-white focus:border-white outline-none"
+                disabled={isSubmitting}
+              />
             </div>
-          )}
+
+            {error && (
+              <div className=" -mt-1 text-sm text-black font-semibold px-2 bg-yellow-300 p-1 w-fit rounded-lg">
+                username already taken{"."} 
+              </div>
+            )}
+
+            {success && (
+              <div className="p-3 bg-green-50 text-green-700 border border-green-200 rounded-lg">
+                {success}
+              </div>
+            )}
+
+            <button
+              onClick={() => handleSubmit()}
+              disabled={isSubmitting}
+              className="w-fit px-5 md:hidden bg-white hover:bg-transparent  border-2 border-white hover:text-white cursor-pointer text-black py-2.5  rounded-xl font-medium disabled:opacity-50"
+            >
+              {isSubmitting ? 'Setting Username...' : 'Set Username'}
+            </button>
+          </div>
+        </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`h-[90vh] overflow-y-auto mt-[10vh] w-[40%] flex border-4 rounded-t-4xl border-[#964FFF] bg-[#964FFF] flex-col ${spaceGrotesk.className}`}>
+      <main className="p-4 flex-grow">
+        <div className="">
+          <div className="flex justify-between relative dropdown-container">
+            <h1 className="text-lg text-white font-semibold mb-6">
+              {isSetup ? '@me' : `@${user?.username}`}
+            </h1>
+            <Ellipsis 
+              className='w-10 h-10 cursor-pointer hover:bg-white/10 rounded-full px-1 text-white'
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDropdown(!showDropdown);
+              }}
+            />
+            {showDropdown && (
+              <div className="absolute right-0 top-12 w-48 bg-white rounded-xl shadow-lg py-2 z-50">
+                <button 
+                  className="w-full px-4 cursor-pointer py-2 text-left hover:bg-gray-100 flex items-center gap-2"
+                  onClick={() => {
+                    router.push('/profile/edit');
+                    setShowDropdown(false);
+                  }}
+                >
+                  <Edit className="w-4 h-4" /> Edit Profile
+                </button>
+                  
+                <button 
+                  className="w-full px-4 cursor-pointer  py-2 text-left hover:bg-gray-100 flex items-center gap-2"
+                  onClick={() => {
+                    setShowAge(!showAge);
+                    setShowDropdown(false);
+                  }}
+                >
+                  {showAge ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showAge ? 'Hide Age' : 'Show Age'}
+                </button>
+                <button 
+                  className="w-full px-4 cursor-pointer py-2 text-left hover:bg-gray-100 flex items-center gap-2"
+                  onClick={handleShareProfile}
+                >
+                  <Share2 className="w-4 h-4" /> Share Profile
+                </button>
+                <button 
+                  className="w-full px-4 py-2 cursor-pointer text-left hover:bg-gray-100 text-red-600 flex items-center gap-2"
+                  onClick={() => {
+                    // TODO: Implement deactivate profile
+                    setShowDropdown(false);
+                  }}
+                >
+                  <UserMinus className="w-4 h-4" /> Deactivate
+                </button>
+              </div>
+            )}
+          </div>
+        
           
           {/* User Profile Section */}
           <div className=" rounded-lg shadow-md mb-6">
@@ -125,73 +252,25 @@ export const Profile = () => {
                 </div>
               ) : (
                 <div className="w-20 h-20 rounded-full  mr-4 flex items-center justify-center">
-                  <span className="text-2xl text-gray-600">{user?.displayName?.charAt(0) || '?'}</span>
+                  <span className="text-2xl text-white">{user?.displayName?.charAt(0) || '?'}</span>
                 </div>
               )}
               <div>
-                <h2 className="text-xl font-semibold">{user?.displayName}</h2>
+                <h2 className="text-xl font-semibold text-white">{user?.displayName}</h2>
                 {user?.spotifyId && (
-                  <p className="text-sm text-gray-600">
-                    <span className="inline-block  text-green-800 text-xs px-2 py-1 rounded-full mr-2">
-                      Spotify Connected
+                  <div className="text-sm text-gray-600">
+                    <span className="flex items-center font-semibold w-fit text-white gap-1 bg-green-500 text-[10px] px-2 py-1 rounded-full mr-2">
+                      <div className="">Spotify</div><SearchCheck className='w-3 h-3 text-white' />
                     </span>
-                  </p>
+                  </div>
                 )}
               </div>
             </div>
             
-            {/* Username Form */}
-            <form onSubmit={handleSubmit}>
-              <div className="mb-4">
-                <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
-                  Username
-                </label>
-                <input
-                  type="text"
-                  id="username"
-                  value={username}
-                  onChange={(e) => setUsernameState(e.target.value)}
-                  className="w-full p-2 border rounded focus:ring focus:ring-blue-300 focus:outline-none"
-                  placeholder="Enter your username"
-                />
-              </div>
-              
-              {error && (
-                <div className="mb-4 p-2 bg-red-50 text-red-700 border border-red-200 rounded">
-                  {error}
-                </div>
-              )}
-              
-              {success && (
-                <div className="mb-4 p-2 bg-green-50 text-green-700 border border-green-200 rounded">
-                  {success}
-                </div>
-              )}
-              
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Updating...' : isSetup ? 'Complete Setup' : 'Update Username'}
-                </button>
-                
-                {user?.username && (
-                  <button
-                    type="button"
-                    onClick={handleSyncSpotifyData}
-                    disabled={syncingData}
-                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded disabled:opacity-50"
-                  >
-                    {syncingData ? 'Syncing...' : 'Sync Spotify Data'}
-                  </button>
-                )}
-              </div>
-            </form>
+            
           </div>
           
-          {/* Account Info Section */}
+
           <div className=" p-6 rounded-lg shadow-md mb-6">
             <h2 className="text-xl font-semibold mb-4">Account Information</h2>
             <div className="space-y-3">
@@ -205,12 +284,13 @@ export const Profile = () => {
                   <span className="ml-2">{user.firstName} {user.lastName}</span>
                 </div>
               )}
-              {user?.age && (
+              {showAge && user?.age && (
                 <div>
                   <span className="text-gray-600">Age:</span> 
                   <span className="ml-2">{user.age}</span>
                 </div>
               )}
+
               {user?.gender && (
                 <div>
                   <span className="text-gray-600">Gender:</span> 
