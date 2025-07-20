@@ -26,10 +26,6 @@ export interface IUser {
     };
     musicProfile?: string; // ObjectId as string
     friends: string[];
-    friendRequests: {
-        incoming: string[];
-        outgoing: string[];
-    };
     privacySettings: {
         showAge: boolean;
         showLocation: boolean;
@@ -50,6 +46,16 @@ export interface IUser {
     hasCompletedOnboarding: boolean;
     createdAt: Date;
     updatedAt: Date;
+}
+
+export interface IFriendRequest {
+  _id: string;
+  senderId: string;
+  receiverId: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: Date;
+  updatedAt: Date;
+  respondedAt?: Date;
 }
 
 export interface OnboardingFormData {

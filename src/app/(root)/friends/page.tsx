@@ -15,6 +15,7 @@ import {
 } from '@/api';
 import { getUserProfile } from '@/api/user';
 import { IUser, IFriendRequest } from '@/types/index';
+import Navbar from '@/components/Navbar';
 
 interface FriendUser extends IUser {}
 
@@ -60,6 +61,10 @@ interface RequestsData {
   outgoing: OutgoingRequest[];
 }
 
+interface DetailedProfileMap {
+  [key: string]: IUser;
+}
+
 export default function Friends() {
   const { user: currentUser, loading } = useAuth();
   const searchParams = useSearchParams();
@@ -73,7 +78,7 @@ export default function Friends() {
     search: false
   });
   const [activeTab, setActiveTab] = useState('friends');
-  const [detailedProfiles, setDetailedProfiles] = useState<{[key: string]: IUser}>({});
+  const [detailedProfiles, setDetailedProfiles] = useState<DetailedProfileMap>({});
 
   useEffect(() => {
     // Get tab from URL if present
@@ -102,14 +107,15 @@ export default function Friends() {
     try {
       const response = await getUserProfile(userId);
 
-      console.log("response ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::", response);
-      
       if (response.success && response.data) {
-        // Cache the result
+        console.log("response.data:", response.data);
+        
+        // FIX: Store the profile data in the map using the user's ID as the key
         setDetailedProfiles(prev => ({
           ...prev,
           [userId]: response.data as IUser
         }));
+        
         return response.data;
       }
     } catch (error) {
@@ -145,27 +151,49 @@ export default function Friends() {
       setIsLoading(prev => ({ ...prev, requests: true }));
       const response = await getFriendRequestsList();
       
-      // Debug logs to see the data structure
-      
-      if (response.success && response.data) {
-        
-        // Set the requests directly from the API response
+      if (response.data) {
         setRequests({
           incoming: response.data.incoming || [],
           outgoing: response.data.outgoing || []
         });
         
-        response.data.incoming.forEach(request => {
-          if (request.senderId && typeof request.senderId === 'object' && request.senderId._id) {
-            fetchDetailedProfile(request.senderId._id);
+        // Process incoming requests to fetch sender profiles
+        await Promise.all(response.data.incoming.map(async request => {
+          // Extract the sender ID - handle both string and object cases
+          let senderIdValue: string;
+          
+          if (typeof request.senderId === 'object' && request.senderId !== null && request.senderId._id) {
+            senderIdValue = request.senderId._id;
+          } else if (typeof request.senderId === 'string') {
+            senderIdValue = request.senderId;
+          } else {
+            return; // Skip if no valid ID
           }
-        });
+          
+          if (senderIdValue) {
+            console.log(`Fetching profile for sender ID: ${senderIdValue}`);
+            await fetchDetailedProfile(senderIdValue);
+          }
+        }));
         
-        response.data.outgoing.forEach(request => {
-          if (request.receiverId && typeof request.receiverId === 'object' && request.receiverId._id) {
-            fetchDetailedProfile(request.receiverId._id);
+        // Process outgoing requests to fetch receiver profiles
+        await Promise.all(response.data.outgoing.map(async request => {
+          // Extract the receiver ID - handle both string and object cases
+          let receiverIdValue: string;
+          
+          if (typeof request.receiverId === 'object' && request.receiverId !== null && request.receiverId._id) {
+            receiverIdValue = request.receiverId._id;
+          } else if (typeof request.receiverId === 'string') {
+            receiverIdValue = request.receiverId;
+          } else {
+            return; // Skip if no valid ID
           }
-        });
+          
+          if (receiverIdValue) {
+            console.log(`Fetching profile for receiver ID: ${receiverIdValue}`);
+            await fetchDetailedProfile(receiverIdValue);
+          }
+        }));
       } else {
         setRequests({ incoming: [], outgoing: [] });
       }
@@ -265,11 +293,21 @@ export default function Friends() {
     }
   };
 
-  // Helper to get detailed profile or fallback to basic info
-  const getDetailedUser = (user: any) => {
-    if (!user || !user._id) return user;
-    return detailedProfiles[user._id] || user;
-  };
+  useEffect(() => {
+    console.log("Current detailed profiles:", detailedProfiles);
+    
+    // Log info about outgoing requests
+    if (requests.outgoing && requests.outgoing.length > 0) {
+      console.log("Outgoing requests data:", requests.outgoing);
+      requests.outgoing.forEach((request, i) => {
+        console.log(`Request ${i} receiverId:`, request.receiverId);
+        if (typeof request.receiverId === 'object' && request.receiverId?._id) {
+          const userId = request.receiverId._id;
+          console.log(`Has profile for ${userId}:`, !!detailedProfiles[userId], detailedProfiles[userId]);
+        }
+      });
+    }
+  }, [requests.outgoing, detailedProfiles]);
 
   if (loading || !currentUser) {
     return (
@@ -406,7 +444,7 @@ export default function Friends() {
                   if (!friend || !friend._id) return null;
                   
                   // Get detailed profile if available
-                  const detailedFriend = getDetailedUser(friend);
+                  const detailedFriend = detailedProfiles[friend._id] || friend;
                   
                   return (
                     <li key={friend._id} className="border p-4 rounded-lg flex flex-col">
@@ -459,37 +497,63 @@ export default function Friends() {
                 <h3 className="text-lg font-medium mb-4">Incoming Requests</h3>
                 <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {requests.incoming.map((request) => {
-                    if (!request || !request.senderId || !request._id) return null;
+                    if (!request || !request._id) return null;
                     
-                    // Get detailed profile if available
-                    const detailedSender = getDetailedUser(request.senderId);
+                    // Extract the sender information
+                    let senderId: string;
+                    let senderData: any = null;
+                    
+                    // If senderId is an object with _id
+                    if (typeof request.senderId === 'object' && request.senderId?._id) {
+                      senderId = request.senderId._id;
+                      // Use basic data from the senderId object as fallback
+                      senderData = request.senderId;
+                    } 
+                    // If senderId is a string
+                    else if (typeof request.senderId === 'string') {
+                      senderId = request.senderId;
+                    }
+                    else {
+                      return null; // Can't process without sender ID
+                    }
+                    
+                    // Check if we have detailed profile data
+                    const detailedUser = senderId ? detailedProfiles[senderId] : null;
+                    
+                    // Use detailed data if available, otherwise use basic data
+                    const userData = detailedUser || senderData || { displayName: 'User' };
+                    
+                    console.log(`Rendering request ${request._id} for sender ${senderId}`, {
+                      hasDetailedData: !!detailedUser,
+                      userData
+                    });
                     
                     return (
                       <li key={request._id} className="border p-4 rounded-lg">
                         <div className="flex items-center mb-3">
-                          {detailedSender.profilePicture ? (
+                          {userData.profilePicture ? (
                             <img 
-                              src={detailedSender.profilePicture} 
-                              alt={detailedSender.displayName || 'User'} 
+                              src={userData.profilePicture} 
+                              alt={userData.displayName || 'User'} 
                               className="w-12 h-12 rounded-full mr-3 object-cover" 
                             />
                           ) : (
                             <div className="w-12 h-12 bg-gray-200 rounded-full mr-3 flex items-center justify-center">
-                              <span className="text-xl text-gray-500">{detailedSender.displayName?.[0] || '?'}</span>
+                              <span className="text-xl text-gray-500">{userData.displayName?.[0] || '?'}</span>
                             </div>
                           )}
                           <div>
-                            <p className="font-medium">{detailedSender.displayName || 'User'}</p>
-                            {detailedSender.username && (
-                              <p className="text-sm text-gray-500">@{detailedSender.username}</p>
+                            <p className="font-medium">{userData.displayName || 'User'}</p>
+                            {userData.username && (
+                              <p className="text-sm text-gray-500">@{userData.username}</p>
                             )}
                           </div>
                         </div>
                         
                         {/* Bio section */}
-                        {detailedSender.bio && (
+                        {userData.bio && (
                           <div className="mt-2 mb-3">
-                            <p className="text-sm text-gray-600 line-clamp-2">{detailedSender.bio}</p>
+                            <p className="text-sm text-gray-600 line-clamp-2">{userData.bio}</p>
                           </div>
                         )}
                         
@@ -519,37 +583,63 @@ export default function Friends() {
                 <h3 className="text-lg font-medium mb-4">Sent Requests</h3>
                 <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {requests.outgoing.map((request) => {
-                    if (!request || !request.receiverId || !request._id) return null;
+                    if (!request || !request._id) return null;
                     
-                    // Get detailed profile if available
-                    const detailedReceiver = getDetailedUser(request.receiverId);
+                    // Extract the receiver information
+                    let receiverId: string;
+                    let receiverData: any = null;
+                    
+                    // If receiverId is an object with _id
+                    if (typeof request.receiverId === 'object' && request.receiverId?._id) {
+                      receiverId = request.receiverId._id;
+                      // Use basic data from the receiverId object as fallback
+                      receiverData = request.receiverId;
+                    } 
+                    // If receiverId is a string
+                    else if (typeof request.receiverId === 'string') {
+                      receiverId = request.receiverId;
+                    }
+                    else {
+                      return null; // Can't process without receiver ID
+                    }
+                    
+                    // Check if we have detailed profile data
+                    const detailedUser = receiverId ? detailedProfiles[receiverId] : null;
+                    
+                    // Use detailed data if available, otherwise use basic data
+                    const userData = detailedUser || receiverData || { displayName: 'User' };
+                    
+                    console.log(`Rendering request ${request._id} for receiver ${receiverId}`, {
+                      hasDetailedData: !!detailedUser,
+                      userData
+                    });
                     
                     return (
                       <li key={request._id} className="border p-4 rounded-lg">
                         <div className="flex items-center">
-                          {detailedReceiver.profilePicture ? (
+                          {userData.profilePicture ? (
                             <img 
-                              src={detailedReceiver.profilePicture} 
-                              alt={detailedReceiver.displayName || 'User'} 
+                              src={userData.profilePicture} 
+                              alt={userData.displayName || 'User'} 
                               className="w-12 h-12 rounded-full mr-3 object-cover" 
                             />
                           ) : (
                             <div className="w-12 h-12 bg-gray-200 rounded-full mr-3 flex items-center justify-center">
-                              <span className="text-xl text-gray-500">{detailedReceiver.displayName?.[0] || '?'}</span>
+                              <span className="text-xl text-gray-500">{userData.displayName?.[0] || '?'}</span>
                             </div>
                           )}
                           <div>
-                            <p className="font-medium">{detailedReceiver.displayName || 'User'}</p>
-                            {detailedReceiver.username && (
-                              <p className="text-sm text-gray-500">@{detailedReceiver.username}</p>
+                            <p className="font-medium">{userData.displayName || 'User'}</p>
+                            {userData.username && (
+                              <p className="text-sm text-gray-500">@{userData.username}</p>
                             )}
                           </div>
                         </div>
 
                         {/* Bio section */}
-                        {detailedReceiver.bio && (
+                        {userData.bio && (
                           <div className="mt-2 mb-2">
-                            <p className="text-sm text-gray-600 line-clamp-2">{detailedReceiver.bio}</p>
+                            <p className="text-sm text-gray-600 line-clamp-2">{userData.bio}</p>
                           </div>
                         )}
                         
