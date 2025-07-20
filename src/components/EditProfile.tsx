@@ -105,7 +105,6 @@ const EditProfile = ({ isOpen, onClose }: EditProfileProps) => {
       
       // Only make API call if there are changes
       if (Object.keys(profileData).length > 0) {
-        console.log('Submitting profile updates:', profileData);
         
         const response = await editProfile(profileData);
         

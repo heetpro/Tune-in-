@@ -35,34 +35,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Don't refresh if there's no token
       const token = Cookies.get('auth_token');
       if (!token) {
-        console.log('No auth token found, skipping refresh');
         setUser(null);
         setIsAuthenticated(false);
         setLoading(false);
         return;
       }
       
-      console.log('Attempting to refresh user profile...');
-      console.log('Token being used:', token?.substring(0, 15) + '...');
       
       const response = await getMyProfile();
-      console.log('Profile refresh response:', response);
-      console.log('User data received:', {
-        hasCompletedOnboarding: response.data?.hasCompletedOnboarding,
-        username: response.data?.username,
-        displayName: response.data?.displayName,
-        age: response.data?.age,
-        gender: response.data?.gender,
-        location: response.data?.location,
-        intrestedIn: response.data?.intrestedIn
-      });
+      
       
       if (response.success && response.data) {
-        console.log('User profile refreshed successfully');
         setUser(response.data);
         setIsAuthenticated(true);
       } else {
-        console.error('Failed to get user data:', response.message || 'No error message');
         // Don't throw error here, handle it directly
         setError(response.message || 'Failed to fetch user profile');
         setIsAuthenticated(false);
@@ -70,13 +56,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         // Clear tokens if unauthorized
         if (response.error?.status === 401) {
-          console.log('Clearing tokens due to auth error');
           Cookies.remove('auth_token');
           Cookies.remove('refresh_token');
           
           // Don't redirect if we're already on login or auth pages
           if (!pathname?.startsWith('/login') && !pathname?.startsWith('/auth/')) {
-            console.log('Redirecting to login due to auth error');
             router.push('/login');
           }
         }
@@ -92,10 +76,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const login = (token: string, refreshToken: string) => {
-    console.log('Setting tokens in cookies...');
-    console.log('Token:', token.substring(0, 15) + '...');
-    console.log('Refresh token:', refreshToken.substring(0, 15) + '...');
-    
     try {
       // Remove any existing tokens first
       Cookies.remove('auth_token');
@@ -120,10 +100,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const savedToken = Cookies.get('auth_token');
       const savedRefresh = Cookies.get('refresh_token');
       
-      console.log('Cookies set successfully:', {
-        authTokenSet: !!savedToken,
-        refreshTokenSet: !!savedRefresh
-      });
       
       // Set authenticated state immediately to avoid verification loops
       if (savedToken) {
@@ -155,17 +131,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (token) {
         try {
-          // First do a quick check to see if the token is valid
-          console.log('Performing quick auth check...');
           const authCheck = await checkUserAuth();
           
           if (authCheck.success && authCheck.data?.exists) {
-            console.log('Auth check successful, token is valid');
-            // Token is valid, now get the full profile
             await refreshUser();
           } else {
-            console.log('Auth check failed, token is invalid');
-            // Token is invalid, clear it
             Cookies.remove('auth_token');
             Cookies.remove('refresh_token');
             setLoading(false);

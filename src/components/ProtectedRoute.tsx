@@ -20,7 +20,6 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps): ReactNode => {
     // Remove the from=auth parameter from URL to prevent refresh loops
     const fromAuth = searchParams.get('from') === 'auth';
     if (fromAuth) {
-      console.log('Detected from=auth parameter, removing it after verification');
       
       // Create a new URL object based on the current URL
       const url = new URL(window.location.href);
@@ -39,7 +38,6 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps): ReactNode => {
       // Skip verification if we just came from auth success
       const fromAuth = searchParams.get('from') === 'auth';
       if (fromAuth) {
-        console.log('Protected route: Skipping verification as redirect from auth success');
         setChecking(false);
         return;
       }
@@ -52,15 +50,12 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps): ReactNode => {
           const authCheck = await checkUserAuth();
           
           if (!authCheck.success || !authCheck.data?.exists) {
-            console.log('Protected route: Token is invalid');
             router.replace('/login');
           } else {
-            console.log('Protected route: Quick auth check passed');
             await refreshUser();
           }
         } else {
           console.log('Protected route: No token found');
-          router.replace('/login');
         }
       }
       

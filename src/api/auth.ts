@@ -5,7 +5,6 @@ import Cookies from 'js-cookie';
  * Redirects to Spotify login page
  */
 export const loginWithSpotify = (): void => {
-  console.log('Redirecting to Spotify login page...');
   window.location.href = `${API_BASE_URL}/spotify/login`;
 };
 
@@ -24,7 +23,6 @@ export const checkUserAuth = async (): Promise<ApiResponse<{exists: boolean; use
       };
     }
     
-    console.log('Checking user authentication status...');
     
     const headers = {
       'Content-Type': 'application/json',
@@ -79,7 +77,6 @@ export const checkUserAuth = async (): Promise<ApiResponse<{exists: boolean; use
 export const logout = async (): Promise<ApiResponse<null>> => {
   try {
     const token = Cookies.get('auth_token');
-    console.log('Logging out user...');
     
     const headers = {
       'Content-Type': 'application/json',

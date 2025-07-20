@@ -23,15 +23,12 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
     setError(null);
     
     try {
-      console.log(`Fetching music profile data, will display ${timeRange} data`);
       
       // Only use the music profile endpoint
       const musicProfileResponse = await getMusicProfile();
-      console.log('Music profile response:', musicProfileResponse);
       
       if (musicProfileResponse.success && musicProfileResponse.data?.musicProfile) {
         const { musicProfile } = musicProfileResponse.data;
-        console.log('Music profile data:', musicProfile);
         
         let artistsData: SpotifyArtist[] = [];
         let tracksData: SpotifyTrack[] = [];
@@ -39,7 +36,6 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
         
         // Handle nested structure for top artists
         if (musicProfile.topArtists && musicProfile.topArtists[timeRange]) {
-          console.log(`Found ${timeRange} artists:`, musicProfile.topArtists[timeRange]);
           artistsData = musicProfile.topArtists[timeRange] || [];
         } else {
           console.log('No artists data for the selected time range');
@@ -47,7 +43,6 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
         
         // Handle nested structure for top tracks
         if (musicProfile.topTracks && musicProfile.topTracks[timeRange]) {
-          console.log(`Found ${timeRange} tracks:`, musicProfile.topTracks[timeRange]);
           tracksData = musicProfile.topTracks[timeRange] || [];
         } else {
           console.log('No tracks data for the selected time range');
@@ -56,12 +51,8 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
         // Handle top genres (may not be time-range specific)
         if (musicProfile.topGenres) {
           if (Array.isArray(musicProfile.topGenres)) {
-            // If topGenres is a simple array
-            console.log('Found genres:', musicProfile.topGenres);
             genresData = musicProfile.topGenres;
           } else if (musicProfile.topGenres[timeRange]) {
-            // If topGenres is also nested by time range
-            console.log(`Found ${timeRange} genres:`, musicProfile.topGenres[timeRange]);
             genresData = musicProfile.topGenres[timeRange];
           } else {
             console.log('No genres data for the selected time range');
@@ -97,7 +88,6 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
   };
 
   useEffect(() => {
-    console.log(`Time range changed to: ${timeRange}, fetching new data...`);
     fetchMusicData();
   }, [timeRange, userId]);
 
@@ -109,7 +99,7 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
 
   const handleTimeRangeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newTimeRange = e.target.value as 'short_term' | 'medium_term' | 'long_term';
-    console.log(`Changing time range from ${timeRange} to ${newTimeRange}`);
+    (`Changing time range from ${timeRange} to ${newTimeRange}`);
     setTimeRange(newTimeRange);
   };
 

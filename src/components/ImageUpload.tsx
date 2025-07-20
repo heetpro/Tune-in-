@@ -44,7 +44,6 @@ export const ImageUpload = ({ initialImage, onImageChange, className = '' }: Ima
       }
 
       const data = await response.json();
-      console.log('Upload response:', data);
 
       // Update with the actual cloud URL
       setPreviewUrl(data.url);

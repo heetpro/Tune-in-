@@ -42,15 +42,11 @@ export default function Login() {
       const token = Cookies.get('auth_token');
       if (token && !isAuthenticated) {
         try {
-          console.log('Login page: Checking existing token');
           const authCheck = await checkUserAuth();
           
           if (authCheck.success && authCheck.data?.exists) {
-            console.log('Login page: Valid token found, redirecting to profile');
             router.push('/profile');
           } else {
-            console.log('Login page: Invalid token');
-            // Token exists but is invalid - clear it
             Cookies.remove('auth_token');
             Cookies.remove('refresh_token');
           }

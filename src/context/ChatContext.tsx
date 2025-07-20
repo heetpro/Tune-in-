@@ -86,14 +86,12 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
     
-    console.log('ChatContext: Starting socket initialization with user ID:', user._id);
     
     try {
       const initSocket = async () => {
         try {
           // First, test basic connectivity to the server
           const connectivityTest = await testServerConnectivity();
-          console.log('Connectivity test result:', connectivityTest);
           
           if (!connectivityTest.success) {
             setConnectionError(`Server connectivity issue: ${connectivityTest.message}`);

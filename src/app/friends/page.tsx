@@ -13,6 +13,7 @@ import {
   removeFriend as removeFriendById,
   searchForUsers
 } from '@/api';
+import { getUserProfile } from '@/api/user';
 import { IUser, IFriendRequest } from '@/types/index';
 
 interface FriendUser extends IUser {}
@@ -27,6 +28,7 @@ interface IncomingRequest {
     lastName: string;
     profilePicture?: string;
     username?: string;
+    bio?: string;  // Added bio field
   };
   receiverId: string;
   status: 'pending' | 'accepted' | 'rejected';
@@ -45,6 +47,7 @@ interface OutgoingRequest {
     lastName: string;
     profilePicture?: string;
     username?: string;
+    bio?: string;  // Added bio field
   };
   status: 'pending' | 'accepted' | 'rejected';
   createdAt: string;
@@ -70,6 +73,7 @@ export default function Friends() {
     search: false
   });
   const [activeTab, setActiveTab] = useState('friends');
+  const [detailedProfiles, setDetailedProfiles] = useState<{[key: string]: IUser}>({});
 
   useEffect(() => {
     // Get tab from URL if present
@@ -86,12 +90,45 @@ export default function Friends() {
     }
   }, [currentUser]);
  
+  // Fetch detailed profile for a user
+  const fetchDetailedProfile = async (userId: string) => {
+    if (!userId) return null;
+    
+    // Return from cache if we've already fetched this profile
+    if (detailedProfiles[userId]) {
+      return detailedProfiles[userId];
+    }
+    
+    try {
+      const response = await getUserProfile(userId);
+
+      console.log("response ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::", response);
+      
+      if (response.success && response.data) {
+        // Cache the result
+        setDetailedProfiles(prev => ({
+          ...prev,
+          [userId]: response.data as IUser
+        }));
+        return response.data;
+      }
+    } catch (error) {
+      console.error(`Error fetching detailed profile for ${userId}:`, error);
+    }
+    return null;
+  };
+  
   const loadFriends = async () => {
     try {
       setIsLoading(prev => ({ ...prev, friends: true }));
       const response = await getFriendsList();
       if (response.success && Array.isArray(response.data)) {
-        setFriends(response.data.filter(friend => friend && friend._id));
+        const basicFriends = response.data.filter(friend => friend && friend._id);
+        setFriends(basicFriends);
+        
+        basicFriends.forEach(friend => {
+          fetchDetailedProfile(friend._id);
+        });
       } else {
         setFriends([]);
       }
@@ -109,17 +146,25 @@ export default function Friends() {
       const response = await getFriendRequestsList();
       
       // Debug logs to see the data structure
-      console.log('Friend requests API response:', response);
       
       if (response.success && response.data) {
-        console.log('Incoming requests raw data:', response.data.incoming);
-        console.log('Outgoing requests raw data:', response.data.outgoing);
         
         // Set the requests directly from the API response
-        // The backend has already populated user data
         setRequests({
           incoming: response.data.incoming || [],
           outgoing: response.data.outgoing || []
+        });
+        
+        response.data.incoming.forEach(request => {
+          if (request.senderId && typeof request.senderId === 'object' && request.senderId._id) {
+            fetchDetailedProfile(request.senderId._id);
+          }
+        });
+        
+        response.data.outgoing.forEach(request => {
+          if (request.receiverId && typeof request.receiverId === 'object' && request.receiverId._id) {
+            fetchDetailedProfile(request.receiverId._id);
+          }
         });
       } else {
         setRequests({ incoming: [], outgoing: [] });
@@ -137,9 +182,7 @@ export default function Friends() {
     
     try {
       setIsLoading(prev => ({ ...prev, search: true }));
-      console.log('Searching for:', searchQuery);
       const response = await searchForUsers(searchQuery);
-      console.log('Search response:', response);
       
       // Handle different response formats and ensure valid data
       if (Array.isArray(response)) {
@@ -167,12 +210,9 @@ export default function Friends() {
     }
 
     try {
-      console.log('Sending friend request to user ID:', userId);
       const response = await sendFriendRequestToUser(userId);
-      console.log('Friend request response:', response);
       
       if (response.success) {
-        console.log('Friend request sent successfully');
         await loadRequests();
       } else {
         console.error('Failed to send friend request:', response.message || 'Unknown error');
@@ -223,6 +263,12 @@ export default function Friends() {
     } catch (error) {
       console.error('Error removing friend:', error);
     }
+  };
+
+  // Helper to get detailed profile or fallback to basic info
+  const getDetailedUser = (user: any) => {
+    if (!user || !user._id) return user;
+    return detailedProfiles[user._id] || user;
   };
 
   if (loading || !currentUser) {
@@ -359,31 +405,43 @@ export default function Friends() {
                 {friends.map((friend) => {
                   if (!friend || !friend._id) return null;
                   
+                  // Get detailed profile if available
+                  const detailedFriend = getDetailedUser(friend);
+                  
                   return (
-                    <li key={friend._id} className="border p-4 rounded-lg flex items-center justify-between">
-                      <div className="flex items-center">
-                        {friend.profilePicture ? (
-                          <img 
-                            src={friend.profilePicture} 
-                            alt={friend.displayName || 'User'} 
-                            className="w-12 h-12 rounded-full mr-3" 
-                          />
-                        ) : (
-                          <div className="w-12 h-12 bg-gray-200 rounded-full mr-3 flex items-center justify-center">
-                            <span className="text-xl text-gray-500">{friend.displayName?.[0] || '?'}</span>
+                    <li key={friend._id} className="border p-4 rounded-lg flex flex-col">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center">
+                          {detailedFriend.profilePicture ? (
+                            <img 
+                              src={detailedFriend.profilePicture} 
+                              alt={detailedFriend.displayName || 'User'} 
+                              className="w-12 h-12 rounded-full mr-3 object-cover" 
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-gray-200 rounded-full mr-3 flex items-center justify-center">
+                              <span className="text-xl text-gray-500">{detailedFriend.displayName?.[0] || '?'}</span>
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-medium">{detailedFriend.displayName || 'User'}</p>
+                            {detailedFriend.username && <p className="text-sm text-gray-500">@{detailedFriend.username}</p>}
                           </div>
-                        )}
-                        <div>
-                          <p className="font-medium">{friend.displayName || 'User'}</p>
-                          {friend.username && <p className="text-sm text-gray-500">@{friend.username}</p>}
                         </div>
+                        <button
+                          onClick={() => removeFriend(friend._id)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          Remove
+                        </button>
                       </div>
-                      <button
-                        onClick={() => removeFriend(friend._id)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        Remove
-                      </button>
+                      
+                      {/* Bio section */}
+                      {detailedFriend.bio && (
+                        <div className="mt-1 mb-2">
+                          <p className="text-sm text-gray-600 line-clamp-2">{detailedFriend.bio}</p>
+                        </div>
+                      )}
                     </li>
                   );
                 })}
@@ -403,27 +461,38 @@ export default function Friends() {
                   {requests.incoming.map((request) => {
                     if (!request || !request.senderId || !request._id) return null;
                     
+                    // Get detailed profile if available
+                    const detailedSender = getDetailedUser(request.senderId);
+                    
                     return (
                       <li key={request._id} className="border p-4 rounded-lg">
                         <div className="flex items-center mb-3">
-                          {request.senderId.profilePicture ? (
+                          {detailedSender.profilePicture ? (
                             <img 
-                              src={request.senderId.profilePicture} 
-                              alt={request.senderId.displayName || 'User'} 
-                              className="w-12 h-12 rounded-full mr-3" 
+                              src={detailedSender.profilePicture} 
+                              alt={detailedSender.displayName || 'User'} 
+                              className="w-12 h-12 rounded-full mr-3 object-cover" 
                             />
                           ) : (
                             <div className="w-12 h-12 bg-gray-200 rounded-full mr-3 flex items-center justify-center">
-                              <span className="text-xl text-gray-500">{request.senderId.displayName?.[0] || '?'}</span>
+                              <span className="text-xl text-gray-500">{detailedSender.displayName?.[0] || '?'}</span>
                             </div>
                           )}
                           <div>
-                            <p className="font-medium">{request.senderId.displayName || 'User'}</p>
-                            {request.senderId.username && (
-                              <p className="text-sm text-gray-500">@{request.senderId.username}</p>
+                            <p className="font-medium">{detailedSender.displayName || 'User'}</p>
+                            {detailedSender.username && (
+                              <p className="text-sm text-gray-500">@{detailedSender.username}</p>
                             )}
                           </div>
                         </div>
+                        
+                        {/* Bio section */}
+                        {detailedSender.bio && (
+                          <div className="mt-2 mb-3">
+                            <p className="text-sm text-gray-600 line-clamp-2">{detailedSender.bio}</p>
+                          </div>
+                        )}
+                        
                         <div className="flex gap-2">
                           <button
                             onClick={() => acceptRequest(request._id)}
@@ -452,27 +521,38 @@ export default function Friends() {
                   {requests.outgoing.map((request) => {
                     if (!request || !request.receiverId || !request._id) return null;
                     
+                    // Get detailed profile if available
+                    const detailedReceiver = getDetailedUser(request.receiverId);
+                    
                     return (
                       <li key={request._id} className="border p-4 rounded-lg">
                         <div className="flex items-center">
-                          {request.receiverId.profilePicture ? (
+                          {detailedReceiver.profilePicture ? (
                             <img 
-                              src={request.receiverId.profilePicture} 
-                              alt={request.receiverId.displayName || 'User'} 
-                              className="w-12 h-12 rounded-full mr-3" 
+                              src={detailedReceiver.profilePicture} 
+                              alt={detailedReceiver.displayName || 'User'} 
+                              className="w-12 h-12 rounded-full mr-3 object-cover" 
                             />
                           ) : (
                             <div className="w-12 h-12 bg-gray-200 rounded-full mr-3 flex items-center justify-center">
-                              <span className="text-xl text-gray-500">{request.receiverId.displayName?.[0] || '?'}</span>
+                              <span className="text-xl text-gray-500">{detailedReceiver.displayName?.[0] || '?'}</span>
                             </div>
                           )}
                           <div>
-                            <p className="font-medium">{request.receiverId.displayName || 'User'}</p>
-                            {request.receiverId.username && (
-                              <p className="text-sm text-gray-500">@{request.receiverId.username}</p>
+                            <p className="font-medium">{detailedReceiver.displayName || 'User'}</p>
+                            {detailedReceiver.username && (
+                              <p className="text-sm text-gray-500">@{detailedReceiver.username}</p>
                             )}
                           </div>
                         </div>
+
+                        {/* Bio section */}
+                        {detailedReceiver.bio && (
+                          <div className="mt-2 mb-2">
+                            <p className="text-sm text-gray-600 line-clamp-2">{detailedReceiver.bio}</p>
+                          </div>
+                        )}
+                        
                         <p className="text-sm text-gray-500 mt-2">Request pending...</p>
                       </li>
                     );

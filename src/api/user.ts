@@ -1,6 +1,7 @@
 import { API_BASE_URL, getHeaders, handleApiResponse, ApiResponse } from './config';
 import { IUser, OnboardingFormData } from '@/types/index';
 import Cookies from 'js-cookie';
+import axios from 'axios';
 
 /**
  * Gets the current user's profile
@@ -8,15 +9,12 @@ import Cookies from 'js-cookie';
 export const getMyProfile = async (): Promise<ApiResponse<IUser>> => {
   try {
     const token = Cookies.get('auth_token');
-    console.log(`Fetching user profile from: ${API_BASE_URL}/profile/me`);
-    console.log('Auth token present:', !!token);
     
     const headers = {
       'Content-Type': 'application/json',
       'Authorization': token ? `Bearer ${token}` : ''
     };
     
-    console.log('Using headers:', headers);
     
     const response = await fetch(`${API_BASE_URL}/profile/me`, {
       method: 'GET',
@@ -25,7 +23,6 @@ export const getMyProfile = async (): Promise<ApiResponse<IUser>> => {
       mode: 'cors'
     });
     
-    console.log('Profile API response status:', response.status);
     
     if (!response.ok) {
       console.error('Error fetching profile:', response.status, response.statusText);
@@ -53,7 +50,6 @@ export const getMyProfile = async (): Promise<ApiResponse<IUser>> => {
     
     // The backend returns the user object directly, not wrapped in a success/data structure
     const userData = await response.json();
-    console.log('Received user data:', userData);
     
     // Convert to our expected format based on updated backend response
     return {
@@ -117,7 +113,6 @@ export const getMyProfile = async (): Promise<ApiResponse<IUser>> => {
 export const setUsername = async (username: string): Promise<ApiResponse<null>> => {
   try {
     const token = Cookies.get('auth_token');
-    console.log(`Updating username to: ${username}`);
     
     const headers = {
       'Content-Type': 'application/json',
@@ -173,7 +168,6 @@ export const setUsername = async (username: string): Promise<ApiResponse<null>> 
 export const editProfile = async (profileData: Partial<IUser>): Promise<ApiResponse<null>> => {
   try {
     const token = Cookies.get('auth_token');
-    console.log('Updating profile data:', profileData);
     
     // Clean up the profile data to remove any undefined or empty values
     const cleanProfileData = Object.entries(profileData).reduce((acc, [key, value]) => {
@@ -192,14 +186,12 @@ export const editProfile = async (profileData: Partial<IUser>): Promise<ApiRespo
       return acc;
     }, {} as Record<string, any>);
     
-    console.log('Cleaned profile data for API:', cleanProfileData);
     
     const headers = {
       'Content-Type': 'application/json',
       'Authorization': token ? `Bearer ${token}` : ''
     };
     
-    console.log('Making API call to:', `${API_BASE_URL}/profile/edit`);
     
     const response = await fetch(`${API_BASE_URL}/profile/edit`, {
       method: 'POST',
@@ -209,7 +201,6 @@ export const editProfile = async (profileData: Partial<IUser>): Promise<ApiRespo
       mode: 'cors'
     });
     
-    console.log('API response status:', response.status);
     
     if (!response.ok) {
       console.error('Error updating profile:', response.status, response.statusText);
@@ -231,7 +222,6 @@ export const editProfile = async (profileData: Partial<IUser>): Promise<ApiRespo
     }
     
     const responseData = await response.json();
-    console.log('Profile update success response:', responseData);
     
     return {
       success: true,
@@ -262,6 +252,27 @@ export const getUserById = async (userId: string): Promise<ApiResponse<IUser>> =
     return await handleApiResponse<IUser>(response);
   } catch (error) {
     console.error('Failed to fetch user profile by ID:', error);
+    throw error;
+  }
+}; 
+
+/**
+ * Get detailed user profile by ID using the new endpoint
+ */
+export const getUserProfile = async (userId: string): Promise<ApiResponse<IUser>> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/profile/${userId}`, {
+      headers: getHeaders(),
+      withCredentials: true
+    });
+    
+    return {
+      success: true,
+      data: response.data,
+      message: 'Profile fetched successfully'
+    };
+  } catch (error) {
+    console.error('Failed to fetch detailed user profile:', error);
     throw error;
   }
 }; 

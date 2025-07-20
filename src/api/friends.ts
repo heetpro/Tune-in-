@@ -1,6 +1,7 @@
 import { API_BASE_URL, getHeaders, handleApiResponse, ApiResponse } from './config';
 import { IUser, IFriendRequest } from '@/types/index';
 
+// Updated interface to match backend response
 interface FriendRequestsResponse {
   incoming: {
     _id: string;
@@ -10,6 +11,8 @@ interface FriendRequestsResponse {
       firstName: string;
       lastName: string;
       profilePicture?: string;
+      username?: string;
+      bio?: string; // Added bio field
     };
     receiverId: string;
     status: 'pending' | 'accepted' | 'rejected';
@@ -26,6 +29,8 @@ interface FriendRequestsResponse {
       firstName: string;
       lastName: string;
       profilePicture?: string;
+      username?: string;
+      bio?: string; // Added bio field
     };
     status: 'pending' | 'accepted' | 'rejected';
     createdAt: string;
@@ -57,30 +62,19 @@ export const getFriendsList = async (): Promise<ApiResponse<IUser[]>> => {
  */
 export const getFriendRequestsList = async (): Promise<ApiResponse<FriendRequestsResponse>> => {
   try {
-    console.log('Fetching friend requests from API...');
     const response = await fetch(`${API_BASE_URL}/requests`, {
       method: 'GET',
       headers: getHeaders(),
       credentials: 'include'
     });
 
-    console.log("friend requests ::::", response);
-    
-    // Additional debugging
-    console.log('Friend requests API raw response status:', response.status);
-    console.log('Friend requests API raw response headers:', response.headers);
-    
-    // Clone the response to log the raw data
     const clonedResponse = response.clone();
     try {
       const rawData = await clonedResponse.text();
-      console.log('Friend requests API raw response text:', rawData);
       
-      // Try parsing if it looks like JSON
       if (rawData && rawData.trim().startsWith('{') || rawData.trim().startsWith('[')) {
         try {
           const parsedData = JSON.parse(rawData);
-          console.log('Friend requests API raw parsed data:', parsedData);
         } catch (parseErr) {
           console.error('Failed to parse raw response as JSON:', parseErr);
         }
@@ -90,7 +84,6 @@ export const getFriendRequestsList = async (): Promise<ApiResponse<FriendRequest
     }
     
     const result = await handleApiResponse<FriendRequestsResponse>(response);
-    console.log('Friend requests API processed response:', result);
     return result;
   } catch (error) {
     console.error('Failed to fetch friend requests:', error);
@@ -118,9 +111,6 @@ export const searchForUsers = async (query: string): Promise<ApiResponse<IUser[]
     // Log the raw response for debugging
     try {
       const responseBody = await responseClone.json();
-      console.log('Response data:', responseBody);
-      
-      // If the API returns data directly without our expected wrapper structure
       if (Array.isArray(responseBody) && !result.data) {
         return {
           success: true,
@@ -153,14 +143,12 @@ export const sendFriendRequest = async (userId: string): Promise<ApiResponse<nul
     { url: `${API_BASE_URL}/friends/requests/${userId}`, body: {} }
   ];
   
-  console.log("Friend request payload:", { userId });
   
   let lastError = null;
   
   // Try each endpoint in sequence
   for (const endpoint of endpointsToTry) {
     try {
-      console.log(`Trying endpoint: ${endpoint.url} with body:`, endpoint.body);
       
       const response = await fetch(endpoint.url, {
         method: 'POST',
@@ -168,11 +156,9 @@ export const sendFriendRequest = async (userId: string): Promise<ApiResponse<nul
         body: JSON.stringify(endpoint.body),
         credentials: 'include'
       });
-      console.log(`Response from ${endpoint.url}:`, response);
       
       // If response is OK, we found the right endpoint
       if (response.ok) {
-        console.log("Found working endpoint:", endpoint.url);
         try {
           const result = await handleApiResponse<null>(response);
           return result;
@@ -233,7 +219,6 @@ export const acceptFriendRequest = async (requestId: string): Promise<ApiRespons
       headers: getHeaders(),
       credentials: 'include'
     });
-    console.log("accept friend request", response);
     
     // Clone the response for debugging
     const responseClone = response.clone();
@@ -248,7 +233,6 @@ export const acceptFriendRequest = async (requestId: string): Promise<ApiRespons
       // Fallback: Try to parse the response manually
       try {
         const responseBody = await responseClone.text();
-        console.log("Raw response:", responseBody);
         
         // Check if response is empty or not JSON
         if (!responseBody || responseBody.trim() === '') {
@@ -296,7 +280,6 @@ export const rejectFriendRequest = async (requestId: string): Promise<ApiRespons
       headers: getHeaders(),
       credentials: 'include'
     });
-    console.log("reject friend request", response);
     
     // Clone the response for debugging
     const responseClone = response.clone();
@@ -311,7 +294,6 @@ export const rejectFriendRequest = async (requestId: string): Promise<ApiRespons
       // Fallback: Try to parse the response manually
       try {
         const responseBody = await responseClone.text();
-        console.log("Raw response:", responseBody);
         
         // Check if response is empty or not JSON
         if (!responseBody || responseBody.trim() === '') {
@@ -359,7 +341,6 @@ export const removeFriend = async (friendId: string): Promise<ApiResponse<null>>
       headers: getHeaders(),
       credentials: 'include'
     });
-    console.log("remove friend", response);
     
     // Clone the response for debugging
     const responseClone = response.clone();
@@ -374,7 +355,6 @@ export const removeFriend = async (friendId: string): Promise<ApiResponse<null>>
       // Fallback: Try to parse the response manually
       try {
         const responseBody = await responseClone.text();
-        console.log("Raw response:", responseBody);
         
         // Check if response is empty or not JSON
         if (!responseBody || responseBody.trim() === '') {

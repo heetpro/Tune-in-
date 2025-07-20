@@ -17,11 +17,7 @@ export default function AuthSuccess() {
         const refreshToken = searchParams.get('refresh');
         const needsUsername = searchParams.get('needsUsername') === 'true';
 
-        console.log('Auth success - tokens received:', {
-          tokenExists: !!token,
-          refreshTokenExists: !!refreshToken,
-          needsUsername
-        });
+      
 
         if (!token || !refreshToken) {
           console.error('Missing tokens in auth callback');
@@ -30,28 +26,17 @@ export default function AuthSuccess() {
           return;
         }
 
-        // Use the login function only (don't set cookies directly)
-        console.log('Using login function to set tokens...');
-        login(token, refreshToken);
-
-        // Small delay to ensure tokens are processed
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        // Wait for user data to load
-        console.log('Refreshing user data after login...');
         await refreshUser();
-        console.log('User refresh completed');
         
         // Redirect based on onboarding status with from=auth parameter
         if (needsUsername) {
-          console.log('User needs username setup, redirecting to profile setup');
           router.push('/profile?setup=true&from=auth');
         } else {
-          console.log('User has username, redirecting to profile');
           router.push('/profile?from=auth');
         }
       } catch (error) {
-        console.error('Auth success error:', error);
         setStatus('error');
         router.push('/login?error=auth_failed');
       }

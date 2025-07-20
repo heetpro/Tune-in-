@@ -101,15 +101,7 @@ export default function Header() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
 
-  useEffect(() => {
-    console.log("Header render - Auth state:", {
-      isAuthenticated,
-      user: user ? "exists" : "null",
-      loading,
-      token: typeof window !== 'undefined' ? !!Cookies.get('auth_token') : false
-    });
-    // Only run this effect once per mount to avoid loops
-  }, []);
+
 
   return (
     <header className="absolute top-0 left-0 right-0 w-full text-white">

@@ -25,9 +25,6 @@ export const initializeSocket = (userId?: string): Promise<Socket> => {
   }
   
   isConnecting = true;
-  console.log('Initializing socket connection...');
-  console.log('User ID:', userId || getUserId());
-  console.log('Auth token exists:', !!getAuthToken());
   
   // Clear any existing reconnect timer
   if (reconnectTimer) {
@@ -66,13 +63,7 @@ export const initializeSocket = (userId?: string): Promise<Socket> => {
       withCredentials: true,
     });
     
-    // Debug socket instance
-    console.log('Socket instance created:', !!socket);
-    
-    // Safely log transport config without accessing protected properties
     try {
-      // @ts-ignore - accessing internals for debugging
-      console.log('Socket transport options:', socket.io.engine.opts?.transports || 'Not accessible');
     } catch (err) {
       console.log('Could not access socket transport details');
     }
@@ -89,7 +80,6 @@ export const initializeSocket = (userId?: string): Promise<Socket> => {
     }, 10000); // 10 second timeout for initial connection
 
     socket.on('connect', () => {
-      console.log('Socket connected successfully with ID:', socket?.id);
       clearTimeout(connectionTimeout);
       isConnecting = false;
       
@@ -100,14 +90,11 @@ export const initializeSocket = (userId?: string): Promise<Socket> => {
     });
 
     socket.on('reconnect', () => {
-      console.log('Reconnected to server, fetching latest messages...');
-      // Additional reconnection logic can be added here
     });
 
     socket.on('disconnect', (reason) => {
       console.log('Socket disconnected:', reason);
       
-      // If server disconnected us, try reconnecting after a delay
       if (reason === 'io server disconnect') {
         reconnectTimer = setTimeout(() => {
           initializeSocket(userId);
@@ -183,7 +170,6 @@ export const listenEvent = <T>(eventName: string, callback: (data: T) => void): 
 export const removeListener = (eventName: string): void => {
   if (socket) {
     socket.off(eventName);
-    console.log(`Removed listener for event: ${eventName}`);
   } else {
     console.warn(`Socket not available, couldn't remove listener for: ${eventName}`);
   }
@@ -191,16 +177,11 @@ export const removeListener = (eventName: string): void => {
 
 // Message-specific helper methods
 export const sendMessage = async (receiverId: string, text: string): Promise<boolean> => {
-  console.log('Socket sendMessage called with:', { receiverId, text });
   try {
-    // Use the correct event name that matches the backend
-    // Default to 'send_message' but also try 'message' if that doesn't work
     let result = await emitEvent('message', { receiverId, text, image: null });
     if (!result) {
-      // Try alternate event name as fallback
       result = await emitEvent('send_message', { receiverId, text });
     }
-    console.log('Socket sendMessage result:', result);
     return result;
   } catch (error) {
     console.error('Socket sendMessage error:', error);
@@ -223,7 +204,6 @@ export const sendTypingIndicator = async (conversationId: string, receiverId: st
 export const checkServerConnection = async (): Promise<boolean> => {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-    console.log('Checking server connection at:', apiUrl);
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
@@ -275,7 +255,6 @@ export const testServerConnectivity = async (): Promise<{success: boolean, messa
       return { success: true, message: 'Server is reachable but /health endpoint not found' };
     }
     
-    console.log('HTTP connection test successful:', httpResponse.status);
     return { success: true, message: 'Server is reachable via HTTP' };
   } catch (error) {
     return {
