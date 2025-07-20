@@ -7,15 +7,19 @@ import { ArrowUpRight, Smile, SmilePlus, Sticker } from 'lucide-react';
 import { spaceGrotesk } from '@/app/fonts';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
+import { IUser } from '@/types';
+import { ProfileModal } from './ProfileModal';
 
 interface ChatProps {
   receiverId: string;
+  receiverData?: IUser; // Full user data of the receiver
 }
 
-const Chat: React.FC<ChatProps> = ({ receiverId }) => {
+const Chat: React.FC<ChatProps> = ({ receiverId, receiverData }) => {
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
   const { user } = useAuth();
@@ -29,8 +33,12 @@ const Chat: React.FC<ChatProps> = ({ receiverId }) => {
     markAsRead,
     isOnline,
     isTyping,
-    isConnected
+    isConnected,
+    chatPartner
   } = useChat(receiverId);
+
+  // The user data to display in the profile modal
+  const profileUser = receiverData || chatPartner;
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -87,9 +95,35 @@ const Chat: React.FC<ChatProps> = ({ receiverId }) => {
           zIndex: -1
         }}
       ></div>
-      <div className=""
       
-      ></div>
+      {/* Chat header with profile info */}
+      <div className="p-3 border-b border-gray-200 flex items-center">
+        {profileUser && (
+          <div 
+            className="flex items-center cursor-pointer"
+            onClick={() => setIsProfileModalOpen(true)}
+          >
+            <div className="relative mr-3">
+              <img 
+                src={profileUser.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(profileUser.displayName || 'User')}`} 
+                alt={profileUser.displayName} 
+                className="w-10 h-10 rounded-full object-cover"
+              />
+              {isOnline && (
+                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+              )}
+            </div>
+            <div>
+              <div className="font-medium">{profileUser.displayName}</div>
+              <div className="text-xs text-gray-500">
+                {isOnline ? 'Online' : 'Offline'}
+                {isTyping && <span className="ml-2 italic">typing...</span>}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      
       {!isConnected && (
         <div className="p-2 bg-yellow-100 text-yellow-800 text-center text-sm">
           {error || "Socket disconnected. Messages may be delayed."}
@@ -121,27 +155,6 @@ const Chat: React.FC<ChatProps> = ({ receiverId }) => {
                 }`}
               >
                 {message.text}
-                {/* <div 
-                  className={`text-xs flex items-center gap-1 mt-1 ${
-                    message.senderId === user?._id ? 'text-blue-100' : 'text-gray-500'
-                  }`}
-                >
-                  {formatTime(message.createdAt)}
-                  {message.id?.toString().startsWith('temp-') 
-                    ? " • Sending..." 
-                    : (message.isRead 
-                        ? " • Read" 
-                        : message.isDelivered 
-                          ? 
-                          <div className="flex">
-                          <ArrowUpRight size={15}
-                          />
-                          <ArrowUpRight size={15}
-                           className='-ml-1'/>
-                          </div> 
-                          : "")}
-                  {message.error && " • Failed"}
-                </div> */}
               </div>
             </div>
           ))
@@ -197,6 +210,15 @@ const Chat: React.FC<ChatProps> = ({ receiverId }) => {
           </div>
         )}
       </form>
+
+      {/* Profile Modal */}
+      {profileUser && (
+        <ProfileModal 
+          isOpen={isProfileModalOpen} 
+          onClose={() => setIsProfileModalOpen(false)} 
+          user={profileUser} 
+        />
+      )}
     </div>
   );
 };

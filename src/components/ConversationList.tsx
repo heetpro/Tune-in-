@@ -9,6 +9,12 @@ import Link from 'next/link';
 import { messageService } from '@/lib/messageService';
 import { CircleDashedIcon } from 'lucide-react';
 import { spaceGrotesk } from '@/app/fonts';
+import { ProfileModal } from './ProfileModal';
+
+// Update ChatUser to include the full user data
+interface ExtendedChatUser extends ChatUser {
+  userData: IUser; // Store the full user data
+}
 
 interface ConversationListProps {
   activeConversationId?: string;
@@ -23,14 +29,16 @@ const ConversationList: React.FC<ConversationListProps> = ({
 }) => {
   const { onlineUsers, isConnected } = useSocket();
   const { user } = useAuth();
-  const [conversations, setConversations] = useState<ChatUser[]>([]);
+  const [conversations, setConversations] = useState<ExtendedChatUser[]>([]);
   const [messages, setMessages] = useState<{ [userId: string]: Message[] }>({});
+  const [selectedUser, setSelectedUser] = useState<IUser | null>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   // Process friendsList to create conversation list
   useEffect(() => {
     if (!user || friendsList.length === 0) return;
 
-    const conversationMap = new Map<string, ChatUser>();
+    const conversationMap = new Map<string, ExtendedChatUser>();
 
     // First add friends from friendsList
     friendsList.forEach((friend) => {
@@ -40,7 +48,8 @@ const ConversationList: React.FC<ConversationListProps> = ({
         id: friend._id,
         name: friend.displayName || friend.username || `User ${friend._id.substring(0, 5)}...`,
         avatar: friend.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.displayName || friend.username || 'U')}`,
-        isOnline: onlineUsers.includes(friend._id)
+        isOnline: onlineUsers.includes(friend._id),
+        userData: friend // Store the complete user data
       });
     });
 
@@ -119,6 +128,12 @@ const ConversationList: React.FC<ConversationListProps> = ({
     }
   };
 
+  // Handle opening profile modal
+  const openProfileModal = (user: IUser) => {
+    setSelectedUser(user);
+    setIsProfileModalOpen(true);
+  };
+
   return (
     <div className={`${spaceGrotesk.className} flex flex-col gap-4 h-full w-full`}>
       <div className="flex items-center w-full justify-center py-2 ">
@@ -127,15 +142,10 @@ const ConversationList: React.FC<ConversationListProps> = ({
           <h2 className="text-xl font-semibold">{"/"}</h2>
           <h2 className="text-xl font-semibold">Buddies </h2>
         </div>
-        {/* <div className={`text-xs p-2 rounded-full ${isConnected ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
-          <div className="flex p-1 rounded-full bg-white"></div>
-        </div> */}
       </div>
 
       {conversations.length === 0 ? (
-        <div className="p-4  text-gray-500 h-full text-center"
-
-        >
+        <div className="p-4  text-gray-500 h-full text-center">
           <p>No conversations yet</p>
           <Link href="/friends" className="text-blue-500 hover:underline block mt-2">
             Find friends to chat with
@@ -152,22 +162,20 @@ const ConversationList: React.FC<ConversationListProps> = ({
             return (
               <div key={conv.id} className={`${spaceGrotesk.className} rounded-full `}>
                 <li
-
                   className={`p-1 mx-2 hover:opacity-90 rounded-full items-center cursor-pointer
                   ${isActive ? 'bg-[#8D50F9]' : ''}`}
-
-                  // style={{
-                  //   clipPath: "polygon(41% 3%, 0 0, 0 100%, 75% 93%, 47% 81%, 100% 32%, 80% 100%, 100% 80%, 60% 8%, 100% 20%, 80% 0%, 77% 62%)"  
-                  //   }}
                   onClick={() => handleClick(conv.id)}
                 >
-                  <div className="flex justify-start"
-
-                  >
-                    <div className="relative  "
-                    style={{
-                      height: 'clamp(2rem, 3.25vw, 100rem)',
-                    }}
+                  <div className="flex justify-start">
+                    <div 
+                      className="relative"
+                      style={{
+                        height: 'clamp(2rem, 3.25vw, 100rem)',
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openProfileModal(conv.userData);
+                      }}
                     >
                       <img
                         src={conv.avatar}
@@ -182,9 +190,6 @@ const ConversationList: React.FC<ConversationListProps> = ({
                     <div className={`ml-2 flex justify-between items-center w-[80%] ${isActive ? 'text-white' : 'text-black'}`}>
                       <div className={`flex w-[80%] flex-col justify-between items-start`}>
                         <h3 className="font-medium ">{conv.name}</h3>
-                        {/* <span className="text-xs">
-                        {formatLastMessageTime(conv.id)}
-                      </span> */}
                         <p className="text-sm -mt-1  truncate max-w-[180px]">
                           {lastMessage?.text || ''}
                         </p>
@@ -202,11 +207,19 @@ const ConversationList: React.FC<ConversationListProps> = ({
                   </div>
                 </li>
                 <hr className='w-[80%] opacity-70 mx-auto my-1'/>
-
               </div>
             );
           })}
         </ul>
+      )}
+
+      {/* Profile Modal */}
+      {selectedUser && (
+        <ProfileModal 
+          isOpen={isProfileModalOpen} 
+          onClose={() => setIsProfileModalOpen(false)} 
+          user={selectedUser} 
+        />
       )}
     </div>
   );

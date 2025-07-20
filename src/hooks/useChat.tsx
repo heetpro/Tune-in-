@@ -5,6 +5,8 @@ import { useSocket } from '@/context/SocketContext';
 import { messageService } from '@/lib/messageService';
 import { useAuth } from '@/context/AuthContext';
 import { Message } from '@/types/socket';
+import { IUser } from '@/types';
+import { getUserProfile } from '@/api/user';
 
 export const useChat = (receiverId: string | null) => {
   const { socket, onlineUsers, isConnected } = useSocket();
@@ -13,6 +15,25 @@ export const useChat = (receiverId: string | null) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<{[key: string]: boolean}>({});
+  const [chatPartner, setChatPartner] = useState<IUser | null>(null);
+
+  // Load chat partner's profile data
+  useEffect(() => {
+    if (!receiverId) return;
+
+    const fetchChatPartnerData = async () => {
+      try {
+        const response = await getUserProfile(receiverId);
+        if (response.success && response.data) {
+          setChatPartner(response.data);
+        }
+      } catch (err) {
+        console.error('Error fetching chat partner profile:', err);
+      }
+    };
+
+    fetchChatPartnerData();
+  }, [receiverId]);
 
   // Load initial messages ONCE when component mounts or receiverId changes
   useEffect(() => {
@@ -292,8 +313,9 @@ export const useChat = (receiverId: string | null) => {
     sendMessage,
     sendTypingIndicator,
     markAsRead,
-    isOnline: onlineUsers.includes(receiverId || ''),
-    isTyping: typingUsers[receiverId || ''] || false,
-    isConnected
+    isOnline: receiverId ? onlineUsers.includes(receiverId) : false,
+    isTyping: receiverId ? !!typingUsers[receiverId] : false,
+    isConnected,
+    chatPartner
   };
 }; 

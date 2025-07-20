@@ -1,3 +1,5 @@
+import { IUser } from './index';
+
 // Message related interfaces
 export interface Message {
   id?: string;            // Optional for new messages, required when received from server
@@ -40,6 +42,7 @@ export interface ChatUser {
   name: string;
   avatar: string;
   isOnline?: boolean;
+  userData?: IUser;       // Full user data for profile modal and other features
 }
 
 // Conversation schema

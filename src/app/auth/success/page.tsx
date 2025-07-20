@@ -32,9 +32,9 @@ export default function AuthSuccess() {
         
         // Redirect based on onboarding status with from=auth parameter
         if (needsUsername) {
-          router.push('/profile?setup=true&from=auth');
+          router.push('/messages');
         } else {
-          router.push('/profile?from=auth');
+          router.push('/messages');
         }
       } catch (error) {
         setStatus('error');
