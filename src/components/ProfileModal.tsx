@@ -14,7 +14,8 @@ interface ProfileModalProps {
 export const ProfileModal = ({ isOpen, onClose, user }: ProfileModalProps) => {
     const [isAnimating, setIsAnimating] = useState(false);
     const modalContentRef = useRef<HTMLDivElement>(null);
-
+    console.log(user._id , user.displayName);
+    
     useEffect(() => {
         if (isOpen) {
             setIsAnimating(true);
@@ -35,6 +36,7 @@ export const ProfileModal = ({ isOpen, onClose, user }: ProfileModalProps) => {
             onClose();
         }
     };
+    console.log(user);
 
 
     return (

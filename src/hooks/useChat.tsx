@@ -46,7 +46,6 @@ export const useChat = (receiverId: string | null) => {
         setLoading(true);
         setError(null);
         
-        console.log(`Loading messages for conversation with ${receiverId}`);
         const fetchedMessages = await messageService.getMessages(receiverId);
         
         if (isMounted) {

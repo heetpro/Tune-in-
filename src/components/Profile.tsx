@@ -66,6 +66,11 @@ export const Profile = ({ user }: ProfileProps) => {
     }
   }, [user]);
 
+
+  console.log("user ::::::::", user?.displayName , user?._id);
+  console.log("currentUser ::::::::", currentUser?.displayName , currentUser?._id);
+  
+
   const fetchMusicData = async () => {
     setError(null);
 
@@ -74,7 +79,7 @@ export const Profile = ({ user }: ProfileProps) => {
       if(currentUser?._id == displayUser?._id) {
         musicProfileResponse = await getMyMusicProfile();
       } else {
-        musicProfileResponse = await getMusicProfile(displayUser?._id || '');
+        musicProfileResponse = await getMusicProfile(user?._id || '');
       }
 
       if (musicProfileResponse.success && musicProfileResponse.data?.musicProfile) {

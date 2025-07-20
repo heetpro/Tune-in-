@@ -30,7 +30,6 @@ class MessageService {
 
   async getMessages(userToChatId: string): Promise<IMessage[]> {
     try {
-      console.log(`Fetching messages for conversation with: ${userToChatId}`);
       
       const response = await fetch(`${this.baseURL}/messages/${userToChatId}`, {
         method: 'GET',
