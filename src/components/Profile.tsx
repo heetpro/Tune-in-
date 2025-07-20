@@ -362,148 +362,17 @@ export const Profile = ({ user }: ProfileProps) => {
   if (!user?._id && needsUserInfo()) {
     return (
       <div className={`fixed inset-0 flex items-center justify-center p-2 z-50 ${spaceGrotesk.className}`}>
-        <div className="flex w-[90vw] md:w-[400px]">
-          <div className="bg-[#8D50F9] rounded-2xl p-6 w-full">
-            <div className="mb-6">
-              <h2 className="text-xl text-white font-bold mb-2">{steps[currentStep].title}</h2>
-              <div className="flex gap-2">
-                {steps.map((_, index) => (
-                  <div
-                    key={index}
-                    className={`h-1 flex-1 rounded-full ${index <= currentStep ? 'bg-white' : 'bg-white/30'
-                      }`}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="flex-col flex gap-4">
-              {currentStep === 0 && (
-                <div className="flex items-center gap-2">
-                  <User2 className="text-white" />
-                  <input
-                    type="text"
-                    value={formData.displayName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, displayName: e.target.value }))}
-                    placeholder="Enter display name"
-                    className="w-full p-3 border-2 rounded-lg text-sm placeholder:text-white focus:bg-white focus:text-black transition-all duration-300 focus:placeholder:text-black text-white focus:border-white outline-none"
-                  />
-                </div>
-              )}
-
-              {currentStep === 1 && (
-                <div className="flex items-center gap-2">
-                  <Calendar className="text-white" />
-                  <input
-                    type="date"
-                    value={formData.dateOfBirth}
-                    onChange={(e) => setFormData(prev => ({ ...prev, dateOfBirth: e.target.value }))}
-                    max={new Date().toISOString().split('T')[0]}
-                    className="w-full p-3 border-2 rounded-lg text-sm text-white bg-transparent focus:bg-white focus:text-black transition-all duration-300 focus:border-white outline-none"
-                  />
-                </div>
-              )}
-
-              {currentStep === 2 && (
-                <div className="grid grid-cols-2 gap-3">
-                  {['male', 'female', 'non-binary', 'other'].map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => setFormData(prev => ({ ...prev, gender: option as any }))}
-                      className={`p-3 border-2 rounded-lg text-sm capitalize ${formData.gender === option
-                        ? 'bg-white text-[#8D50F9] border-white'
-                        : 'text-white border-white/50 hover:border-white'
-                        }`}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {currentStep === 3 && (
-                <div className="grid grid-cols-2 gap-3">
-                  {['male', 'female', 'everyone'].map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => {
-                        const newInterested = formData.intrestedIn.includes(option)
-                          ? formData.intrestedIn.filter(i => i !== option)
-                          : [...formData.intrestedIn, option];
-                        setFormData(prev => ({ ...prev, intrestedIn: newInterested }));
-                      }}
-                      className={`p-3 border-2 rounded-lg text-sm capitalize ${formData.intrestedIn.includes(option)
-                        ? 'bg-white text-[#8D50F9] border-white'
-                        : 'text-white border-white/50 hover:border-white'
-                        }`}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {currentStep === 4 && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="text-white" />
-                    <input
-                      type="text"
-                      value={formData.location.city}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        location: { ...prev.location, city: e.target.value }
-                      }))}
-                      placeholder="Enter your city"
-                      className="w-full p-3 border-2 rounded-lg text-sm placeholder:text-white focus:bg-white focus:text-black transition-all duration-300 focus:placeholder:text-black text-white focus:border-white outline-none"
-                    />
-                  </div>
-                  <button
-                    onClick={detectLocation}
-                    disabled={isLoadingLocation}
-                    className="w-full p-3 border-2 border-white rounded-lg text-sm text-white hover:bg-white hover:text-[#8D50F9] transition-colors"
-                  >
-                    {isLoadingLocation ? 'Detecting...' : 'Detect My Location'}
-                  </button>
-                </div>
-              )}
-
-              {currentStep === 5 && (
-                <div className="flex items-center gap-2">
-                  <AtSign className="text-white" />
-                  <input
-                    type="text"
-                    value={formData.username}
-                    onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-                    onKeyPress={(e) => e.key === 'Enter' && !isSubmitting && handleNextStep()}
-                    placeholder="Enter username"
-                    className="w-full p-3 border-2 rounded-lg text-sm placeholder:text-white focus:bg-white focus:text-black transition-all duration-300 focus:placeholder:text-black text-white focus:border-white outline-none"
-                  />
-                </div>
-              )}
-
-              {error && (
-                <div className="-mt-1 text-sm text-black font-semibold px-2 bg-yellow-300 p-1 w-fit rounded-lg">
-                  {error}
-                </div>
-              )}
-
-              {success && (
-                <div className="-mt-1 text-sm text-black font-semibold px-2 bg-green-300 p-1 w-fit rounded-lg">
-                  {success}
-                </div>
-              )}
-
-              <button
-                onClick={handleNextStep}
-                disabled={isSubmitting}
-                className="w-full mt-2 px-5 bg-white hover:bg-transparent border-2 border-white hover:text-white cursor-pointer text-[#8D50F9] py-3 rounded-xl font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {isSubmitting ? 'Saving...' : currentStep === steps.length - 1 ? 'Complete Setup' : 'Continue'}
-                {!isSubmitting && <ChevronRight className="w-5 h-5" />}
-              </button>
-            </div>
-          </div>
+        <div className="bg-[#8D50F9] rounded-2xl p-6 w-full max-w-md">
+          <h2 className="text-xl text-white font-bold mb-4">Complete Your Profile</h2>
+          <p className="text-white mb-6">
+            Please complete your profile setup before accessing this feature.
+          </p>
+          <button
+            onClick={() => router.push('/setup')}
+            className="w-full mt-2 px-5 bg-white border-2 border-white text-[#8D50F9] py-3 rounded-xl font-medium flex items-center justify-center gap-2"
+          >
+            Go to Setup <ChevronRight className="w-5 h-5" />
+          </button>
         </div>
       </div>
     );

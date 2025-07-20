@@ -27,6 +27,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
   const pathname = usePathname();
 
+  // Function to check if user needs to complete onboarding
+  const needsOnboarding = (userData: IUser | null) => {
+    if (!userData) return false;
+    
+    // Check if onboarding is explicitly marked as completed
+    if (userData.hasCompletedOnboarding === true) {
+      return false;
+    }
+    
+    // Check if any required field is missing
+    return !userData.displayName ||
+      !userData.age ||
+      !userData.gender ||
+      !userData.location?.city ||
+      !userData.intrestedIn?.length ||
+      !userData.username;
+  };
+
   const refreshUser = async () => {
     try {
       setLoading(true);
@@ -48,6 +66,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (response.success && response.data) {
         setUser(response.data);
         setIsAuthenticated(true);
+        
+        // Check if user needs onboarding and redirect if necessary
+        // Only do this if user is authenticated and not already on setup page
+        if (needsOnboarding(response.data) && 
+            pathname !== '/setup' && 
+            pathname !== '/login' && 
+            !pathname?.startsWith('/auth/')) {
+          router.push('/setup');
+        }
       } else {
         // Don't throw error here, handle it directly
         setError(response.message || 'Failed to fetch user profile');
@@ -155,6 +182,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     checkAuth();
   }, []);
+
+  // Handle redirects based on auth status and onboarding needs
+  useEffect(() => {
+    if (!loading && isAuthenticated && user) {
+      // If user needs onboarding and isn't on the setup page, redirect to setup
+      if (needsOnboarding(user) && 
+          pathname !== '/setup' && 
+          pathname !== '/login' && 
+          !pathname?.startsWith('/auth/')) {
+        router.push('/setup');
+      }
+    }
+  }, [loading, isAuthenticated, user, pathname]);
 
   return (
     <AuthContext.Provider

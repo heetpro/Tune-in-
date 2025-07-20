@@ -45,7 +45,7 @@ export default function Login() {
           const authCheck = await checkUserAuth();
           
           if (authCheck.success && authCheck.data?.exists) {
-            router.push('/profile');
+            router.push('/');
           } else {
             Cookies.remove('auth_token');
             Cookies.remove('refresh_token');
