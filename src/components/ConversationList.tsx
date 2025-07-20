@@ -61,13 +61,15 @@
           
           results.forEach(result => {
             if (!result || !result.friend._id) return;
+            console.log("result ::::::::", result.profileData);
+            
             
             conversationMap.set(result.friend._id, {
               id: result.friend._id,
               name: result.friend.displayName || result.friend.username || `User ${result.friend._id.substring(0, 5)}...`,
               avatar: result.friend.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(result.friend.displayName || result.friend.username || 'U')}`,
               isOnline: onlineUsers.includes(result.friend._id),
-              userData: result.friend
+              userData: result.profileData
             });
           });
 
@@ -188,7 +190,7 @@
               return (
                 <div key={conv.id} className={`${spaceGrotesk.className} rounded-full `}>
                   <li
-                    className={`p-1 mx-2 hover:opacity-90 rounded-full items-center cursor-pointer
+                    className={`p-1 mx-2 hover:opacity-90 rounded-full items-center cursor-pointer transition-all duration-300
                     ${isActive ? 'bg-[#8D50F9]' : ''}`}
                     onClick={() => handleClick(conv.id)}
                   >

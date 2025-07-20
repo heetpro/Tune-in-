@@ -67,8 +67,6 @@ export const Profile = ({ user }: ProfileProps) => {
   }, [user]);
 
 
-  console.log("user ::::::::", user?.displayName , user?._id);
-  console.log("currentUser ::::::::", currentUser?.displayName , currentUser?._id);
   
 
   const fetchMusicData = async () => {
@@ -76,7 +74,7 @@ export const Profile = ({ user }: ProfileProps) => {
 
     try {
       let musicProfileResponse;
-      if(currentUser?._id == displayUser?._id) {
+      if(currentUser?._id == user?._id) {
         musicProfileResponse = await getMyMusicProfile();
       } else {
         musicProfileResponse = await getMusicProfile(user?._id || '');

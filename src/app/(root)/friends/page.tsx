@@ -108,7 +108,6 @@ export default function Friends() {
       const response = await getUserProfile(userId);
 
       if (response.success && response.data) {
-        console.log("response.data:", response.data);
         
         // FIX: Store the profile data in the map using the user's ID as the key
         setDetailedProfiles(prev => ({
@@ -171,7 +170,6 @@ export default function Friends() {
           }
           
           if (senderIdValue) {
-            console.log(`Fetching profile for sender ID: ${senderIdValue}`);
             await fetchDetailedProfile(senderIdValue);
           }
         }));
@@ -294,13 +292,11 @@ export default function Friends() {
   };
 
   useEffect(() => {
-    console.log("Current detailed profiles:", detailedProfiles);
     
     // Log info about outgoing requests
     if (requests.outgoing && requests.outgoing.length > 0) {
       console.log("Outgoing requests data:", requests.outgoing);
       requests.outgoing.forEach((request, i) => {
-        console.log(`Request ${i} receiverId:`, request.receiverId);
         if (typeof request.receiverId === 'object' && request.receiverId?._id) {
           const userId = request.receiverId._id;
           console.log(`Has profile for ${userId}:`, !!detailedProfiles[userId], detailedProfiles[userId]);
@@ -523,7 +519,7 @@ export default function Friends() {
                     // Use detailed data if available, otherwise use basic data
                     const userData = detailedUser || senderData || { displayName: 'User' };
                     
-                    console.log(`Rendering request ${request._id} for sender ${senderId}`, {
+                    (`Rendering request ${request._id} for sender ${senderId}`, {
                       hasDetailedData: !!detailedUser,
                       userData
                     });
