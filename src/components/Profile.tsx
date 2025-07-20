@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/Header';
 import MusicProfile from '@/components/MusicProfile';
@@ -15,6 +15,8 @@ import { useGeocoding } from '@/lib/geocoding';
 import EditProfile from '@/components/EditProfile';
 import { getMusicProfile } from '@/api';
 import Link from 'next/link';
+import { getUserProfile } from '@/api/user';
+import type { IUser } from '@/types';
 
 // Add these helper functions at the top of the component
 const getTrackImage = (track: any) => {
@@ -25,8 +27,13 @@ const getArtistImage = (artist: any) => {
   return artist?.images?.[0]?.url || '/images/artist-placeholder.jpg';
 };
 
-export const Profile = () => {
-  const { user, loading, refreshUser } = useAuth();
+// At the top of the file, add this interface
+interface ProfileProps {
+  user?: IUser; // Optional userId to show specific user's profile instead of current user
+}
+
+export const Profile = ({ user }: ProfileProps) => {
+  const { user: currentUser, loading, refreshUser } = useAuth();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,6 +52,19 @@ export const Profile = () => {
   const [timeRange, setTimeRange] = useState<'short_term' | 'medium_term' | 'long_term'>('medium_term');
   const [activeTab, setActiveTab] = useState<'artists' | 'tracks' | 'genres'>('artists');
   const [dataAvailable, setDataAvailable] = useState(true);
+
+  const [profileUser, setProfileUser] = useState<IUser | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  
+  // The actual user data we're displaying (current user or another user)
+  const displayUser = profileUser || currentUser;
+
+  useEffect(() => {
+    // Set profile user when user prop changes
+    if (user) {
+      setProfileUser(user);
+    }
+  }, [user]);
 
   const fetchMusicData = async () => {
     setError(null);
@@ -124,43 +144,43 @@ export const Profile = () => {
   ];
 
   const needsUserInfo = () => {
-    if (!user) return false;
+    if (!currentUser) return false;
 
     // If onboarding is explicitly marked as completed, don't show the form
-    if (user.hasCompletedOnboarding === true) {
+    if (currentUser.hasCompletedOnboarding === true) {
       return false;
     }
 
     // Check if any required field is missing
-    const missingInfo = !user.displayName ||
-      !user.age ||
-      !user.gender ||
-      !user.location?.city ||
-      !user.intrestedIn?.length ||
-      !user.username;
+    const missingInfo = !currentUser.displayName ||
+      !currentUser.age ||
+      !currentUser.gender ||
+      !currentUser.location?.city ||
+      !currentUser.intrestedIn?.length ||
+      !currentUser.username;
 
     return missingInfo;
   };
 
   // Pre-fill form data with existing user info
   useEffect(() => {
-    if (user && needsUserInfo()) {
+    if (currentUser && needsUserInfo()) {
       setFormData(prev => ({
         ...prev,
-        username: user.username || prev.username,
-        displayName: user.displayName || prev.displayName,
-        gender: user.gender || prev.gender,
-        intrestedIn: user.intrestedIn || prev.intrestedIn,
+        username: currentUser.username || prev.username,
+        displayName: currentUser.displayName || prev.displayName,
+        gender: currentUser.gender || prev.gender,
+        intrestedIn: currentUser.intrestedIn || prev.intrestedIn,
         location: {
-          city: user.location?.city || prev.location.city,
-          coordinates: user.location?.coordinates ? {
-            lat: user.location.coordinates.lat,
-            lng: user.location.coordinates.lng
+          city: currentUser.location?.city || prev.location.city,
+          coordinates: currentUser.location?.coordinates ? {
+            lat: currentUser.location.coordinates.lat,
+            lng: currentUser.location.coordinates.lng
           } : undefined
         }
       }));
     }
-  }, [user]);
+  }, [currentUser]);
 
   useEffect(() => {
     // Close dropdown when clicking outside
@@ -327,7 +347,8 @@ export const Profile = () => {
     }
   };
 
-  if (loading) {
+  // Update loading condition
+  if (loading || isLoadingProfile) {
     return (
       <div className="min-h-screen flex flex-col">
         <div className="container mx-auto p-4 flex-grow flex items-center justify-center">
@@ -337,8 +358,8 @@ export const Profile = () => {
     );
   }
 
-  // Show user info form if required fields are missing
-  if (needsUserInfo()) {
+  // Only show the user info form for the current user, not for other profiles
+  if (!user?._id && needsUserInfo()) {
     return (
       <div className={`fixed inset-0 flex items-center justify-center p-2 z-50 ${spaceGrotesk.className}`}>
         <div className="flex w-[90vw] md:w-[400px]">
@@ -488,130 +509,133 @@ export const Profile = () => {
     );
   }
 
-  // Rest of the profile component remains the same...
+  // For the profile display section, replace instances of currentUser with displayUser
   return (
-    <div className={`h-[90vh] overflow-y-auto mt-[10vh] w-[40%] flex border-4 rounded-t-4xl border-[#8D50F9] bg-[#8D50F9] flex-col ${spaceGrotesk.className}`}>
+    <div className={`h-[90vh] overflow-y-auto mt-[10vh] w-full flex border-4 rounded-t-4xl border-[#964FFF] bg-[#964FFF] flex-col ${spaceGrotesk.className}`}>
       <main className="p-4 flex-grow">
-        <div className="w-full h-full relative">
-          <div className="flex absolute justify-end right-0 dropdown-container">
+        {/* Only show dropdown menu for current user's profile */}
+        {!user?._id && (
+          <div className="w-full h-full relative">
+            <div className="flex absolute justify-end right-0 dropdown-container">
 
-            <Ellipsis
-              className='w-10 h-10 cursor-pointer hover:bg-white/10 rounded-full px-1 text-white'
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowDropdown(!showDropdown);
-              }}
-            />
-            {showDropdown && (
-              <div className="absolute right-0 top-12 w-48 bg-white rounded-xl shadow-lg py-2 z-50">
-                <button
-                  className="w-full px-4 cursor-pointer py-2 text-left hover:bg-gray-100 flex items-center gap-2"
-                  onClick={() => {
-                    setShowEditProfile(true);
-                    setShowDropdown(false);
-                  }}
-                >
-                  <Edit className="w-4 h-4" /> Edit Profile
-                </button>
-                <button
-                  className="w-full px-4 cursor-pointer  py-2 text-left hover:bg-gray-100 flex items-center gap-2"
-                  onClick={() => {
-                    setShowAge(!showAge);
-                    setShowDropdown(false);
-                  }}
-                >
-                  {showAge ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  {showAge ? 'Hide Age' : 'Show Age'}
-                </button>
-                <button
-                  className="w-full px-4 cursor-pointer py-2 text-left hover:bg-gray-100 flex items-center gap-2"
-                  onClick={() => {
-                    navigator.clipboard.writeText(window.location.href);
-                    setSuccess('Profile link copied to clipboard!');
-                    setShowDropdown(false);
-                    setTimeout(() => setSuccess(null), 3000);
-                  }}
-                >
-                  <Share2 className="w-4 h-4" /> Share Profile
-                </button>
-                <button
-                  className="w-full px-4 py-2 cursor-pointer text-left hover:bg-gray-100 text-red-600 flex items-center gap-2"
-                  onClick={() => {
-                    // TODO: Implement deactivate profile
-                    setShowDropdown(false);
-                  }}
-                >
-                  <UserMinus className="w-4 h-4" /> Deactivate
-                </button>
-                <div className="border-t border-gray-200 my-1"></div>
-                <button
-                  className="w-full px-4 py-2 cursor-pointer text-left hover:bg-gray-100 text-red-600 flex items-center gap-2"
-                  onClick={async () => {
-                    try {
+              <Ellipsis
+                className='w-10 h-10 cursor-pointer hover:bg-white/10 rounded-full px-1 text-white'
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDropdown(!showDropdown);
+                }}
+              />
+              {showDropdown && (
+                <div className="absolute right-0 top-12 w-48 bg-white rounded-xl shadow-lg py-2 z-50">
+                  <button
+                    className="w-full px-4 cursor-pointer py-2 text-left hover:bg-gray-100 flex items-center gap-2"
+                    onClick={() => {
+                      setShowEditProfile(true);
                       setShowDropdown(false);
-                      await logout();
-                      await refreshUser();
-                      await router.push('/login');
-                    } catch (err: any) {
-                      setError(err.message || 'Failed to log out');
-                    }
-                  }}
-                >
-                  <LogOut className="w-4 h-4" /> Log Out
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* User Profile Section */}
-          <div className="rounded-lg  mb-6">
-            <div className="">
-              <div className="flex gap-2">
-                {user?.profilePicture ? (
-                  <div className="inline-block border-4 border-white rounded-3xl">
-                    <img
-                      src={user.profilePicture}
-                      alt={user.displayName}
-                      className="w-32 h-32 p-1 object-cover rounded-3xl select-none"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-20 h-20 rounded-full mr-4 flex items-center justify-center">
-                    <span className="text-3xl text-white">{user?.displayName?.charAt(0) || '?'}</span>
-                  </div>
-                )}
-
-              </div>
-              <div className='flex flex-col gap-4'>
-                <div className="flex mt-2 flex-col">
-                  <h2 className="text-2xl font-semibold text-white">{user?.displayName}
-                    <span className="text-sm ml-1  font-semibold text-white/80">
-                      {user?.gender == "female" ? "(she/her)" : user?.gender == "male" ? "(he/him)" : "(they/them)"}
-                    </span>
-                  </h2>
-                  <h2 className="text-sm -mt-1 font-semibold text-white/80">@{user?.username}</h2>
+                    }}
+                  >
+                    <Edit className="w-4 h-4" /> Edit Profile
+                  </button>
+                  <button
+                    className="w-full px-4 cursor-pointer  py-2 text-left hover:bg-gray-100 flex items-center gap-2"
+                    onClick={() => {
+                      setShowAge(!showAge);
+                      setShowDropdown(false);
+                    }}
+                  >
+                    {showAge ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showAge ? 'Hide Age' : 'Show Age'}
+                  </button>
+                  <button
+                    className="w-full px-4 cursor-pointer py-2 text-left hover:bg-gray-100 flex items-center gap-2"
+                    onClick={() => {
+                      navigator.clipboard.writeText(window.location.href);
+                      setSuccess('Profile link copied to clipboard!');
+                      setShowDropdown(false);
+                      setTimeout(() => setSuccess(null), 3000);
+                    }}
+                  >
+                    <Share2 className="w-4 h-4" /> Share Profile
+                  </button>
+                  <button
+                    className="w-full px-4 py-2 cursor-pointer text-left hover:bg-gray-100 text-red-600 flex items-center gap-2"
+                    onClick={() => {
+                      // TODO: Implement deactivate profile
+                      setShowDropdown(false);
+                    }}
+                  >
+                    <UserMinus className="w-4 h-4" /> Deactivate
+                  </button>
+                  <div className="border-t border-gray-200 my-1"></div>
+                  <button
+                    className="w-full px-4 py-2 cursor-pointer text-left hover:bg-gray-100 text-red-600 flex items-center gap-2"
+                    onClick={async () => {
+                      try {
+                        setShowDropdown(false);
+                        await logout();
+                        await refreshUser();
+                        await router.push('/login');
+                      } catch (err: any) {
+                        setError(err.message || 'Failed to log out');
+                      }
+                    }}
+                  >
+                    <LogOut className="w-4 h-4" /> Log Out
+                  </button>
                 </div>
+              )}
+            </div>
+          </div>
+        )}
 
-                <div className="flex flex-col gap-1">
-                  <div className="flex text-md font-semibold max-w-md text-white">{user?.bio}</div>
+        {/* User Profile Section - use displayUser instead of currentUser */}
+        <div className="rounded-lg mb-6">
+          <div className="">
+            <div className="flex gap-2">
+              {displayUser?.profilePicture ? (
+                <div className="inline-block border-4 border-white rounded-3xl">
+                  <img
+                    src={displayUser.profilePicture}
+                    alt={displayUser.displayName}
+                    className="w-32 h-32 p-1 object-cover rounded-3xl select-none"
+                  />
+                </div>
+              ) : (
+                <div className="w-20 h-20 rounded-full mr-4 flex items-center justify-center">
+                  <span className="text-3xl text-white">{displayUser?.displayName?.charAt(0) || '?'}</span>
+                </div>
+              )}
 
-                  <div className="flex text-white gap-2">
-                    <div className="flex items-center gap-0.5">
-                      <MapPin className="w-4 h-4 text-white" />
-                      <div className="text-md font-semibold text-white/80">{user?.location?.city}</div>
-                    </div>
-                    <div className=""> {"|"}</div>
-                    <div className="flex items-center gap-0.5">
-                      {user?.gender == "female" ? <Venus className="w-4 h-4 text-white" /> : <Mars className="w-4 h-4 text-white" />}
+            </div>
+            <div className='flex flex-col gap-4'>
+              <div className="flex mt-2 flex-col">
+                <h2 className="text-2xl font-semibold text-white">{displayUser?.displayName}
+                  <span className="text-sm ml-1  font-semibold text-white/80">
+                    {displayUser?.gender == "female" ? "(she/her)" : displayUser?.gender == "male" ? "(he/him)" : "(they/them)"}
+                  </span>
+                </h2>
+                <h2 className="text-sm -mt-1 font-semibold text-white/80">@{displayUser?.username}</h2>
+              </div>
 
-                      <div className="text-md font-semibold text-white/80">{user?.age}</div>
-                    </div>
+              <div className="flex flex-col gap-1">
+                <div className="flex text-md font-semibold max-w-md text-white">{displayUser?.bio}</div>
 
-
-
-
-
+                <div className="flex text-white gap-2">
+                  <div className="flex items-center gap-0.5">
+                    <MapPin className="w-4 h-4 text-white" />
+                    <div className="text-md font-semibold text-white/80">{displayUser?.location?.city}</div>
                   </div>
+                  <div className=""> {"|"}</div>
+                  <div className="flex items-center gap-0.5">
+                    {displayUser?.gender == "female" ? <Venus className="w-4 h-4 text-white" /> : <Mars className="w-4 h-4 text-white" />}
+
+                    <div className="text-md font-semibold text-white/80">{displayUser?.age}</div>
+                  </div>
+
+
+
+
+
                 </div>
               </div>
             </div>
@@ -626,7 +650,7 @@ export const Profile = () => {
               </div>
               <img
                 src={getTrackImage((topTracks as any)?.short_term?.[0])}
-                alt={user?.displayName}
+                alt={displayUser?.displayName}
                 className="w-full h-48 object-cover rounded-3xl select-none"
               />
               <div className="absolute bottom-0 left-0 w-full px-3 pb-2 pt-10 rounded-b-3xl font-semibold z-10 text-white text-sm truncate bg-gradient-to-t from-black/70 to-transparent">
@@ -666,7 +690,7 @@ export const Profile = () => {
               </div>
               <img
                 src={getTrackImage((topTracks as any)?.long_term?.[0])}
-                alt={user?.displayName}
+                alt={displayUser?.displayName}
                 className="w-full h-48 object-cover rounded-3xl select-none"
               />
               <div className="absolute bottom-0 left-0 w-full px-3 pb-2 pt-10 rounded-b-3xl font-semibold z-10 text-white text-sm truncate bg-gradient-to-t from-black/70 to-transparent">
@@ -685,12 +709,14 @@ export const Profile = () => {
           )} */}
         </div>
       </main>
-
-      {/* Edit Profile Modal */}
-      <EditProfile
-        isOpen={showEditProfile}
-        onClose={() => setShowEditProfile(false)}
-      />
+      
+      {/* Only show edit profile modal for current user */}
+      {!user?._id && (
+        <EditProfile
+          isOpen={showEditProfile}
+          onClose={() => setShowEditProfile(false)}
+        />
+      )}
     </div>
   );
 }; 

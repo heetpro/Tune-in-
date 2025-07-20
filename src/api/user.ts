@@ -68,7 +68,6 @@ export const getMyProfile = async (): Promise<ApiResponse<IUser>> => {
         intrestedIn: userData.intrestedIn || [],
         lastSeen: userData.lastSeen,
         friends: userData.friends || [],
-        friendRequests: userData.friendRequests || { incoming: [], outgoing: [] },
         location: userData.location || {
           city: userData.city || '',
           country: userData.country || '',
@@ -257,22 +256,23 @@ export const getUserById = async (userId: string): Promise<ApiResponse<IUser>> =
 }; 
 
 /**
- * Get detailed user profile by ID using the new endpoint
+ * Get user profile by ID using the profile endpoint
  */
 export const getUserProfile = async (userId: string): Promise<ApiResponse<IUser>> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/profile/${userId}`, {
+    const response = await fetch(`${API_BASE_URL}/profile/${userId}`, {
+      method: 'GET',
       headers: getHeaders(),
-      withCredentials: true
+      credentials: 'include'
     });
     
-    return {
-      success: true,
-      data: response.data,
-      message: 'Profile fetched successfully'
-    };
+    return await handleApiResponse<IUser>(response);
   } catch (error) {
-    console.error('Failed to fetch detailed user profile:', error);
-    throw error;
+    console.error('Failed to fetch user profile:', error);
+    return {
+      success: false,
+      message: 'Failed to fetch user profile',
+      error: error
+    };
   }
 }; 

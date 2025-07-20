@@ -1,12 +1,15 @@
+'use client'
 import { useAuth } from '@/context/AuthContext'
-import React from 'react'
+import React, { useState } from 'react'
 import Logo2 from './Logo2'
 import Image from 'next/image'
 import { spaceGrotesk } from '@/app/fonts'
+import { ProfileModal } from './ProfileModal'
 
 const Navbar = () => {
+  const [isOpen, setIsOpen] = useState(false)
 
-    const {user} = useAuth()
+  const {user} = useAuth()
   return (
     <div className="w-full h-[14vh] p-3">
       <div className="flex items-start gap-2 h-full w-full">
@@ -17,13 +20,14 @@ const Navbar = () => {
             {user && (
               <>
                 <div className="relative h-full aspect-square rounded-2xl border-4 border-[#8D50F9] overflow-hidden"
+                onClick={() => {setIsOpen(true)}}
                 >
                   {user.profilePicture ? (
                     <Image
                       src={user.profilePicture}
                       alt={user.displayName}
                       fill
-                      className="object-cover scale-95 aspect-square w-full h-full rounded-2xl "
+                      className="object-cover"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
@@ -54,6 +58,11 @@ const Navbar = () => {
             </div>
           </div>
         </div>
+        
+        {/* Move ProfileModal outside the conditional rendering */}
+        {user && (
+          <ProfileModal isOpen={isOpen} onClose={() => setIsOpen(false)} user={user} />
+        )}
     </div>
   )
 }
