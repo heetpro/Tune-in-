@@ -15,6 +15,22 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps): ReactNode => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [checking, setChecking] = useState(true);
+  
+  useEffect(() => {
+    // Remove the from=auth parameter from URL to prevent refresh loops
+    const fromAuth = searchParams.get('from') === 'auth';
+    if (fromAuth) {
+      console.log('Detected from=auth parameter, removing it after verification');
+      
+      // Create a new URL object based on the current URL
+      const url = new URL(window.location.href);
+      // Delete the 'from' parameter
+      url.searchParams.delete('from');
+      
+      // Use history.replaceState to update the URL without triggering a page reload
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const verifyAuth = async () => {

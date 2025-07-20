@@ -135,7 +135,7 @@ const EditProfile = ({ isOpen, onClose }: EditProfileProps) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className={`w-[90%] max-w-md bg-[#964FFF] rounded-2xl p-6 ${spaceGrotesk.className}`}>
+      <div className={`w-[90%] max-w-md bg-[#8D50F9] rounded-2xl p-6 ${spaceGrotesk.className}`}>
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl text-white font-bold">Edit Profile</h2>
           <button 
@@ -250,7 +250,7 @@ const EditProfile = ({ isOpen, onClose }: EditProfileProps) => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-5 py-2 bg-white text-[#964FFF] rounded-xl hover:bg-gray-100 disabled:opacity-50 font-medium"
+              className="px-5 py-2 bg-white text-[#8D50F9] rounded-xl hover:bg-gray-100 disabled:opacity-50 font-medium"
             >
               {isSubmitting ? 'Saving...' : 'Save'}
             </button>

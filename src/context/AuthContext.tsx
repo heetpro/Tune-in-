@@ -124,11 +124,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         authTokenSet: !!savedToken,
         refreshTokenSet: !!savedRefresh
       });
+      
+      // Set authenticated state immediately to avoid verification loops
+      if (savedToken) {
+        setIsAuthenticated(true);
+      }
     } catch (error) {
       console.error('Error setting cookies:', error);
     }
-    
-    // Don't refresh user here - let the caller handle it
   };
 
   const handleLogout = async () => {

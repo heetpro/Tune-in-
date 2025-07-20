@@ -73,7 +73,7 @@ export const ImageUpload = ({ initialImage, onImageChange, className = '' }: Ima
           </div>
         )}
         
-        <label className="absolute bottom-0 right-0 bg-white text-[#964FFF] p-2 rounded-full hover:bg-gray-100 cursor-pointer">
+        <label className="absolute bottom-0 right-0 bg-white text-[#8D50F9] p-2 rounded-full hover:bg-gray-100 cursor-pointer">
           {isUploading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (

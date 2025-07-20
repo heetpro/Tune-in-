@@ -16,7 +16,7 @@ const Navbar = () => {
           <div className="flex gap-2 h-full">
             {user && (
               <>
-                <div className="relative h-full aspect-square rounded-2xl border-4 border-[#964FFF] overflow-hidden"
+                <div className="relative h-full aspect-square rounded-2xl border-4 border-[#8D50F9] overflow-hidden"
                 >
                   {user.profilePicture ? (
                     <Image
@@ -33,7 +33,7 @@ const Navbar = () => {
                     </div>
                   )}
                 </div>
-                <div className={`flex justify-end pb-1 h-full py-2 px-3 rounded-2xl w-[200px] bg-[#964FFF] flex-col ${spaceGrotesk.className}`}>
+                <div className={`flex justify-end pb-1 h-full py-2 px-3 rounded-2xl w-[200px] bg-[#8D50F9] flex-col ${spaceGrotesk.className}`}>
                   <span className="font-semibold text-white text-xl">{user.displayName}</span>
                   {user.username && (
                     <span className="text-sm text-white/80 -mt-1 font-medium">@{user.username}</span>
@@ -43,7 +43,7 @@ const Navbar = () => {
             )}
           </div>
 
-          <div className="bg-[#964FFF] rounded-2xl p-2  aspect-square h-full flex items-center justify-center">
+          <div className="bg-[#8D50F9] rounded-2xl p-2  aspect-square h-full flex items-center justify-center">
             <div className="flex rounded-full bg-white p-1"
             style={{
               width: 'clamp(20px, 1.25vw, 100px)',

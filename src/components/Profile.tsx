@@ -340,9 +340,9 @@ export const Profile = () => {
   // Show user info form if required fields are missing
   if (needsUserInfo()) {
     return (
-      <div className={`fixed inset-0  flex items-center justify-center p-2 z-50 ${spaceGrotesk.className}`}>
+      <div className={`fixed inset-0 flex items-center justify-center p-2 z-50 ${spaceGrotesk.className}`}>
         <div className="flex w-[90vw] md:w-[400px]">
-          <div className="bg-[#964FFF] rounded-2xl p-6 w-full">
+          <div className="bg-[#8D50F9] rounded-2xl p-6 w-full">
             <div className="mb-6">
               <h2 className="text-xl text-white font-bold mb-2">{steps[currentStep].title}</h2>
               <div className="flex gap-2">
@@ -390,7 +390,7 @@ export const Profile = () => {
                       key={option}
                       onClick={() => setFormData(prev => ({ ...prev, gender: option as any }))}
                       className={`p-3 border-2 rounded-lg text-sm capitalize ${formData.gender === option
-                        ? 'bg-white text-[#964FFF] border-white'
+                        ? 'bg-white text-[#8D50F9] border-white'
                         : 'text-white border-white/50 hover:border-white'
                         }`}
                     >
@@ -412,7 +412,7 @@ export const Profile = () => {
                         setFormData(prev => ({ ...prev, intrestedIn: newInterested }));
                       }}
                       className={`p-3 border-2 rounded-lg text-sm capitalize ${formData.intrestedIn.includes(option)
-                        ? 'bg-white text-[#964FFF] border-white'
+                        ? 'bg-white text-[#8D50F9] border-white'
                         : 'text-white border-white/50 hover:border-white'
                         }`}
                     >
@@ -440,7 +440,7 @@ export const Profile = () => {
                   <button
                     onClick={detectLocation}
                     disabled={isLoadingLocation}
-                    className="w-full p-3 border-2 border-white rounded-lg text-sm text-white hover:bg-white hover:text-[#964FFF] transition-colors"
+                    className="w-full p-3 border-2 border-white rounded-lg text-sm text-white hover:bg-white hover:text-[#8D50F9] transition-colors"
                   >
                     {isLoadingLocation ? 'Detecting...' : 'Detect My Location'}
                   </button>
@@ -476,7 +476,7 @@ export const Profile = () => {
               <button
                 onClick={handleNextStep}
                 disabled={isSubmitting}
-                className="w-full mt-2 px-5 bg-white hover:bg-transparent border-2 border-white hover:text-white cursor-pointer text-[#964FFF] py-3 rounded-xl font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full mt-2 px-5 bg-white hover:bg-transparent border-2 border-white hover:text-white cursor-pointer text-[#8D50F9] py-3 rounded-xl font-medium disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isSubmitting ? 'Saving...' : currentStep === steps.length - 1 ? 'Complete Setup' : 'Continue'}
                 {!isSubmitting && <ChevronRight className="w-5 h-5" />}
@@ -490,7 +490,7 @@ export const Profile = () => {
 
   // Rest of the profile component remains the same...
   return (
-    <div className={`h-[90vh] overflow-y-auto mt-[10vh] w-[40%] flex border-4 rounded-t-4xl border-[#964FFF] bg-[#964FFF] flex-col ${spaceGrotesk.className}`}>
+    <div className={`h-[90vh] overflow-y-auto mt-[10vh] w-[40%] flex border-4 rounded-t-4xl border-[#8D50F9] bg-[#8D50F9] flex-col ${spaceGrotesk.className}`}>
       <main className="p-4 flex-grow">
         <div className="w-full h-full relative">
           <div className="flex absolute justify-end right-0 dropdown-container">

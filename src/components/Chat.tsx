@@ -114,7 +114,7 @@ const Chat: React.FC<ChatProps> = ({ receiverId }) => {
               <div 
                 className={`inline-block ${spaceGrotesk.className} max-w-[70%] px-3.5 py-2 rounded-3xl ${
                   message.senderId === user?._id 
-                    ? `bg-[#964FFF] text-white ${
+                    ? `bg-[#8D50F9] text-white ${
                         message.error ? 'bg-red-400' : ''
                       }`
                     : 'bg-gray-200 text-gray-800 rounded-bl-none'
@@ -172,13 +172,13 @@ const Chat: React.FC<ChatProps> = ({ receiverId }) => {
               value={newMessage}
               onChange={handleInputChange}
               placeholder="Type a message..."
-              className="flex-1 px-4 p-2 border border-gray-300 rounded-2xl focus:outline-none focus:border-[#964FFF]"
+              className="flex-1 px-4 p-2 border border-gray-300 rounded-2xl focus:outline-none focus:border-[#8D50F9]"
               disabled={sending}
             />
           </div>
           <button 
             type="submit"
-            className="bg-[#964FFF] border-2 border-[#964FFF] text-white px-4 py-2 rounded-2xl hover:bg-blue-600 focus:outline-none disabled:bg-[#964FFF]/50"
+            className="bg-[#8D50F9] border-2 border-[#8D50F9] text-white px-4 py-2 rounded-2xl hover:bg-blue-600 focus:outline-none disabled:bg-[#8D50F9]/50"
             disabled={sending || !newMessage.trim() || !isConnected}
           >
             {sending ? 'Sending...' : 'Send'}

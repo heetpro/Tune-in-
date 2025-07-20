@@ -59,7 +59,7 @@ function MessagesContent() {
       <div className="w-full px-3  flex-grow h-full ">
         <div className="flex gap-2  h-full ">
           {/* User list sidebar */}
-          <div className="w-[20%] h-full bg-[#964FFF] p-2 rounded-3xl overflow-hidden">
+          <div className="w-[20%] h-full bg-[#8D50F9] p-2 rounded-3xl overflow-hidden">
             <div className=" bg-white w-[100%] rounded-2xl h-full">
               {loading ? (
                 <div className="flex justify-center items-center h-32">

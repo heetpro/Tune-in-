@@ -1,7 +1,8 @@
 import { Profile } from "@/components/Profile";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
-export default async function ProfilePage() {
+const page = () => {
+
   return (
     <ProtectedRoute>
       <div className="flex flex-col justify-end items-center w-full h-full">
@@ -10,3 +11,5 @@ export default async function ProfilePage() {
     </ProtectedRoute>
   );
 }
+
+export default page;

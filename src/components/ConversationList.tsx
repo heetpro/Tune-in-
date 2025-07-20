@@ -122,7 +122,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
   return (
     <div className={`${spaceGrotesk.className} flex flex-col gap-4 h-full w-full`}>
       <div className="flex items-center w-full justify-center py-2 ">
-        <div className="flex gap-1 bg-[#964FFF]/70 text-white rounded-full px-4 py-2">
+        <div className="flex gap-1 bg-[#8D50F9]/70 text-white rounded-full px-4 py-2">
           <h2 className="text-xl font-semibold">Convo </h2>
           <h2 className="text-xl font-semibold">{"/"}</h2>
           <h2 className="text-xl font-semibold">Buddies </h2>
@@ -154,7 +154,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
                 <li
 
                   className={`p-1 mx-2 hover:opacity-90 rounded-full items-center cursor-pointer
-                  ${isActive ? 'bg-[#964FFF]' : ''}`}
+                  ${isActive ? 'bg-[#8D50F9]' : ''}`}
 
                   // style={{
                   //   clipPath: "polygon(41% 3%, 0 0, 0 100%, 75% 93%, 47% 81%, 100% 32%, 80% 100%, 100% 80%, 60% 8%, 100% 20%, 80% 0%, 77% 62%)"  
@@ -193,7 +193,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
 
                       <div className="flex w-[20%] justify-center">
                         {unreadCount > 0 && (
-                          <div className={`p-1 aspect-square w-7 h-7 text-sm font-semibold flex items-center justify-center rounded-full ${isActive ? 'bg-white text-[#964FFF]' : 'bg-[#964FFF] text-white'}`}>
+                          <div className={`p-1 aspect-square w-7 h-7 text-sm font-semibold flex items-center justify-center rounded-full ${isActive ? 'bg-white text-[#8D50F9]' : 'bg-[#8D50F9] text-white'}`}>
                             <CircleDashedIcon />
                           </div>
                         )}
