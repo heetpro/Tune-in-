@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import Cookies from 'js-cookie';
 
 export default function AuthSuccess() {
   const router = useRouter();
@@ -31,53 +30,25 @@ export default function AuthSuccess() {
           return;
         }
 
-        // Store tokens directly in cookies first
-        console.log('Setting tokens directly in cookies...');
-        Cookies.remove('auth_token'); 
-        Cookies.remove('refresh_token');
-        
-        Cookies.set('auth_token', token, {
-          expires: 1,
-          path: '/',
-          sameSite: 'lax'
-        });
-        
-        Cookies.set('refresh_token', refreshToken, {
-          expires: 30,
-          path: '/',
-          sameSite: 'lax'
-        });
-        
-        // Then use the login function
+        // Use the login function only (don't set cookies directly)
         console.log('Using login function to set tokens...');
         login(token, refreshToken);
 
-        // Small delay to ensure cookies are set
+        // Small delay to ensure tokens are processed
         await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Check if cookies were set
-        const savedToken = Cookies.get('auth_token');
-        console.log('Cookie check after setting:', !!savedToken);
-        
-        if (!savedToken) {
-          console.error('Failed to set auth token cookie');
-          setStatus('error');
-          router.push('/login?error=cookie_failure');
-          return;
-        }
         
         // Wait for user data to load
         console.log('Refreshing user data after login...');
         await refreshUser();
         console.log('User refresh completed');
         
-        // Redirect based on onboarding status
+        // Redirect based on onboarding status with from=auth parameter
         if (needsUsername) {
           console.log('User needs username setup, redirecting to profile setup');
-          router.push('/profile?setup=true');
+          router.push('/profile?setup=true&from=auth');
         } else {
           console.log('User has username, redirecting to profile');
-          router.push('/profile');
+          router.push('/profile?from=auth');
         }
       } catch (error) {
         console.error('Auth success error:', error);

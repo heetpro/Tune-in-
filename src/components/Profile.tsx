@@ -6,13 +6,24 @@ import Header from '@/components/Header';
 import MusicProfile from '@/components/MusicProfile';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { setUsername, editProfile } from '@/api/user';
+import { logout } from '@/api/auth';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { spaceGrotesk } from '@/app/fonts';
-import { Ellipsis, SearchCheck, Share2, Edit, RefreshCcw, UserMinus, Eye, EyeOff, MapPin, Calendar, ChevronRight, User2, AtSign, Mars, Venus } from 'lucide-react';
+import { Ellipsis, SearchCheck, Share2, Edit, RefreshCcw, UserMinus, Eye, EyeOff, MapPin, Calendar, ChevronRight, User2, AtSign, Mars, Venus, LogOut, Play } from 'lucide-react';
 import type { OnboardingFormData, SpotifyArtist, SpotifyGenre, SpotifyTrack } from '@/types';
 import { useGeocoding } from '@/lib/geocoding';
 import EditProfile from '@/components/EditProfile';
 import { getMusicProfile } from '@/api';
+import Link from 'next/link';
+
+// Add these helper functions at the top of the component
+const getTrackImage = (track: any) => {
+  return track?.album?.images?.[0]?.url || '/images/music-placeholder.jpg';
+};
+
+const getArtistImage = (artist: any) => {
+  return artist?.images?.[0]?.url || '/images/artist-placeholder.jpg';
+};
 
 export const Profile = () => {
   const { user, loading, refreshUser } = useAuth();
@@ -39,13 +50,10 @@ export const Profile = () => {
     setError(null);
 
     try {
-
       const musicProfileResponse = await getMusicProfile();
-      console.log('Music profile response:', musicProfileResponse);
 
       if (musicProfileResponse.success && musicProfileResponse.data?.musicProfile) {
         const { musicProfile } = musicProfileResponse.data;
-        console.log('Music profile data:', musicProfile);
 
         let artistsData: SpotifyArtist[] = [];
         let tracksData: SpotifyTrack[] = [];
@@ -53,25 +61,16 @@ export const Profile = () => {
 
         if (musicProfile.topArtists) {
           artistsData = musicProfile.topArtists || [];
-        } else {
-          console.log('No artists data for the selected time range');
         }
 
         if (musicProfile.topTracks) {
           tracksData = musicProfile.topTracks || [];
-        } else {
-          console.log('No tracks data for the selected time range');
         }
 
         // Handle top genres (may not be time-range specific)
         if (musicProfile.topGenres) {
           if (Array.isArray(musicProfile.topGenres)) {
-            // If topGenres is a simple array
-            console.log('Found genres:', musicProfile.topGenres);
             genresData = musicProfile.topGenres;
-          
-          } else {
-            console.log('No genres data for the selected time range');
           }
         }
 
@@ -85,28 +84,23 @@ export const Profile = () => {
         setDataAvailable(hasData);
 
       } else {
-        console.error('Failed to get music profile data');
         setTopArtists([]);
         setTopTracks([]);
         setTopGenres([]);
         setDataAvailable(false);
       }
     } catch (error: any) {
-      console.error('Failed to fetch music data:', error);
       setError(error.message || 'Failed to load music profile');
       setTopArtists([]);
       setTopTracks([]);
       setTopGenres([]);
       setDataAvailable(false);
-    } finally {
-
     }
-
-
   };
 
-
-
+  useEffect(() => {
+    fetchMusicData();
+  }, []);
 
   const [formData, setFormData] = useState<OnboardingFormData>({
     username: '',
@@ -144,17 +138,6 @@ export const Profile = () => {
       !user.location?.city ||
       !user.intrestedIn?.length ||
       !user.username;
-
-    console.log("User onboarding status:", {
-      hasCompletedOnboarding: user.hasCompletedOnboarding,
-      displayName: !!user.displayName,
-      age: !!user.age,
-      gender: !!user.gender,
-      location: !!user.location?.city,
-      interestedIn: !!user.intrestedIn?.length,
-      username: !!user.username,
-      missingInfo
-    });
 
     return missingInfo;
   };
@@ -229,7 +212,6 @@ export const Profile = () => {
         }));
       }
     } catch (error) {
-      console.error('Error getting location:', error);
       setError('Failed to detect location. Please enter manually.');
     }
   };
@@ -316,8 +298,6 @@ export const Profile = () => {
           };
         }
 
-        console.log("Submitting profile data:", profileData);
-
         // Save all profile data at once
         const response = await editProfile(profileData);
 
@@ -332,8 +312,6 @@ export const Profile = () => {
             // Check if we still need user info after refresh
             if (!needsUserInfo()) {
               router.push('/profile');
-            } else {
-              console.log("Still missing user info after refresh, not redirecting");
             }
           }, 1000);
         } else {
@@ -341,7 +319,6 @@ export const Profile = () => {
         }
       } catch (err: any) {
         setError(err.message || 'Failed to save profile data');
-        console.error("Error saving profile:", err);
       } finally {
         setIsSubmitting(false);
       }
@@ -349,8 +326,6 @@ export const Profile = () => {
       setCurrentStep(prev => prev + 1);
     }
   };
-
-  console.log("hey :::::::::::::::::::::::::",topTracks)
 
   if (loading) {
     return (
@@ -365,7 +340,7 @@ export const Profile = () => {
   // Show user info form if required fields are missing
   if (needsUserInfo()) {
     return (
-      <div className={`fixed inset-0 bg-black/50 flex items-center justify-center p-2 z-50 ${spaceGrotesk.className}`}>
+      <div className={`fixed inset-0  flex items-center justify-center p-2 z-50 ${spaceGrotesk.className}`}>
         <div className="flex w-[90vw] md:w-[400px]">
           <div className="bg-[#964FFF] rounded-2xl p-6 w-full">
             <div className="mb-6">
@@ -568,6 +543,21 @@ export const Profile = () => {
                 >
                   <UserMinus className="w-4 h-4" /> Deactivate
                 </button>
+                <div className="border-t border-gray-200 my-1"></div>
+                <button
+                  className="w-full px-4 py-2 cursor-pointer text-left hover:bg-gray-100 text-red-600 flex items-center gap-2"
+                  onClick={async () => {
+                    try {
+                      setShowDropdown(false);
+                      await logout();
+                      router.push('/login');
+                    } catch (err: any) {
+                      setError(err.message || 'Failed to log out');
+                    }
+                  }}
+                >
+                  <LogOut className="w-4 h-4" /> Log Out
+                </button>
               </div>
             )}
           </div>
@@ -576,63 +566,122 @@ export const Profile = () => {
           <div className="rounded-lg  mb-6">
             <div className="">
               <div className="flex gap-2">
-              {user?.profilePicture ? (
-                <div className="inline-block border-4 border-white rounded-3xl">
-                  <img
-                    src={user.profilePicture}
-                    alt={user.displayName}
-                    className="w-32 h-32 p-1 object-cover rounded-3xl select-none"
-                  />
-                </div>
-              ) : (
-                <div className="w-20 h-20 rounded-full mr-4 flex items-center justify-center">
-                  <span className="text-3xl text-white">{user?.displayName?.charAt(0) || '?'}</span>
-                </div>
-              )}
-               <div className="inline-block border-4 border-white rounded-3xl">
-                  <img
-                    src={(topTracks as any)?.short_term?.[0]?.album?.images?.[0]?.url}
-                    alt={user?.displayName}
-                    className="w-64 h-32 p-1 object-cover rounded-3xl select-none"
-                  />
+                {user?.profilePicture ? (
+                  <div className="inline-block border-4 border-white rounded-3xl">
+                    <img
+                      src={user.profilePicture}
+                      alt={user.displayName}
+                      className="w-32 h-32 p-1 object-cover rounded-3xl select-none"
+                    />
                   </div>
-                </div>
-              <div className='flex flex-col gap-2'>
-                <div className="flex mt-2 flex-col"><h2 className="text-2xl font-semibold text-white">{user?.displayName}
-                  <span className="text-sm ml-1  font-semibold text-white/80">
-                    {user?.gender == "female" ? "(she/her)" : user?.gender == "male" ? "(he/him)" : "(they/them)"}
-                  </span>
-                </h2>
-                  <h2 className="text-md -mt-1 font-semibold text-white/80">@{user?.username}</h2>
-                </div>
-
-                <div className="flex text-md font-semibold max-w-md text-white">{user?.bio}</div>
-
-                <div className="flex text-white gap-2">
-                  <div className="flex items-center gap-0.5">
-                    <MapPin className="w-4 h-4 text-white" />
-                    <div className="text-md font-semibold text-white/80">{user?.location?.city}</div>
+                ) : (
+                  <div className="w-20 h-20 rounded-full mr-4 flex items-center justify-center">
+                    <span className="text-3xl text-white">{user?.displayName?.charAt(0) || '?'}</span>
                   </div>
-                  <div className=""> {"|"}</div>
-                  <div className="flex items-center gap-0.5">
-                    {user?.gender == "female" ? <Venus className="w-4 h-4 text-white" /> : <Mars className="w-4 h-4 text-white" />}
+                )}
 
-                    <div className="text-md font-semibold text-white/80">{user?.age}</div>
+              </div>
+              <div className='flex flex-col gap-4'>
+                <div className="flex mt-2 flex-col">
+                  <h2 className="text-2xl font-semibold text-white">{user?.displayName}
+                    <span className="text-sm ml-1  font-semibold text-white/80">
+                      {user?.gender == "female" ? "(she/her)" : user?.gender == "male" ? "(he/him)" : "(they/them)"}
+                    </span>
+                  </h2>
+                  <h2 className="text-sm -mt-1 font-semibold text-white/80">@{user?.username}</h2>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <div className="flex text-md font-semibold max-w-md text-white">{user?.bio}</div>
+
+                  <div className="flex text-white gap-2">
+                    <div className="flex items-center gap-0.5">
+                      <MapPin className="w-4 h-4 text-white" />
+                      <div className="text-md font-semibold text-white/80">{user?.location?.city}</div>
+                    </div>
+                    <div className=""> {"|"}</div>
+                    <div className="flex items-center gap-0.5">
+                      {user?.gender == "female" ? <Venus className="w-4 h-4 text-white" /> : <Mars className="w-4 h-4 text-white" />}
+
+                      <div className="text-md font-semibold text-white/80">{user?.age}</div>
+                    </div>
+
+
+
+
+
                   </div>
-
-
-
                 </div>
               </div>
             </div>
           </div>
 
+          {/* Music Showcase Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            {/* Recent Favorite Track */}
+            <div className="inline-block w-full rounded-3xl relative">
+              <div className="absolute top-0 left-0 w-full px-3 pt-2 pb-10 font-bold z-10 rounded-t-3xl text-white text-xs text-left bg-gradient-to-b from-black/70 to-transparent">
+                Most played in nowdays
+              </div>
+              <img
+                src={getTrackImage((topTracks as any)?.short_term?.[0])}
+                alt={user?.displayName}
+                className="w-full h-48 object-cover rounded-3xl select-none"
+              />
+              <div className="absolute bottom-0 left-0 w-full px-3 pb-2 pt-10 rounded-b-3xl font-semibold z-10 text-white text-sm truncate bg-gradient-to-t from-black/70 to-transparent">
+                {(topTracks as any)?.short_term?.[1]?.name || "No track data"}
+              </div>
+              <Link href={`${(topTracks as any)?.short_term?.[1]?.album?.externalUrl?.spotify}`} target='_blank'>
+                <div className="absolute bottom-0 items-center flex justify-center right-0 w-10 h-10 p-2 m-2 aspect-square rounded-full z-10 bg-white hover:bg-gray-200 transition-colors">
+                  <Play className="w-4 h-4" fill='black' />
+                </div>
+              </Link>
+            </div>
 
+            {/* Top Artist */}
+            <div className="inline-block w-full rounded-3xl relative">
+              <div className="absolute top-0 left-0 w-full px-3 pt-2 pb-10 font-bold z-10 rounded-t-3xl text-white text-xs text-left bg-gradient-to-b from-black/70 to-transparent">
+                Most played artist
+              </div>
+              <img
+                src={getArtistImage((topArtists as any)?.short_term?.[0])}
+                alt={(topArtists as any)?.short_term?.[0]?.name || "Artist"}
+                className="w-full h-48 object-cover rounded-3xl select-none"
+              />
+              <div className="absolute bottom-0 left-0 w-full px-3 pb-2 pt-10 rounded-b-3xl font-semibold z-10 text-white text-sm truncate bg-gradient-to-t from-black/70 to-transparent">
+                {(topArtists as any)?.short_term?.[0]?.name || "No artist data"}
+              </div>
+              <Link href={`${(topArtists as any)?.short_term?.[0]?.externalUrl?.spotify}`} target='_blank'>
+                <div className="absolute bottom-0 items-center flex justify-center right-0 w-10 h-10 p-2 m-2 aspect-square rounded-full z-10 bg-white hover:bg-gray-200 transition-colors">
+                  <Play className="w-4 h-4" fill='black' />
+                </div>
+              </Link>
+            </div>
 
-          {/* Music Profile Section */}
-          {user && user._id && (
+            {/* All-Time Favorite Track */}
+            <div className="inline-block w-full rounded-3xl relative">
+              <div className="absolute top-0 left-0 w-full px-3 pt-2 pb-10 font-bold z-10 rounded-t-3xl text-white text-xs text-left bg-gradient-to-b from-black/70 to-transparent">
+                All-time favorite
+              </div>
+              <img
+                src={getTrackImage((topTracks as any)?.long_term?.[0])}
+                alt={user?.displayName}
+                className="w-full h-48 object-cover rounded-3xl select-none"
+              />
+              <div className="absolute bottom-0 left-0 w-full px-3 pb-2 pt-10 rounded-b-3xl font-semibold z-10 text-white text-sm truncate bg-gradient-to-t from-black/70 to-transparent">
+                {(topTracks as any)?.long_term?.[0]?.name || "No track data"}
+              </div>
+              <Link href={`${(topTracks as any)?.long_term?.[0]?.album?.externalUrl?.spotify}`} target='_blank'>
+                <div className="absolute bottom-0 items-center flex justify-center right-0 w-10 h-10 p-2 m-2 aspect-square rounded-full z-10 bg-white hover:bg-gray-200 transition-colors">
+                  <Play className="w-4 h-4" fill='black' />
+                </div>
+              </Link>
+            </div>
+          </div>
+
+          {/* {user && user._id && (
             <MusicProfile userId={user._id} />
-          )}
+          )} */}
         </div>
       </main>
 

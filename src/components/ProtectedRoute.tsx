@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, ReactNode, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { checkUserAuth } from '@/api/auth';
@@ -13,11 +13,20 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children }: ProtectedRouteProps): ReactNode => {
   const { user, loading, isAuthenticated, refreshUser } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
     const verifyAuth = async () => {
       setChecking(true);
+      
+      // Skip verification if we just came from auth success
+      const fromAuth = searchParams.get('from') === 'auth';
+      if (fromAuth) {
+        console.log('Protected route: Skipping verification as redirect from auth success');
+        setChecking(false);
+        return;
+      }
       
       if (!loading && !isAuthenticated) {
         const token = Cookies.get('auth_token');
@@ -43,7 +52,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps): ReactNode => {
     };
 
     verifyAuth();
-  }, [isAuthenticated, loading, router, refreshUser]);
+  }, [isAuthenticated, loading, router, refreshUser, searchParams]);
 
   if (loading || checking) {
     return (
