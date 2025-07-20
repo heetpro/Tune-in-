@@ -2,8 +2,36 @@ import { API_BASE_URL, getHeaders, handleApiResponse, ApiResponse } from './conf
 import { IUser, IFriendRequest } from '@/types/index';
 
 interface FriendRequestsResponse {
-  incoming: Array<IFriendRequest & { sender: IUser }>;
-  outgoing: Array<IFriendRequest & { receiver: IUser }>;
+  incoming: {
+    _id: string;
+    senderId: {
+      _id: string;
+      displayName: string;
+      firstName: string;
+      lastName: string;
+      profilePicture?: string;
+    };
+    receiverId: string;
+    status: 'pending' | 'accepted' | 'rejected';
+    createdAt: string;
+    updatedAt: string;
+    respondedAt?: string;
+  }[];
+  outgoing: {
+    _id: string;
+    senderId: string;
+    receiverId: {
+      _id: string;
+      displayName: string;
+      firstName: string;
+      lastName: string;
+      profilePicture?: string;
+    };
+    status: 'pending' | 'accepted' | 'rejected';
+    createdAt: string;
+    updatedAt: string;
+    respondedAt?: string;
+  }[];
 }
 
 /**
@@ -29,13 +57,41 @@ export const getFriendsList = async (): Promise<ApiResponse<IUser[]>> => {
  */
 export const getFriendRequestsList = async (): Promise<ApiResponse<FriendRequestsResponse>> => {
   try {
+    console.log('Fetching friend requests from API...');
     const response = await fetch(`${API_BASE_URL}/requests`, {
       method: 'GET',
       headers: getHeaders(),
       credentials: 'include'
     });
+
+    console.log("friend requests ::::", response);
     
-    return await handleApiResponse<FriendRequestsResponse>(response);
+    // Additional debugging
+    console.log('Friend requests API raw response status:', response.status);
+    console.log('Friend requests API raw response headers:', response.headers);
+    
+    // Clone the response to log the raw data
+    const clonedResponse = response.clone();
+    try {
+      const rawData = await clonedResponse.text();
+      console.log('Friend requests API raw response text:', rawData);
+      
+      // Try parsing if it looks like JSON
+      if (rawData && rawData.trim().startsWith('{') || rawData.trim().startsWith('[')) {
+        try {
+          const parsedData = JSON.parse(rawData);
+          console.log('Friend requests API raw parsed data:', parsedData);
+        } catch (parseErr) {
+          console.error('Failed to parse raw response as JSON:', parseErr);
+        }
+      }
+    } catch (textErr) {
+      console.error('Failed to read raw response text:', textErr);
+    }
+    
+    const result = await handleApiResponse<FriendRequestsResponse>(response);
+    console.log('Friend requests API processed response:', result);
+    return result;
   } catch (error) {
     console.error('Failed to fetch friend requests:', error);
     throw error;

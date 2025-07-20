@@ -17,12 +17,39 @@ import { IUser, IFriendRequest } from '@/types/index';
 
 interface FriendUser extends IUser {}
 
-interface IncomingRequest extends IFriendRequest {
-  sender: IUser;
+// Updated interfaces to match backend response
+interface IncomingRequest {
+  _id: string;
+  senderId: {
+    _id: string;
+    displayName: string;
+    firstName: string;
+    lastName: string;
+    profilePicture?: string;
+    username?: string;
+  };
+  receiverId: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: string;
+  updatedAt: string;
+  respondedAt?: string;
 }
 
-interface OutgoingRequest extends IFriendRequest {
-  receiver: IUser;
+interface OutgoingRequest {
+  _id: string;
+  senderId: string;
+  receiverId: {
+    _id: string;
+    displayName: string;
+    firstName: string;
+    lastName: string;
+    profilePicture?: string;
+    username?: string;
+  };
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: string;
+  updatedAt: string;
+  respondedAt?: string;
 }
 
 interface RequestsData {
@@ -80,12 +107,19 @@ export default function Friends() {
     try {
       setIsLoading(prev => ({ ...prev, requests: true }));
       const response = await getFriendRequestsList();
+      
+      // Debug logs to see the data structure
+      console.log('Friend requests API response:', response);
+      
       if (response.success && response.data) {
-        const validIncoming = response.data.incoming.filter(req => req && req.sender && req.sender._id);
-        const validOutgoing = response.data.outgoing.filter(req => req && req.receiver && req.receiver._id);
-        setRequests({ 
-          incoming: validIncoming, 
-          outgoing: validOutgoing 
+        console.log('Incoming requests raw data:', response.data.incoming);
+        console.log('Outgoing requests raw data:', response.data.outgoing);
+        
+        // Set the requests directly from the API response
+        // The backend has already populated user data
+        setRequests({
+          incoming: response.data.incoming || [],
+          outgoing: response.data.outgoing || []
         });
       } else {
         setRequests({ incoming: [], outgoing: [] });
@@ -262,8 +296,8 @@ export default function Friends() {
                   
                   const isCurrentUser = user._id === currentUser._id;
                   const isFriend = friends.some(friend => friend._id === user._id);
-                  const hasPendingOutgoing = requests.outgoing.some(req => req.receiver._id === user._id);
-                  const hasPendingIncoming = requests.incoming.some(req => req.sender._id === user._id);
+                  const hasPendingOutgoing = requests.outgoing.some(req => req.receiverId?._id === user._id);
+                  const hasPendingIncoming = requests.incoming.some(req => req.senderId?._id === user._id);
 
                   return (
                     <li key={user._id} className="border p-4 rounded-lg flex items-center justify-between">
@@ -367,26 +401,26 @@ export default function Friends() {
                 <h3 className="text-lg font-medium mb-4">Incoming Requests</h3>
                 <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {requests.incoming.map((request) => {
-                    if (!request || !request.sender || !request.sender._id) return null;
+                    if (!request || !request.senderId || !request._id) return null;
                     
                     return (
                       <li key={request._id} className="border p-4 rounded-lg">
                         <div className="flex items-center mb-3">
-                          {request.sender.profilePicture ? (
+                          {request.senderId.profilePicture ? (
                             <img 
-                              src={request.sender.profilePicture} 
-                              alt={request.sender.displayName || 'User'} 
+                              src={request.senderId.profilePicture} 
+                              alt={request.senderId.displayName || 'User'} 
                               className="w-12 h-12 rounded-full mr-3" 
                             />
                           ) : (
                             <div className="w-12 h-12 bg-gray-200 rounded-full mr-3 flex items-center justify-center">
-                              <span className="text-xl text-gray-500">{request.sender.displayName?.[0] || '?'}</span>
+                              <span className="text-xl text-gray-500">{request.senderId.displayName?.[0] || '?'}</span>
                             </div>
                           )}
                           <div>
-                            <p className="font-medium">{request.sender.displayName || 'User'}</p>
-                            {request.sender.username && (
-                              <p className="text-sm text-gray-500">@{request.sender.username}</p>
+                            <p className="font-medium">{request.senderId.displayName || 'User'}</p>
+                            {request.senderId.username && (
+                              <p className="text-sm text-gray-500">@{request.senderId.username}</p>
                             )}
                           </div>
                         </div>
@@ -416,26 +450,26 @@ export default function Friends() {
                 <h3 className="text-lg font-medium mb-4">Sent Requests</h3>
                 <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {requests.outgoing.map((request) => {
-                    if (!request || !request.receiver || !request.receiver._id) return null;
+                    if (!request || !request.receiverId || !request._id) return null;
                     
                     return (
                       <li key={request._id} className="border p-4 rounded-lg">
                         <div className="flex items-center">
-                          {request.receiver.profilePicture ? (
+                          {request.receiverId.profilePicture ? (
                             <img 
-                              src={request.receiver.profilePicture} 
-                              alt={request.receiver.displayName || 'User'} 
+                              src={request.receiverId.profilePicture} 
+                              alt={request.receiverId.displayName || 'User'} 
                               className="w-12 h-12 rounded-full mr-3" 
                             />
                           ) : (
                             <div className="w-12 h-12 bg-gray-200 rounded-full mr-3 flex items-center justify-center">
-                              <span className="text-xl text-gray-500">{request.receiver.displayName?.[0] || '?'}</span>
+                              <span className="text-xl text-gray-500">{request.receiverId.displayName?.[0] || '?'}</span>
                             </div>
                           )}
                           <div>
-                            <p className="font-medium">{request.receiver.displayName || 'User'}</p>
-                            {request.receiver.username && (
-                              <p className="text-sm text-gray-500">@{request.receiver.username}</p>
+                            <p className="font-medium">{request.receiverId.displayName || 'User'}</p>
+                            {request.receiverId.username && (
+                              <p className="text-sm text-gray-500">@{request.receiverId.username}</p>
                             )}
                           </div>
                         </div>

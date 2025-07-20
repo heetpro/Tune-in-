@@ -245,5 +245,23 @@ export const editProfile = async (profileData: Partial<IUser>): Promise<ApiRespo
       message: error instanceof Error ? error.message : 'Unknown error occurred',
       error
     };
+  }   
+}; 
+
+/**
+ * Get user profile by ID
+ */
+export const getUserById = async (userId: string): Promise<ApiResponse<IUser>> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+      method: 'GET',
+      headers: getHeaders(),
+      credentials: 'include'
+    });
+    
+    return await handleApiResponse<IUser>(response);
+  } catch (error) {
+    console.error('Failed to fetch user profile by ID:', error);
+    throw error;
   }
 }; 
