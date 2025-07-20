@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { getTopArtists, getTopTracks, getTopGenres, getMusicProfile } from '@/api/spotify';
+import { getTopArtists, getTopTracks, getTopGenres, getMusicProfile, getMyMusicProfile } from '@/api/spotify';
 import { SpotifyArtist, SpotifyTrack, SpotifyGenre } from '@/types/index';
 
 interface MusicProfileProps {
@@ -23,9 +23,12 @@ const MusicProfile: React.FC<MusicProfileProps> = ({ userId }) => {
     setError(null);
     
     try {
-      
-      // Only use the music profile endpoint
-      const musicProfileResponse = await getMusicProfile();
+    let musicProfileResponse;
+      if(userId) {
+        musicProfileResponse = await getMusicProfile(userId);
+      } else {
+        const musicProfileResponse = await getMyMusicProfile();
+      }
       
       if (musicProfileResponse.success && musicProfileResponse.data?.musicProfile) {
         const { musicProfile } = musicProfileResponse.data;

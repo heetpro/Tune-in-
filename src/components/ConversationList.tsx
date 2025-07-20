@@ -180,7 +180,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
                       <img
                         src={conv.avatar}
                         alt={conv.name}
-                        className="w-auto h-full aspect-square rounded-full"
+                        className="w-auto h-full object-cover aspect-square rounded-full"
                       />
                       {isUserOnline && (
                         <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>

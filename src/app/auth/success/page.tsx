@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 export default function AuthSuccess() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, refreshUser } = useAuth();
+  const { login, refreshUser, user } = useAuth();
   const [status, setStatus] = useState('processing');
 
   useEffect(() => {
@@ -17,8 +17,6 @@ export default function AuthSuccess() {
         const refreshToken = searchParams.get('refresh');
         const needsUsername = searchParams.get('needsUsername') === 'true';
 
-      
-
         if (!token || !refreshToken) {
           console.error('Missing tokens in auth callback');
           setStatus('error');
@@ -26,24 +24,33 @@ export default function AuthSuccess() {
           return;
         }
 
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Set the tokens in the auth context
+        login(token, refreshToken);
+
+        // Wait a moment for tokens to be set
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
+        // Refresh user data
         await refreshUser();
         
-        // Redirect based on onboarding status with from=auth parameter
-        if (needsUsername) {
-          router.push('/messages');
+        // Get user data and check if they need to complete setup
+        const needsSetup = needsUsername || !user?.hasCompletedOnboarding;
+        
+        // Redirect based on onboarding status
+        if (needsSetup) {
+          router.push('/setup');
         } else {
           router.push('/messages');
         }
       } catch (error) {
+        console.error('Auth error:', error);
         setStatus('error');
         router.push('/login?error=auth_failed');
       }
     };
 
     handleAuthSuccess();
-  }, [searchParams, router, login, refreshUser]);
+  }, [searchParams, router, login, refreshUser, user]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">

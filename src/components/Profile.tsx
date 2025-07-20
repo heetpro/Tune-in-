@@ -13,7 +13,7 @@ import { Ellipsis, SearchCheck, Share2, Edit, RefreshCcw, UserMinus, Eye, EyeOff
 import type { OnboardingFormData, SpotifyArtist, SpotifyGenre, SpotifyTrack } from '@/types';
 import { useGeocoding } from '@/lib/geocoding';
 import EditProfile from '@/components/EditProfile';
-import { getMusicProfile } from '@/api';
+import { getMusicProfile, getMyMusicProfile } from '@/api';
 import Link from 'next/link';
 import { getUserProfile } from '@/api/user';
 import type { IUser } from '@/types';
@@ -55,7 +55,7 @@ export const Profile = ({ user }: ProfileProps) => {
 
   const [profileUser, setProfileUser] = useState<IUser | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
-  
+
   // The actual user data we're displaying (current user or another user)
   const displayUser = profileUser || currentUser;
 
@@ -70,7 +70,12 @@ export const Profile = ({ user }: ProfileProps) => {
     setError(null);
 
     try {
-      const musicProfileResponse = await getMusicProfile();
+      let musicProfileResponse;
+      if(currentUser?._id == displayUser?._id) {
+        musicProfileResponse = await getMyMusicProfile();
+      } else {
+        musicProfileResponse = await getMusicProfile(displayUser?._id || '');
+      }
 
       if (musicProfileResponse.success && musicProfileResponse.data?.musicProfile) {
         const { musicProfile } = musicProfileResponse.data;
@@ -87,7 +92,6 @@ export const Profile = ({ user }: ProfileProps) => {
           tracksData = musicProfile.topTracks || [];
         }
 
-        // Handle top genres (may not be time-range specific)
         if (musicProfile.topGenres) {
           if (Array.isArray(musicProfile.topGenres)) {
             genresData = musicProfile.topGenres;
@@ -382,82 +386,80 @@ export const Profile = ({ user }: ProfileProps) => {
   return (
     <div className={`h-[90vh] overflow-y-auto mt-[10vh] w-full flex border-4 rounded-t-4xl border-[#964FFF] bg-[#964FFF] flex-col ${spaceGrotesk.className}`}>
       <main className="p-4 flex-grow">
-        {/* Only show dropdown menu for current user's profile */}
-        {!user?._id && (
-          <div className="w-full h-full relative">
-            <div className="flex absolute justify-end right-0 dropdown-container">
+        <div className=" ">
+          {currentUser?._id == displayUser?._id && (
+          <div className="flex absolute justify-end right-4 z-50 dropdown-container">
 
-              <Ellipsis
-                className='w-10 h-10 cursor-pointer hover:bg-white/10 rounded-full px-1 text-white'
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowDropdown(!showDropdown);
-                }}
-              />
-              {showDropdown && (
-                <div className="absolute right-0 top-12 w-48 bg-white rounded-xl shadow-lg py-2 z-50">
-                  <button
-                    className="w-full px-4 cursor-pointer py-2 text-left hover:bg-gray-100 flex items-center gap-2"
-                    onClick={() => {
-                      setShowEditProfile(true);
+            <Ellipsis
+              className='w-10 h-10 cursor-pointer hover:bg-white/10 rounded-full px-1 text-white'
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDropdown(!showDropdown);
+              }}
+            />
+            {showDropdown && (
+              <div className="absolute right-0 top-12 w-48 bg-white rounded-xl shadow-lg py-2 z-50">
+                <button
+                  className="w-full px-4 cursor-pointer py-2 text-left hover:bg-gray-100 flex items-center gap-2"
+                  onClick={() => {
+                    setShowEditProfile(true);
+                    setShowDropdown(false);
+                  }}
+                >
+                  <Edit className="w-4 h-4" /> Edit Profile
+                </button>
+                <button
+                  className="w-full px-4 cursor-pointer  py-2 text-left hover:bg-gray-100 flex items-center gap-2"
+                  onClick={() => {
+                    setShowAge(!showAge);
+                    setShowDropdown(false);
+                  }}
+                >
+                  {showAge ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showAge ? 'Hide Age' : 'Show Age'}
+                </button>
+                <button
+                  className="w-full px-4 cursor-pointer py-2 text-left hover:bg-gray-100 flex items-center gap-2"
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.href);
+                    setSuccess('Profile link copied to clipboard!');
+                    setShowDropdown(false);
+                    setTimeout(() => setSuccess(null), 3000);
+                  }}
+                >
+                  <Share2 className="w-4 h-4" /> Share Profile
+                </button>
+                <button
+                  className="w-full px-4 py-2 cursor-pointer text-left hover:bg-gray-100 text-red-600 flex items-center gap-2"
+                  onClick={() => {
+                    // TODO: Implement deactivate profile
+                    setShowDropdown(false);
+                  }}
+                >
+                  <UserMinus className="w-4 h-4" /> Deactivate
+                </button>
+                <div className="border-t border-gray-200 my-1"></div>
+                <button
+                  className="w-full px-4 py-2 cursor-pointer text-left hover:bg-gray-100 text-red-600 flex items-center gap-2"
+                  onClick={async () => {
+                    try {
                       setShowDropdown(false);
-                    }}
-                  >
-                    <Edit className="w-4 h-4" /> Edit Profile
-                  </button>
-                  <button
-                    className="w-full px-4 cursor-pointer  py-2 text-left hover:bg-gray-100 flex items-center gap-2"
-                    onClick={() => {
-                      setShowAge(!showAge);
-                      setShowDropdown(false);
-                    }}
-                  >
-                    {showAge ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    {showAge ? 'Hide Age' : 'Show Age'}
-                  </button>
-                  <button
-                    className="w-full px-4 cursor-pointer py-2 text-left hover:bg-gray-100 flex items-center gap-2"
-                    onClick={() => {
-                      navigator.clipboard.writeText(window.location.href);
-                      setSuccess('Profile link copied to clipboard!');
-                      setShowDropdown(false);
-                      setTimeout(() => setSuccess(null), 3000);
-                    }}
-                  >
-                    <Share2 className="w-4 h-4" /> Share Profile
-                  </button>
-                  <button
-                    className="w-full px-4 py-2 cursor-pointer text-left hover:bg-gray-100 text-red-600 flex items-center gap-2"
-                    onClick={() => {
-                      // TODO: Implement deactivate profile
-                      setShowDropdown(false);
-                    }}
-                  >
-                    <UserMinus className="w-4 h-4" /> Deactivate
-                  </button>
-                  <div className="border-t border-gray-200 my-1"></div>
-                  <button
-                    className="w-full px-4 py-2 cursor-pointer text-left hover:bg-gray-100 text-red-600 flex items-center gap-2"
-                    onClick={async () => {
-                      try {
-                        setShowDropdown(false);
-                        await logout();
-                        await refreshUser();
-                        await router.push('/login');
-                      } catch (err: any) {
-                        setError(err.message || 'Failed to log out');
-                      }
-                    }}
-                  >
-                    <LogOut className="w-4 h-4" /> Log Out
-                  </button>
-                </div>
-              )}
-            </div>
+                      await logout();
+                      await refreshUser();
+                      await router.push('/login');
+                    } catch (err: any) {
+                      setError(err.message || 'Failed to log out');
+                    }
+                  }}
+                >
+                  <LogOut className="w-4 h-4" /> Log Out
+                </button>
+              </div>
+            )}
           </div>
         )}
+        </div>
 
-        {/* User Profile Section - use displayUser instead of currentUser */}
         <div className="rounded-lg mb-6">
           <div className="">
             <div className="flex gap-2">
@@ -486,7 +488,7 @@ export const Profile = ({ user }: ProfileProps) => {
                 <h2 className="text-sm -mt-1 font-semibold text-white/80">@{displayUser?.username}</h2>
               </div>
 
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-3">
                 <div className="flex text-md font-semibold max-w-md text-white">{displayUser?.bio}</div>
 
                 <div className="flex text-white gap-2">
@@ -511,7 +513,7 @@ export const Profile = ({ user }: ProfileProps) => {
           </div>
 
           {/* Music Showcase Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
             {/* Recent Favorite Track */}
             <div className="inline-block w-full rounded-3xl relative">
               <div className="absolute top-0 left-0 w-full px-3 pt-2 pb-10 font-bold z-10 rounded-t-3xl text-white text-xs text-left bg-gradient-to-b from-black/70 to-transparent">
@@ -522,7 +524,7 @@ export const Profile = ({ user }: ProfileProps) => {
                 alt={displayUser?.displayName}
                 className="w-full h-48 object-cover rounded-3xl select-none"
               />
-              <div className="absolute bottom-0 left-0 w-full px-3 pb-2 pt-10 rounded-b-3xl font-semibold z-10 text-white text-sm truncate bg-gradient-to-t from-black/70 to-transparent">
+              <div className="absolute bottom-0 left-0 w-full px-3 pb-2 pt-10 rounded-b-3xl font-semibold z-10 text-white text-xl truncate bg-gradient-to-t from-black/70 to-transparent">
                 {(topTracks as any)?.short_term?.[0]?.name || "No track data"}
               </div>
               <Link href={`${(topTracks as any)?.short_term?.[0]?.album?.externalUrl?.spotify}`} target='_blank'>
@@ -542,7 +544,7 @@ export const Profile = ({ user }: ProfileProps) => {
                 alt={(topArtists as any)?.short_term?.[0]?.name || "Artist"}
                 className="w-full h-48 object-cover rounded-3xl select-none"
               />
-              <div className="absolute bottom-0 left-0 w-full px-3 pb-2 pt-10 rounded-b-3xl font-semibold z-10 text-white text-sm truncate bg-gradient-to-t from-black/70 to-transparent">
+              <div className="absolute bottom-0 left-0 w-full px-3 pb-2 pt-10 rounded-b-3xl font-semibold z-10 text-white text-xl truncate bg-gradient-to-t from-black/70 to-transparent">
                 {(topArtists as any)?.short_term?.[0]?.name || "No artist data"}
               </div>
               <Link href={`${(topArtists as any)?.short_term?.[0]?.externalUrl?.spotify}`} target='_blank'>
@@ -558,14 +560,14 @@ export const Profile = ({ user }: ProfileProps) => {
                 All-time favorite
               </div>
               <img
-                src={getTrackImage((topTracks as any)?.long_term?.[0])}
+                src={getTrackImage((topTracks as any)?.long_term?.[1])}
                 alt={displayUser?.displayName}
                 className="w-full h-48 object-cover rounded-3xl select-none"
               />
-              <div className="absolute bottom-0 left-0 w-full px-3 pb-2 pt-10 rounded-b-3xl font-semibold z-10 text-white text-sm truncate bg-gradient-to-t from-black/70 to-transparent">
-                {(topTracks as any)?.long_term?.[0]?.name || "No track data"}
+              <div className="absolute bottom-0 left-0 w-full px-3 pb-2 pt-10 rounded-b-3xl font-semibold z-10 text-white text-xl truncate bg-gradient-to-t from-black/70 to-transparent">
+                {(topTracks as any)?.long_term?.[1]?.name || "No track data"}
               </div>
-              <Link href={`${(topTracks as any)?.long_term?.[0]?.album?.externalUrl?.spotify}`} target='_blank'>
+              <Link href={`${(topTracks as any)?.long_term?.[1]?.album?.externalUrl?.spotify}`} target='_blank'>
                 <div className="absolute bottom-0 items-center flex justify-center right-0 w-10 h-10 p-2 m-2 aspect-square rounded-full z-10 bg-white hover:bg-gray-200 transition-colors">
                   <Play className="w-4 h-4" fill='black' />
                 </div>
@@ -578,14 +580,11 @@ export const Profile = ({ user }: ProfileProps) => {
           )} */}
         </div>
       </main>
-      
-      {/* Only show edit profile modal for current user */}
-      {!user?._id && (
+
         <EditProfile
           isOpen={showEditProfile}
           onClose={() => setShowEditProfile(false)}
         />
-      )}
     </div>
   );
 }; 

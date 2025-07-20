@@ -8,7 +8,7 @@ import Header from '@/components/Header';
 import Cookies from 'js-cookie';
 
 export default function Login() {
-  const { isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +34,24 @@ export default function Login() {
     }
   }, [searchParams]);
 
+  // Function to check if user needs onboarding
+  const needsOnboarding = (userData: any) => {
+    if (!userData) return false;
+    
+    // Check if onboarding is explicitly marked as completed
+    if (userData.hasCompletedOnboarding === true) {
+      return false;
+    }
+    
+    // Check if any required field is missing
+    return !userData.displayName ||
+      !userData.age ||
+      !userData.gender ||
+      !userData.location?.city ||
+      !userData.intrestedIn?.length ||
+      !userData.username;
+  };
+
   // Check for existing auth token
   useEffect(() => {
     const checkAuth = async () => {
@@ -45,8 +63,10 @@ export default function Login() {
           const authCheck = await checkUserAuth();
           
           if (authCheck.success && authCheck.data?.exists) {
+            // Redirect to homepage
             router.push('/');
           } else {
+            // Clear invalid tokens
             Cookies.remove('auth_token');
             Cookies.remove('refresh_token');
           }
@@ -61,12 +81,31 @@ export default function Login() {
     checkAuth();
   }, [router, isAuthenticated]);
 
-  // Redirect to home if already authenticated
+  // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated && !loading && !checkingAuth) {
-      router.push('/profile');
+    if (isAuthenticated && !loading && !checkingAuth && user) {
+      // Check if user needs to complete onboarding
+      if (needsOnboarding(user)) {
+        router.push('/setup');
+      } else {
+        // Get redirect parameter or default to messages
+        const redirectPath = searchParams?.get('redirect') || '/messages';
+        router.push(redirectPath);
+      }
     }
-  }, [isAuthenticated, loading, checkingAuth, router]);
+  }, [isAuthenticated, loading, checkingAuth, router, user, searchParams]);
+
+  // Function to handle Spotify login
+  const handleLoginWithSpotify = () => {
+    // Store any redirect parameter for after login
+    const redirectPath = searchParams?.get('redirect');
+    if (redirectPath) {
+      sessionStorage.setItem('authRedirect', redirectPath);
+    }
+    
+    // Initiate the login process
+    loginWithSpotify();
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -93,7 +132,7 @@ export default function Login() {
               </div>
             ) : (
               <button 
-                onClick={loginWithSpotify}
+                onClick={handleLoginWithSpotify}
                 className="bg-green-600 hover:bg-green-700 transition-colors text-white px-6 py-3 rounded-full flex items-center justify-center text-lg font-medium"
               >
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">

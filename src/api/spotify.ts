@@ -25,9 +25,16 @@ export const getTopGenres = async (timeRange: string = 'medium_term') => {
 };
 
 // Get user's complete music profile
-export const getMusicProfile = async () => {
+export const getMusicProfile = async (userId: string) => {
+  return apiRequest({
+    url: `/spotify/profile/${userId}`,
+    method: 'GET'
+  });
+}; 
+
+export const getMyMusicProfile = async () => {
   return apiRequest({
     url: '/spotify/profile',
     method: 'GET'
   });
-}; 
+};

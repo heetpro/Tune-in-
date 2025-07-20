@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
 // Define paths that don't require authentication
-const PUBLIC_PATHS = ['/login', '/auth/success'];
+    const PUBLIC_PATHS = ['/login', '/auth', '/api/upload'];
 
 // Paths that require authentication but should not redirect to setup
-const EXEMPT_FROM_SETUP = ['/setup', '/auth/success', '/api', '/_next'];
+const EXEMPT_FROM_SETUP = ['/setup', '/auth', '/api', '/_next'];
 
 export function middleware(request: NextRequest) {
   // Get the path
@@ -38,6 +38,6 @@ export function middleware(request: NextRequest) {
 export const config = {
   // Matcher for paths that should run this middleware
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|public/|api/upload).*)'
+    '/((?!_next/static|_next/image|favicon.ico|public/).*)'
   ],
 }; 
