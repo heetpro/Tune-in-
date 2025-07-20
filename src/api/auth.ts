@@ -28,6 +28,8 @@ export const checkUserAuth = async (): Promise<ApiResponse<{exists: boolean; use
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     };
+    console.log("headers ::::::::", headers);
+    
     
     const response = await fetch(`${API_BASE_URL}/auth/check`, {
       method: 'GET',
