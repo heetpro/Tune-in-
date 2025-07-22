@@ -9,7 +9,7 @@ import { setUsername, editProfile } from '@/api/user';
 import { logout } from '@/api/auth';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { spaceGrotesk } from '@/app/fonts';
-import { Ellipsis, SearchCheck, Share2, Edit, RefreshCcw, UserMinus, Eye, EyeOff, MapPin, Calendar, ChevronRight, User2, AtSign, Mars, Venus, LogOut, Play } from 'lucide-react';
+import { Ellipsis, SearchCheck, Share2, Edit, RefreshCcw, UserMinus, Eye, EyeOff, MapPin, Calendar, ChevronRight, User2, AtSign, Mars, Venus, LogOut, Play, UserPlus, MessageSquare } from 'lucide-react';
 import type { OnboardingFormData, SpotifyArtist, SpotifyGenre, SpotifyTrack } from '@/types';
 import { useGeocoding } from '@/lib/geocoding';
 import EditProfile from '@/components/EditProfile';
@@ -17,6 +17,7 @@ import { getMusicProfile, getMyMusicProfile } from '@/api';
 import Link from 'next/link';
 import { getUserProfile } from '@/api/user';
 import type { IUser } from '@/types';
+import { getFriendsList, sendFriendRequest } from '@/api/friends';
 
 // Add these helper functions at the top of the component
 const getTrackImage = (track: any) => {
@@ -27,9 +28,12 @@ const getArtistImage = (artist: any) => {
   return artist?.images?.[0]?.url || '/images/artist-placeholder.jpg';
 };
 
-// At the top of the file, add this interface
+interface ProfileUser extends IUser {
+  id: string;
+} 
+
 interface ProfileProps {
-  user?: IUser; // Optional userId to show specific user's profile instead of current user
+  user?: ProfileUser; 
 }
 
 export const Profile = ({ user }: ProfileProps) => {
@@ -45,6 +49,11 @@ export const Profile = ({ user }: ProfileProps) => {
   const { reverseGeocode, loading: isLoadingLocation } = useGeocoding();
   const [showEditProfile, setShowEditProfile] = useState(false);
 
+  // Friend-related states
+  const [isFriend, setIsFriend] = useState(false);
+  const [friendRequestSent, setFriendRequestSent] = useState(false);
+  const [friendRequestPending, setFriendRequestPending] = useState(false);
+  const [loadingFriendship, setLoadingFriendship] = useState(false);
 
   const [topArtists, setTopArtists] = useState<SpotifyArtist[]>([]);
   const [topTracks, setTopTracks] = useState<SpotifyTrack[]>([]);
@@ -59,6 +68,9 @@ export const Profile = ({ user }: ProfileProps) => {
   // The actual user data we're displaying (current user or another user)
   const displayUser = profileUser || currentUser;
 
+  const isCurrentUserProfile = currentUser?._id === user?.id;
+
+  
   useEffect(() => {
     // Set profile user when user prop changes
     if (user) {
@@ -66,18 +78,74 @@ export const Profile = ({ user }: ProfileProps) => {
     }
   }, [user]);
 
+  // Check friendship status whenever profile user changes
+  useEffect(() => {
+    if (!currentUser || !displayUser || isCurrentUserProfile) {
+      return;
+    }
 
-  
+    checkFriendshipStatus();
+  }, [currentUser, displayUser, isCurrentUserProfile]);
+
+  // Function to check if users are friends
+  const checkFriendshipStatus = async () => {
+    if (!currentUser || !displayUser || currentUser._id === user?.id) {
+      return;
+    }
+
+    try {
+      setLoadingFriendship(true);
+      const response = await getFriendsList();
+      
+      if (response.success && Array.isArray(response.data)) {
+        // Check if the displayed user is in the friends list
+        const friendsIds = response.data.map(friend => friend._id);
+        setIsFriend(friendsIds.includes(displayUser._id));
+      }
+    } catch (error) {
+      console.error('Error checking friendship status:', error);
+    } finally {
+      setLoadingFriendship(false);
+    }
+  };
+
+  // Function to send a friend request
+  const handleSendFriendRequest = async () => {
+    if (!displayUser?._id || isCurrentUserProfile) {
+      return;
+    }
+
+    try {
+      setFriendRequestSent(true);
+      const response = await sendFriendRequest(displayUser._id);
+      
+      if (response.success) {
+        setSuccess('Friend request sent');
+      } else {
+        setError(response.message || 'Failed to send friend request');
+        setFriendRequestSent(false);
+      }
+    } catch (error: any) {
+      setError(error.message || 'Failed to send friend request');
+      setFriendRequestSent(false);
+    }
+  };
+
+  // Function to navigate to messages with this user
+  const handleMessageUser = () => {
+    if (!displayUser?._id) return;
+    router.push(`/messages?user=${displayUser._id}`);
+  };
 
   const fetchMusicData = async () => {
     setError(null);
 
     try {
       let musicProfileResponse;
-      if(currentUser?._id == user?._id) {
+      if(currentUser?._id == user?.id) {
         musicProfileResponse = await getMyMusicProfile();
       } else {
-        musicProfileResponse = await getMusicProfile(user?._id || '');
+        musicProfileResponse = await getMusicProfile(user?.id || '');
       }
 
       if (musicProfileResponse.success && musicProfileResponse.data?.musicProfile) {
@@ -358,6 +426,7 @@ export const Profile = ({ user }: ProfileProps) => {
   if (loading || isLoadingProfile) {
     return (
       <div className="min-h-screen flex flex-col">
+
         <div className="container mx-auto p-4 flex-grow flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
         </div>
@@ -366,7 +435,7 @@ export const Profile = ({ user }: ProfileProps) => {
   }
 
   // Only show the user info form for the current user, not for other profiles
-  if (!user?._id && needsUserInfo()) {
+  if (!user?.id && needsUserInfo()) {
     return (
       <div className={`fixed inset-0 flex items-center justify-center p-2 z-50 ${spaceGrotesk.className}`}>
         <div className="bg-[#8D50F9] rounded-2xl p-6 w-full max-w-md">
@@ -505,15 +574,64 @@ export const Profile = ({ user }: ProfileProps) => {
 
                     <div className="text-md font-semibold text-white/80">{displayUser?.age}</div>
                   </div>
-
-
-
-
-
                 </div>
+                
+                {/* Friend and Message buttons */}
+                {!isCurrentUserProfile && displayUser?._id && (
+                  <div className="flex gap-3 mt-2">
+                    {isFriend ? (
+                      <button
+                        onClick={handleMessageUser}
+                        className="flex items-center gap-2 px-5 py-2 bg-white text-[#964FFF] rounded-full font-medium hover:bg-opacity-90 transition-all"
+                      >
+                        <MessageSquare className="w-4 h-4" /> Message
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleSendFriendRequest}
+                        disabled={friendRequestSent || loadingFriendship}
+                        className={`flex items-center gap-2 px-5 py-2 bg-white text-[#964FFF] rounded-full font-medium hover:bg-opacity-90 transition-all ${
+                          (friendRequestSent || loadingFriendship) ? 'opacity-70 cursor-not-allowed' : ''
+                        }`}
+                      >
+                        {loadingFriendship ? (
+                          <div className="w-4 h-4 border-2 border-t-transparent border-[#964FFF] rounded-full animate-spin"></div>
+                        ) : (
+                          <UserPlus className="w-4 h-4" />
+                        )}
+                        {friendRequestSent ? 'Request Sent' : 'Add Friend'}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
+
+          {/* Success/Error Messages */}
+          {success && (
+            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mt-4 relative">
+              <span className="block sm:inline">{success}</span>
+              <button
+                className="absolute top-0 bottom-0 right-0 px-4 py-3"
+                onClick={() => setSuccess(null)}
+              >
+                <span className="text-green-500">×</span>
+              </button>
+            </div>
+          )}
+          
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mt-4 relative">
+              <span className="block sm:inline">{error}</span>
+              <button
+                className="absolute top-0 bottom-0 right-0 px-4 py-3"
+                onClick={() => setError(null)}
+              >
+                <span className="text-red-500">×</span>
+              </button>
+            </div>
+          )}
 
           {/* Music Showcase Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
