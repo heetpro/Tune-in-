@@ -88,7 +88,7 @@ const Chat: React.FC<ChatProps> = ({ receiverId, receiverData }) => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-3xl">
+    <div className={`${spaceGrotesk.className} flex flex-col h-full bg-white rounded-3xl`}>
       <div className="absolute inset-0 opacity-90 rounded-3xl"
         style={{
           backgroundImage: "url('/back.jpg')",
@@ -103,19 +103,19 @@ const Chat: React.FC<ChatProps> = ({ receiverId, receiverData }) => {
             className="flex items-center cursor-pointer"
             onClick={() => setIsProfileModalOpen(true)}
           >
-            <div className="relative mr-3">
+            <div className="relative mr-2 p-1 border-4 border-[#8D50F9] rounded-xl">
               <img 
                 src={profileUser.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(profileUser.displayName || 'User')}`} 
                 alt={profileUser.displayName} 
-                className="w-10 h-10 rounded-full object-cover"
+                className="w-10 h-10 rounded-md object-cover"
               />
               {isOnline && (
                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
               )}
             </div>
             <div>
-              <div className="font-medium">{profileUser.displayName}</div>
-              <div className="text-xs text-gray-500">
+              <div className="font-medium text-lg">{profileUser.displayName}</div>
+              <div className="text-xs -mt-1 text-gray-500">
                 {isOnline ? 'Online' : 'Offline'}
                 {isTyping && <span className="ml-2 italic">typing...</span>}
               </div>

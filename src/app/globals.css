@@ -59,3 +59,45 @@ body {
 .helve {
   font-family: "HelveticaNeueMedium", sans-serif;
 }
+
+/* Rotating animation */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+.spin-animation {
+  animation: spin-slow 3s linear infinite;
+}
+.shake-animation {
+  animation: shake 0.5s ease-in-out infinite;
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(-2px) rotate(-20deg);
+  }
+  50% {
+    transform: translateX(2px) rotate(20deg) ;
+    
+  }
+}
+
+/* Wiggle animation */
+@keyframes wiggle {
+  0%, 100% {
+    transform: rotate(-8deg);
+  }
+  50% {
+    transform: rotate(8deg);
+  }
+}
+
+.wiggle-animation {
+  animation: wiggle 2s ease-in-out infinite;
+}
