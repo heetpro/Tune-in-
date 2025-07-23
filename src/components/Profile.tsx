@@ -95,12 +95,19 @@ export const Profile = ({ user }: ProfileProps) => {
 
     try {
       setLoadingFriendship(true);
-      const response = await getFriendsList();
       
-      if (response.success && Array.isArray(response.data)) {
-        // Check if the displayed user is in the friends list
-        const friendsIds = response.data.map(friend => friend._id);
-        setIsFriend(friendsIds.includes(displayUser._id));
+      // First check if we already have the updated schema in current user object
+      if (currentUser.friends && Array.isArray(currentUser.friends.id)) {
+        setIsFriend(currentUser.friends.id.includes(displayUser._id));
+      } else {
+        // Fallback to API call to get friends list
+        const response = await getFriendsList();
+        
+        if (response.success && Array.isArray(response.data)) {
+          // Check if the displayed user is in the friends list
+          const friendsIds = response.data.map(friend => friend._id);
+          setIsFriend(friendsIds.includes(displayUser._id));
+        }
       }
     } catch (error) {
       console.error('Error checking friendship status:', error);
@@ -433,6 +440,8 @@ export const Profile = ({ user }: ProfileProps) => {
       </div>
     );
   }
+
+  
 
   // Only show the user info form for the current user, not for other profiles
   if (!user?.id && needsUserInfo()) {

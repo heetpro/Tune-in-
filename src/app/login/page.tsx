@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { redirect, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { loginWithSpotify, checkUserAuth } from '@/api';
 import Header from '@/components/Header';
@@ -64,7 +64,7 @@ export default function Login() {
           
           if (authCheck.success && authCheck.data?.exists) {
             // Redirect to homepage
-            router.push('/');
+            redirect('/');
           } else {
             // Clear invalid tokens
             Cookies.remove('auth_token');
@@ -86,11 +86,11 @@ export default function Login() {
     if (isAuthenticated && !loading && !checkingAuth && user) {
       // Check if user needs to complete onboarding
       if (needsOnboarding(user)) {
-        router.push('/setup');
+        redirect('/setup');
       } else {
         // Get redirect parameter or default to messages
         const redirectPath = searchParams?.get('redirect') || '/messages';
-        router.push(redirectPath);
+        redirect(redirectPath);
       }
     }
   }, [isAuthenticated, loading, checkingAuth, router, user, searchParams]);

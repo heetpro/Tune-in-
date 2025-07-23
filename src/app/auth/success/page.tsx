@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { redirect, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
 export default function AuthSuccess() {
@@ -20,7 +20,7 @@ export default function AuthSuccess() {
         if (!token || !refreshToken) {
           console.error('Missing tokens in auth callback');
           setStatus('error');
-          router.push('/login?error=missing_tokens');
+          redirect('/login?error=missing_tokens');
           return;
         }
 
@@ -38,14 +38,14 @@ export default function AuthSuccess() {
         
         // Redirect based on onboarding status
         if (needsSetup) {
-          router.push('/setup');
+          redirect('/setup');
         } else {
-          router.push('/messages');
+          redirect('/messages');
         }
       } catch (error) {
         console.error('Auth error:', error);
         setStatus('error');
-        router.push('/login?error=auth_failed');
+        redirect('/login?error=auth_failed');
       }
     };
 

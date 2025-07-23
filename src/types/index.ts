@@ -25,7 +25,13 @@ export interface IUser {
         count: number;
     };
     musicProfile?: string; // ObjectId as string
-    friends: string[];
+    friends: {
+        id: string[];
+    };
+    friendRequests: {
+        incoming: string[];
+        outgoing: string[];
+    };
     privacySettings: {
         showAge: boolean;
         showLocation: boolean;

@@ -16,12 +16,14 @@ import {
 import { getUserProfile } from '@/api/user';
 import { IUser, IFriendRequest } from '@/types/index';
 import Navbar from '@/components/Navbar';
+import { API_BASE_URL, getHeaders } from '@/api/config';
 
 interface FriendUser extends IUser {}
 
 // Updated interfaces to match backend response
 interface IncomingRequest {
-  _id: string;
+  _id?: string;  // Original ID field
+  requestId?: string;  // Our generated ID for new format
   senderId: {
     _id: string;
     displayName: string;
@@ -30,17 +32,18 @@ interface IncomingRequest {
     profilePicture?: string;
     username?: string;
     bio?: string;  // Added bio field
-  };
-  receiverId: string;
-  status: 'pending' | 'accepted' | 'rejected';
-  createdAt: string;
-  updatedAt: string;
+  } | string;
+  receiverId?: string;
+  status?: 'pending' | 'accepted' | 'rejected';
+  createdAt?: string;
+  updatedAt?: string;
   respondedAt?: string;
 }
 
 interface OutgoingRequest {
-  _id: string;
-  senderId: string;
+  _id?: string;  // Original ID field
+  requestId?: string;  // Our generated ID for new format
+  senderId?: string;
   receiverId: {
     _id: string;
     displayName: string;
@@ -49,10 +52,10 @@ interface OutgoingRequest {
     profilePicture?: string;
     username?: string;
     bio?: string;  // Added bio field
-  };
-  status: 'pending' | 'accepted' | 'rejected';
-  createdAt: string;
-  updatedAt: string;
+  } | string;
+  status?: 'pending' | 'accepted' | 'rejected';
+  createdAt?: string;
+  updatedAt?: string;
   respondedAt?: string;
 }
 
@@ -134,6 +137,14 @@ export default function Friends() {
         basicFriends.forEach(friend => {
           fetchDetailedProfile(friend._id);
         });
+      } else if (currentUser?.friends?.id && Array.isArray(currentUser.friends.id)) {
+        // Handle new schema where friend IDs are stored directly in user object
+        const friendIds = currentUser.friends.id;
+        // Fetch detailed profiles for each friend ID
+        const friendPromises = friendIds.map(id => fetchDetailedProfile(id));
+        const friendDetails = await Promise.all(friendPromises);
+        const validFriends = friendDetails.filter(friend => friend !== null) as IUser[];
+        setFriends(validFriends);
       } else {
         setFriends([]);
       }
@@ -151,47 +162,138 @@ export default function Friends() {
       const response = await getFriendRequestsList();
       
       if (response.data) {
+        const incomingRequests = response.data.incoming || [];
+        const outgoingRequests = response.data.outgoing || [];
+        
+        // Handle both old format (object with sender/receiver) and new format (array of IDs)
+        let processedIncoming: any[] = [];
+        let processedOutgoing: any[] = [];
+        
+        // Process incoming requests
+        if (Array.isArray(incomingRequests)) {
+          if (incomingRequests.length > 0) {
+            // Check if we have new format (string IDs) or old format (objects)
+            if (typeof incomingRequests[0] === 'string') {
+              // New format - array of user IDs
+              processedIncoming = await Promise.all((incomingRequests as string[]).map(async userId => {
+                const profile = await fetchDetailedProfile(userId);
+                if (profile) {
+                  return {
+                    requestId: `incoming-${userId}`,  // Generate a unique ID
+                    senderId: { 
+                      ...profile,
+                      _id: userId
+                    }
+                  };
+                }
+                return null;
+              }));
+              processedIncoming = processedIncoming.filter(req => req !== null);
+            } else {
+              // Old format - objects with sender/receiver
+              processedIncoming = incomingRequests as any[];
+              
+              // Still fetch detailed profiles for old format
+              await Promise.all((incomingRequests as any[]).map(async (request: any) => {
+                let senderIdValue: string | undefined;
+                
+                if (typeof request.senderId === 'object' && request.senderId !== null && request.senderId._id) {
+                  senderIdValue = request.senderId._id;
+                } else if (typeof request.senderId === 'string') {
+                  senderIdValue = request.senderId;
+                }
+                
+                if (senderIdValue) {
+                  await fetchDetailedProfile(senderIdValue);
+                }
+              }));
+            }
+          }
+        }
+        
+        // Process outgoing requests
+        if (Array.isArray(outgoingRequests)) {
+          if (outgoingRequests.length > 0) {
+            // Check if we have new format (string IDs) or old format (objects)
+            if (typeof outgoingRequests[0] === 'string') {
+              // New format - array of user IDs
+              processedOutgoing = await Promise.all((outgoingRequests as string[]).map(async userId => {
+                const profile = await fetchDetailedProfile(userId);
+                if (profile) {
+                  return {
+                    requestId: `outgoing-${userId}`,  // Generate a unique ID for the request
+                    receiverId: { 
+                      ...profile,
+                      _id: userId
+                    }
+                  };
+                }
+                return null;
+              }));
+              processedOutgoing = processedOutgoing.filter(req => req !== null);
+            } else {
+              // Old format - objects with sender/receiver
+              processedOutgoing = outgoingRequests as any[];
+              
+              // Still fetch detailed profiles for old format
+              await Promise.all((outgoingRequests as any[]).map(async (request: any) => {
+                let receiverIdValue: string | undefined;
+                
+                if (typeof request.receiverId === 'object' && request.receiverId !== null && request.receiverId._id) {
+                  receiverIdValue = request.receiverId._id;
+                } else if (typeof request.receiverId === 'string') {
+                  receiverIdValue = request.receiverId;
+                }
+                
+                if (receiverIdValue) {
+                  await fetchDetailedProfile(receiverIdValue);
+                }
+              }));
+            }
+          }
+        }
+        
+        // If we couldn't get data from API, try to use data from currentUser
+        if (processedIncoming.length === 0 && currentUser?.friendRequests?.incoming) {
+          const incomingIds = currentUser.friendRequests.incoming;
+          processedIncoming = await Promise.all(incomingIds.map(async userId => {
+            const profile = await fetchDetailedProfile(userId);
+            if (profile) {
+              return {
+                requestId: `incoming-request-${userId}`,  // Use a different prefix to avoid ID conflicts
+                senderId: { 
+                  ...profile,
+                  _id: userId
+                }
+              };
+            }
+            return null;
+          }));
+          processedIncoming = processedIncoming.filter(req => req !== null);
+        }
+        
+        if (processedOutgoing.length === 0 && currentUser?.friendRequests?.outgoing) {
+          const outgoingIds = currentUser.friendRequests.outgoing;
+          processedOutgoing = await Promise.all(outgoingIds.map(async userId => {
+            const profile = await fetchDetailedProfile(userId);
+            if (profile) {
+              return {
+                requestId: `outgoing-request-${userId}`,  // Use a different prefix to avoid ID conflicts
+                receiverId: { 
+                  ...profile,
+                  _id: userId
+                }
+              };
+            }
+            return null;
+          }));
+          processedOutgoing = processedOutgoing.filter(req => req !== null);
+        }
+        
         setRequests({
-          incoming: response.data.incoming || [],
-          outgoing: response.data.outgoing || []
+          incoming: processedIncoming,
+          outgoing: processedOutgoing
         });
-        
-        // Process incoming requests to fetch sender profiles
-        await Promise.all(response.data.incoming.map(async request => {
-          // Extract the sender ID - handle both string and object cases
-          let senderIdValue: string;
-          
-          if (typeof request.senderId === 'object' && request.senderId !== null && request.senderId._id) {
-            senderIdValue = request.senderId._id;
-          } else if (typeof request.senderId === 'string') {
-            senderIdValue = request.senderId;
-          } else {
-            return; // Skip if no valid ID
-          }
-          
-          if (senderIdValue) {
-            await fetchDetailedProfile(senderIdValue);
-          }
-        }));
-        
-        // Process outgoing requests to fetch receiver profiles
-        await Promise.all(response.data.outgoing.map(async request => {
-          // Extract the receiver ID - handle both string and object cases
-          let receiverIdValue: string;
-          
-          if (typeof request.receiverId === 'object' && request.receiverId !== null && request.receiverId._id) {
-            receiverIdValue = request.receiverId._id;
-          } else if (typeof request.receiverId === 'string') {
-            receiverIdValue = request.receiverId;
-          } else {
-            return; // Skip if no valid ID
-          }
-          
-          if (receiverIdValue) {
-            console.log(`Fetching profile for receiver ID: ${receiverIdValue}`);
-            await fetchDetailedProfile(receiverIdValue);
-          }
-        }));
       } else {
         setRequests({ incoming: [], outgoing: [] });
       }
@@ -255,7 +357,25 @@ export default function Friends() {
     }
 
     try {
-      await acceptFriendRequestById(requestId);
+      // Check if this is a "new-style" request with our generated ID
+      const isGeneratedId = requestId.startsWith('incoming-request-') || requestId.startsWith('incoming-');
+      
+      if (isGeneratedId) {
+        // Extract the actual user ID
+        const senderId = requestId.replace('incoming-request-', '').replace('incoming-', '');
+        
+        // Handle directly with the user's ID rather than request ID
+        // Construct endpoint with the userId
+        const response = await fetch(`${API_BASE_URL}/request/${senderId}/accept`, {
+          method: 'PUT',
+          headers: getHeaders(),
+          credentials: 'include'
+        });
+      } else {
+        // Old style request, use the original function
+        await acceptFriendRequestById(requestId);
+      }
+      
       await loadRequests();
       await loadFriends();
     } catch (error) {
@@ -270,7 +390,24 @@ export default function Friends() {
     }
 
     try {
-      await rejectFriendRequestById(requestId);
+      // Check if this is a "new-style" request with our generated ID
+      const isGeneratedId = requestId.startsWith('incoming-request-') || requestId.startsWith('incoming-');
+      
+      if (isGeneratedId) {
+        // Extract the actual user ID
+        const senderId = requestId.replace('incoming-request-', '').replace('incoming-', '');
+        
+        // Handle directly with the user's ID rather than request ID
+        const response = await fetch(`${API_BASE_URL}/request/${senderId}/reject`, {
+          method: 'PUT',
+          headers: getHeaders(),
+          credentials: 'include'
+        });
+      } else {
+        // Old style request, use the original function
+        await rejectFriendRequestById(requestId);
+      }
+      
       await loadRequests();
     } catch (error) {
       console.error('Error rejecting friend request:', error);
@@ -493,14 +630,14 @@ export default function Friends() {
                 <h3 className="text-lg font-medium mb-4">Incoming Requests</h3>
                 <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {requests.incoming.map((request) => {
-                    if (!request || !request._id) return null;
+                    if (!request || !request.requestId) return null;
                     
                     // Extract the sender information
-                    let senderId: string;
+                    let senderId: string | undefined;
                     let senderData: any = null;
                     
                     // If senderId is an object with _id
-                    if (typeof request.senderId === 'object' && request.senderId?._id) {
+                    if (typeof request.senderId === 'object' && request.senderId !== null) {
                       senderId = request.senderId._id;
                       // Use basic data from the senderId object as fallback
                       senderData = request.senderId;
@@ -519,13 +656,8 @@ export default function Friends() {
                     // Use detailed data if available, otherwise use basic data
                     const userData = detailedUser || senderData || { displayName: 'User' };
                     
-                    (`Rendering request ${request._id} for sender ${senderId}`, {
-                      hasDetailedData: !!detailedUser,
-                      userData
-                    });
-                    
                     return (
-                      <li key={request._id} className="border p-4 rounded-lg">
+                      <li key={request.requestId} className="border p-4 rounded-lg">
                         <div className="flex items-center mb-3">
                           {userData.profilePicture ? (
                             <img 
@@ -555,13 +687,13 @@ export default function Friends() {
                         
                         <div className="flex gap-2">
                           <button
-                            onClick={() => acceptRequest(request._id)}
+                            onClick={() => request._id || request.requestId ? acceptRequest(request._id || request.requestId) : null}
                             className="flex-1 bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
                           >
                             Accept
                           </button>
                           <button
-                            onClick={() => rejectRequest(request._id)}
+                            onClick={() => request._id || request.requestId ? rejectRequest(request._id || request.requestId) : null}
                             className="flex-1 bg-gray-200 text-gray-800 px-3 py-1 rounded hover:bg-gray-300"
                           >
                             Reject
@@ -586,7 +718,7 @@ export default function Friends() {
                     let receiverData: any = null;
                     
                     // If receiverId is an object with _id
-                    if (typeof request.receiverId === 'object' && request.receiverId?._id) {
+                    if (typeof request.receiverId === 'object' && request.receiverId !== null && request.receiverId._id) {
                       receiverId = request.receiverId._id;
                       // Use basic data from the receiverId object as fallback
                       receiverData = request.receiverId;
@@ -604,11 +736,6 @@ export default function Friends() {
                     
                     // Use detailed data if available, otherwise use basic data
                     const userData = detailedUser || receiverData || { displayName: 'User' };
-                    
-                    console.log(`Rendering request ${request._id} for receiver ${receiverId}`, {
-                      hasDetailedData: !!detailedUser,
-                      userData
-                    });
                     
                     return (
                       <li key={request._id} className="border p-4 rounded-lg">

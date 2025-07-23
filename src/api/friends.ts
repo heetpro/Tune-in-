@@ -3,39 +3,23 @@ import { IUser, IFriendRequest } from '@/types/index';
 
 // Updated interface to match backend response
 interface FriendRequestsResponse {
-  incoming: {
+  incoming: string[] | {
     _id: string;
-    senderId: {
-      _id: string;
-      displayName: string;
-      firstName: string;
-      lastName: string;
-      profilePicture?: string;
-      username?: string;
-      bio?: string; // Added bio field
-    };
-    receiverId: string;
-    status: 'pending' | 'accepted' | 'rejected';
-    createdAt: string;
-    updatedAt: string;
-    respondedAt?: string;
+    displayName: string;
+    firstName: string;
+    lastName: string;
+    profilePicture?: string;
+    username?: string;
+    bio?: string;
   }[];
-  outgoing: {
+  outgoing: string[] | {
     _id: string;
-    senderId: string;
-    receiverId: {
-      _id: string;
-      displayName: string;
-      firstName: string;
-      lastName: string;
-      profilePicture?: string;
-      username?: string;
-      bio?: string; // Added bio field
-    };
-    status: 'pending' | 'accepted' | 'rejected';
-    createdAt: string;
-    updatedAt: string;
-    respondedAt?: string;
+    displayName: string;
+    firstName: string;
+    lastName: string;
+    profilePicture?: string;
+    username?: string;
+    bio?: string;
   }[];
 }
 

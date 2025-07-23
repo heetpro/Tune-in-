@@ -37,12 +37,12 @@
 
     // Process friendsList to create conversation list
     useEffect(() => {
-      if (!user || friendsList.length === 0) return;
+      if (!user || !friendsList || friendsList.length === 0) return;
 
       const fetchAllProfiles = async () => {
         try {
           // Create array of promises for all profile fetches
-          const profilePromises = friendsList.map(async (friend) => {
+          const profilePromises = friendsList.map(async (friend: IUser) => {
             if (!friend._id) return null;
             
             const data = await getUserProfile(friend._id);
@@ -61,8 +61,6 @@
           
           results.forEach(result => {
             if (!result || !result.friend._id) return;
-            console.log("result ::::::::", result.profileData);
-            
             
             conversationMap.set(result.friend._id, {
               id: result.friend._id,
@@ -73,18 +71,45 @@
             });
           });
 
-          
+          // Also check if user has friends in the new schema structure
+          if (friendsList.length === 0 && user.friends?.id && Array.isArray(user.friends.id)) {
+            const friendIds = user.friends.id;
+            
+            // Fetch profiles for each friend ID
+            for (const friendId of friendIds) {
+              if (!friendId) continue;
+              
+              try {
+                const data = await getUserProfile(friendId);
+                
+                if (data.success && data.data) {
+                  const friendData = data.data as IUser;
+                  
+                  conversationMap.set(friendId, {
+                    id: friendId,
+                    name: friendData.displayName || friendData.username || `User ${friendId.substring(0, 5)}...`,
+                    avatar: friendData.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(friendData.displayName || friendData.username || 'U')}`,
+                    isOnline: onlineUsers.includes(friendId),
+                    userData: friendData
+                  });
+                }
+              } catch (err) {
+                console.error(`Failed to fetch profile for friend ID ${friendId}:`, err);
+              }
+            }
+          }
           
           // Convert map to array and update state
           setConversations(Array.from(conversationMap.values()));
           
           // Now fetch messages for each friend
-          friendsList.forEach(async (friend) => {
-            if (!friend._id) return;
+          const allFriendIds = [...conversationMap.keys()];
+          allFriendIds.forEach(async (friendId: string) => {
+            if (!friendId) return;
 
             try {
               // Try to fetch just the latest message for each friend
-              const messages = await messageService.getMessages(friend._id);
+              const messages = await messageService.getMessages(friendId);
               if (messages && messages.length > 0) {
                 const formattedMessages = messages.map(msg =>
                   messageService.convertToFrontendMessage(msg)
@@ -92,11 +117,11 @@
 
                 setMessages(prev => ({
                   ...prev,
-                  [friend._id]: formattedMessages
+                  [friendId]: formattedMessages
                 }));
               }
             } catch (error) {
-              console.error(`Failed to load messages for ${friend._id}:`, error);
+              console.error(`Failed to load messages for ${friendId}:`, error);
             }
           });
         } catch (error) {
