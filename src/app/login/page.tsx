@@ -63,10 +63,8 @@ export default function Login() {
           const authCheck = await checkUserAuth();
           
           if (authCheck.success && authCheck.data?.exists) {
-            // Redirect to homepage
             redirect('/');
           } else {
-            // Clear invalid tokens
             Cookies.remove('auth_token');
             Cookies.remove('refresh_token');
           }
@@ -81,14 +79,11 @@ export default function Login() {
     checkAuth();
   }, [router, isAuthenticated]);
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && !loading && !checkingAuth && user) {
-      // Check if user needs to complete onboarding
       if (needsOnboarding(user)) {
         redirect('/setup');
       } else {
-        // Get redirect parameter or default to messages
         const redirectPath = searchParams?.get('redirect') || '/messages';
         redirect(redirectPath);
       }

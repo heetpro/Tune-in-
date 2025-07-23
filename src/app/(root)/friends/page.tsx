@@ -313,16 +313,23 @@ export default function Friends() {
       const response = await searchForUsers(searchQuery);
       
       // Handle different response formats and ensure valid data
+      let validResults: IUser[] = [];
+      
       if (Array.isArray(response)) {
-        const validResults = response.filter(user => user && user._id);
-        setSearchResults(validResults);
+        validResults = response.filter(user => user && user._id);
       } else if (response.success && Array.isArray(response.data)) {
-        const validResults = response.data.filter(user => user && user._id);
-        setSearchResults(validResults);
+        validResults = response.data.filter(user => user && user._id);
       } else {
         console.error('Search API returned unexpected format:', response);
-        setSearchResults([]);
       }
+      
+      setSearchResults(validResults);
+      
+      // Reload friends and requests to ensure UI is in sync
+      await Promise.all([
+        loadFriends(),
+        loadRequests()
+      ]);
     } catch (error) {
       console.error('Error searching users:', error);
       setSearchResults([]);
@@ -512,10 +519,7 @@ export default function Friends() {
                   if (!user || !user._id) return null;
                   
                   const isCurrentUser = user._id === currentUser._id;
-                  const isFriend = friends.some(friend => friend._id === user._id);
-                  const hasPendingOutgoing = requests.outgoing.some(req => req.receiverId?._id === user._id);
-                  const hasPendingIncoming = requests.incoming.some(req => req.senderId?._id === user._id);
-
+                  
                   return (
                     <li key={user._id} className="border p-4 rounded-lg flex items-center justify-between">
                       <div className="flex items-center">
@@ -537,17 +541,30 @@ export default function Friends() {
                       </div>
                       {!isCurrentUser && (
                         <div>
-                          {isFriend ? (
+                          {user.friendStatus === 'friends' ? (
                             <button
                               onClick={() => removeFriend(user._id)}
                               className="text-red-500 hover:text-red-700"
                             >
                               Remove Friend
                             </button>
-                          ) : hasPendingOutgoing ? (
+                          ) : user.friendStatus === 'request-sent' ? (
                             <span className="text-gray-500">Request Sent</span>
-                          ) : hasPendingIncoming ? (
-                            <span className="text-blue-500">Respond to Request</span>
+                          ) : user.friendStatus === 'request-received' ? (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => acceptRequest(`incoming-${user._id}`)}
+                                className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-sm"
+                              >
+                                Accept
+                              </button>
+                              <button
+                                onClick={() => rejectRequest(`incoming-${user._id}`)}
+                                className="bg-gray-200 text-gray-800 px-3 py-1 rounded hover:bg-gray-300 text-sm"
+                              >
+                                Reject
+                              </button>
+                            </div>
                           ) : (
                             <button
                               onClick={() => sendRequest(user._id)}
@@ -637,7 +654,7 @@ export default function Friends() {
                     let senderData: any = null;
                     
                     // If senderId is an object with _id
-                    if (typeof request.senderId === 'object' && request.senderId !== null) {
+                    if (typeof request.senderId === 'object' && request.senderId !== null && request.senderId._id) {
                       senderId = request.senderId._id;
                       // Use basic data from the senderId object as fallback
                       senderData = request.senderId;
@@ -687,13 +704,19 @@ export default function Friends() {
                         
                         <div className="flex gap-2">
                           <button
-                            onClick={() => request._id || request.requestId ? acceptRequest(request._id || request.requestId) : null}
+                            onClick={() => {
+                              const id = request._id || request.requestId;
+                              if (id) acceptRequest(id);
+                            }}
                             className="flex-1 bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
                           >
                             Accept
                           </button>
                           <button
-                            onClick={() => request._id || request.requestId ? rejectRequest(request._id || request.requestId) : null}
+                            onClick={() => {
+                              const id = request._id || request.requestId;
+                              if (id) rejectRequest(id);
+                            }}
                             className="flex-1 bg-gray-200 text-gray-800 px-3 py-1 rounded hover:bg-gray-300"
                           >
                             Reject

@@ -77,32 +77,39 @@ export const getFriendRequestsList = async (): Promise<ApiResponse<FriendRequest
 
 /**
  * Search for users
+ * This returns users with their friendship status:
+ * - friends: User is already a friend
+ * - request-sent: A friend request has been sent to this user
+ * - request-received: This user has sent a friend request to the current user
+ * - none: No relationship with this user
  */
 export const searchForUsers = async (query: string): Promise<ApiResponse<IUser[]>> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/search?query=${encodeURIComponent(query)}`, {
+    const response = await fetch(`${API_BASE_URL}/users/search?query=${encodeURIComponent(query)}`, {
       method: 'GET',
       headers: getHeaders(),
       credentials: 'include'
     });
     
-    // Clone the response before reading its body
-    const responseClone = response.clone();
-    
     // Process the main response
     const result = await handleApiResponse<IUser[]>(response);
     
-    // Log the raw response for debugging
-    try {
-      const responseBody = await responseClone.json();
-      if (Array.isArray(responseBody) && !result.data) {
-        return {
-          success: true,
-          data: responseBody
-        };
+    // If the response doesn't have the expected format, try to parse it directly
+    if (!result.success || !result.data) {
+      try {
+        // Clone the response and try to read it directly
+        const responseClone = response.clone();
+        const responseBody = await responseClone.json();
+        
+        if (Array.isArray(responseBody)) {
+          return {
+            success: true,
+            data: responseBody
+          };
+        }
+      } catch (err) {
+        console.error('Error parsing search response:', err);
       }
-    } catch (err) {
-      console.error('Error parsing cloned response:', err);
     }
     
     return result;
