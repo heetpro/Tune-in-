@@ -95,6 +95,16 @@ export default function Friends() {
     if (currentUser) {
       loadFriends();
       loadRequests();
+      
+      // Log the structure of current user for debugging
+      console.log('Current user structure:', {
+        hasFriends: !!currentUser.friends?.id,
+        friendsCount: currentUser.friends?.id?.length || 0,
+        hasIncomingRequests: !!currentUser.friendRequests?.incoming?.id,
+        incomingCount: currentUser.friendRequests?.incoming?.id?.length || 0,
+        hasOutgoingRequests: !!currentUser.friendRequests?.outgoing?.id,
+        outgoingCount: currentUser.friendRequests?.outgoing?.id?.length || 0
+      });
     }
   }, [currentUser]);
  
@@ -254,9 +264,9 @@ export default function Friends() {
         }
         
         // If we couldn't get data from API, try to use data from currentUser
-        if (processedIncoming.length === 0 && currentUser?.friendRequests?.incoming) {
-          const incomingIds = currentUser.friendRequests.incoming;
-          processedIncoming = await Promise.all(incomingIds.map(async userId => {
+        if (processedIncoming.length === 0 && currentUser?.friendRequests?.incoming?.id) {
+          const incomingIds = currentUser.friendRequests.incoming.id;
+          processedIncoming = await Promise.all(incomingIds.map(async (userId: string) => {
             const profile = await fetchDetailedProfile(userId);
             if (profile) {
               return {
@@ -272,9 +282,9 @@ export default function Friends() {
           processedIncoming = processedIncoming.filter(req => req !== null);
         }
         
-        if (processedOutgoing.length === 0 && currentUser?.friendRequests?.outgoing) {
-          const outgoingIds = currentUser.friendRequests.outgoing;
-          processedOutgoing = await Promise.all(outgoingIds.map(async userId => {
+        if (processedOutgoing.length === 0 && currentUser?.friendRequests?.outgoing?.id) {
+          const outgoingIds = currentUser.friendRequests.outgoing.id;
+          processedOutgoing = await Promise.all(outgoingIds.map(async (userId: string) => {
             const profile = await fetchDetailedProfile(userId);
             if (profile) {
               return {
@@ -319,6 +329,9 @@ export default function Friends() {
         validResults = response.filter(user => user && user._id);
       } else if (response.success && Array.isArray(response.data)) {
         validResults = response.data.filter(user => user && user._id);
+      } else if (response && typeof response === 'object') {
+        // Log unexpected format but don't show error to user
+        console.log('Search API response format:', response);
       } else {
         console.error('Search API returned unexpected format:', response);
       }
@@ -507,13 +520,21 @@ export default function Friends() {
               <button
                 onClick={handleSearch}
                 disabled={isLoading.search}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300"
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300 flex items-center justify-center"
               >
-                {isLoading.search ? 'Searching...' : 'Search'}
+                {isLoading.search ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Searching...
+                  </>
+                ) : 'Search'}
               </button>
             </div>
 
-            {searchResults.length > 0 && (
+            {searchResults.length > 0 ? (
               <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {searchResults.map((user) => {
                   if (!user || !user._id) return null;
@@ -579,6 +600,10 @@ export default function Friends() {
                   );
                 })}
               </ul>
+            ) : !isLoading.search && searchQuery.trim() !== '' && (
+              <div className="text-center p-4 bg-gray-50 rounded-lg mt-4">
+                <p>No users found matching "{searchQuery}"</p>
+              </div>
             )}
           </div>
         )}

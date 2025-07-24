@@ -6,12 +6,13 @@ export interface IUser {
     displayName: string;
     firstName: string;
     lastName?: string;
-    profilePicture?: string;
-    bio?: string;
-    age?: number;
-    gender?: 'male' | 'female' | 'non-binary' | 'other';
-    intrestedIn?: string[];
-    location?: {
+    profilePicture: string;
+    bio: string;
+    age: number;
+    gender: 'male' | 'female' | 'non-binary' | 'other';
+    intrestedIn: ('male' | 'female' | 'non-binary' | 'other')[];
+    spotifyFollowers?: number;
+    location: {
         city: string;
         country: string;
         coordinates: {
@@ -19,18 +20,22 @@ export interface IUser {
             lng: number;
         };
     };
-    lastSeen?: Date;
-    dailyRolls?: {
+    lastSeen: Date;
+    dailyRolls: {
         date: Date;
         count: number;
     };
-    musicProfile?: string; // ObjectId as string
+    musicProfile?: string | IMusicProfile; // ObjectId as string
     friends: {
         id: string[];
     };
     friendRequests: {
-        incoming: string[];
-        outgoing: string[];
+        incoming: {
+            id: string[];
+        };
+        outgoing: {
+            id: string[];
+        };
     };
     privacySettings: {
         showAge: boolean;
@@ -48,10 +53,11 @@ export interface IUser {
     isBanned: boolean;
     banReason?: string;
     banExpiresAt?: Date;
-    isAdmin: boolean;
+    isAdmin?: boolean;
     hasCompletedOnboarding: boolean;
     createdAt: Date;
     updatedAt: Date;
+    friendStatus?: 'friends' | 'request-sent' | 'request-received' | 'none';
 }
 
 export interface IFriendRequest {

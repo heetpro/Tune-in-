@@ -85,34 +85,74 @@ export const getFriendRequestsList = async (): Promise<ApiResponse<FriendRequest
  */
 export const searchForUsers = async (query: string): Promise<ApiResponse<IUser[]>> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/users/search?query=${encodeURIComponent(query)}`, {
-      method: 'GET',
-      headers: getHeaders(),
-      credentials: 'include'
-    });
+    // Try different endpoint formats since the backend might use different conventions
+    const possibleEndpoints = [
+      `/api/users/search?query=${encodeURIComponent(query)}`,
+      `/users/search?query=${encodeURIComponent(query)}`, 
+      `/search?query=${encodeURIComponent(query)}`
+    ];
     
-    // Process the main response
-    const result = await handleApiResponse<IUser[]>(response);
-    
-    // If the response doesn't have the expected format, try to parse it directly
-    if (!result.success || !result.data) {
+    // Try each endpoint
+    for (const endpoint of possibleEndpoints) {
       try {
-        // Clone the response and try to read it directly
-        const responseClone = response.clone();
-        const responseBody = await responseClone.json();
+        const url = `${API_BASE_URL}${endpoint}`;
+        console.log('Trying search URL:', url);
         
-        if (Array.isArray(responseBody)) {
-          return {
-            success: true,
-            data: responseBody
-          };
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: getHeaders(),
+          credentials: 'include'
+        });
+        
+        console.log(`Response status for ${endpoint}:`, response.status);
+        
+        if (!response.ok) {
+          console.log(`Endpoint ${endpoint} returned status ${response.status}, trying next...`);
+          continue;
         }
-      } catch (err) {
-        console.error('Error parsing search response:', err);
+        
+        // Clone the response before processing
+        const responseClone = response.clone();
+        const rawText = await responseClone.text();
+        console.log(`Raw response from ${endpoint}:`, rawText.substring(0, 100) + (rawText.length > 100 ? '...' : ''));
+        
+        // Parse the JSON
+        try {
+          const data = JSON.parse(rawText);
+          
+          if (Array.isArray(data)) {
+            console.log(`Success with endpoint ${endpoint}, found ${data.length} users`);
+            return {
+              success: true,
+              data: data
+            };
+          } else if (data && typeof data === 'object') {
+            console.log(`Success with endpoint ${endpoint}, response is an object:`, data);
+            if (data.data && Array.isArray(data.data)) {
+              return {
+                success: true,
+                data: data.data
+              };
+            } else {
+              // Just return the object, the caller will handle it
+              return data;
+            }
+          }
+        } catch (parseErr) {
+          console.error(`Error parsing JSON from ${endpoint}:`, parseErr);
+        }
+      } catch (endpointErr) {
+        console.error(`Error with endpoint ${endpoint}:`, endpointErr);
       }
     }
     
-    return result;
+    // If we get here, all endpoints failed
+    console.error('All search endpoints failed');
+    return { 
+      success: false, 
+      data: [], 
+      message: 'Search failed - no working endpoint found' 
+    };
   } catch (error) {
     console.error('Failed to search users:', error);
     throw error;
