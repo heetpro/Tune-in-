@@ -33,7 +33,7 @@ interface ProfileUser extends IUser {
 } 
 
 interface ProfileProps {
-  user?: ProfileUser; 
+  user?: IUser; 
 }
 
 export const Profile = ({ user }: ProfileProps) => {
@@ -68,17 +68,15 @@ export const Profile = ({ user }: ProfileProps) => {
   // The actual user data we're displaying (current user or another user)
   const displayUser = profileUser || currentUser;
 
-  const isCurrentUserProfile = currentUser?._id === user?.id;
+  const isCurrentUserProfile = currentUser?._id === user?._id;
 
   
   useEffect(() => {
-    // Set profile user when user prop changes
     if (user) {
       setProfileUser(user);
     }
   }, [user]);
 
-  // Check friendship status whenever profile user changes
   useEffect(() => {
     if (!currentUser || !displayUser || isCurrentUserProfile) {
       return;
@@ -87,16 +85,14 @@ export const Profile = ({ user }: ProfileProps) => {
     checkFriendshipStatus();
   }, [currentUser, displayUser, isCurrentUserProfile]);
 
-  // Function to check if users are friends
   const checkFriendshipStatus = async () => {
-    if (!currentUser || !displayUser || currentUser._id === user?.id) {
+    if (!currentUser || !displayUser || currentUser._id === user?._id) {
       return;
     }
 
     try {
       setLoadingFriendship(true);
       
-      // First check if we already have the updated schema in current user object
       if (currentUser.friends && Array.isArray(currentUser.friends.id)) {
         setIsFriend(currentUser.friends.id.includes(displayUser._id));
       } else {
@@ -149,10 +145,10 @@ export const Profile = ({ user }: ProfileProps) => {
 
     try {
       let musicProfileResponse;
-      if(currentUser?._id == user?.id) {
+      if(currentUser?._id == user?._id) {
         musicProfileResponse = await getMyMusicProfile();
       } else {
-        musicProfileResponse = await getMusicProfile(user?.id || '');
+        musicProfileResponse = await getMusicProfile(user?._id || '');
       }
 
       if (musicProfileResponse.success && musicProfileResponse.data?.musicProfile) {
@@ -444,7 +440,7 @@ export const Profile = ({ user }: ProfileProps) => {
   
 
   // Only show the user info form for the current user, not for other profiles
-  if (!user?.id && needsUserInfo()) {
+  if (!user?._id && needsUserInfo()) {
     return (
       <div className={`fixed inset-0 flex items-center justify-center p-2 z-50 ${spaceGrotesk.className}`}>
         <div className="bg-[#8D50F9] rounded-2xl p-6 w-full max-w-md">

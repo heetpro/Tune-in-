@@ -86,14 +86,9 @@ export const getFriendRequestsList = async (): Promise<ApiResponse<FriendRequest
 export const searchForUsers = async (query: string): Promise<ApiResponse<IUser[]>> => {
   try {
     // Try different endpoint formats since the backend might use different conventions
-    const possibleEndpoints = [
-      `/api/users/search?query=${encodeURIComponent(query)}`,
-      `/users/search?query=${encodeURIComponent(query)}`, 
-      `/search?query=${encodeURIComponent(query)}`
-    ];
+    const endpoint = `/search?query=${encodeURIComponent(query)}`
+  
     
-    // Try each endpoint
-    for (const endpoint of possibleEndpoints) {
       try {
         const url = `${API_BASE_URL}${endpoint}`;
         console.log('Trying search URL:', url);
@@ -108,7 +103,6 @@ export const searchForUsers = async (query: string): Promise<ApiResponse<IUser[]
         
         if (!response.ok) {
           console.log(`Endpoint ${endpoint} returned status ${response.status}, trying next...`);
-          continue;
         }
         
         // Clone the response before processing
@@ -134,19 +128,16 @@ export const searchForUsers = async (query: string): Promise<ApiResponse<IUser[]
                 data: data.data
               };
             } else {
-              // Just return the object, the caller will handle it
               return data;
             }
-          }
+          } 
         } catch (parseErr) {
           console.error(`Error parsing JSON from ${endpoint}:`, parseErr);
         }
       } catch (endpointErr) {
         console.error(`Error with endpoint ${endpoint}:`, endpointErr);
       }
-    }
     
-    // If we get here, all endpoints failed
     console.error('All search endpoints failed');
     return { 
       success: false, 
@@ -160,7 +151,6 @@ export const searchForUsers = async (query: string): Promise<ApiResponse<IUser[]
 };
 
 /**
- * Send friend request to user (with auto-retry different endpoints)
  */
 export const sendFriendRequest = async (userId: string): Promise<ApiResponse<null>> => {
   // Define possible endpoints to try

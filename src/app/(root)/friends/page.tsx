@@ -17,6 +17,7 @@ import { getUserProfile } from '@/api/user';
 import { IUser, IFriendRequest } from '@/types/index';
 import Navbar from '@/components/Navbar';
 import { API_BASE_URL, getHeaders } from '@/api/config';
+import { ProfileModal } from '@/components/ProfileModal';
 
 interface FriendUser extends IUser {}
 
@@ -69,6 +70,10 @@ interface DetailedProfileMap {
 }
 
 export default function Friends() {
+
+  const [selectedUser, setSelectedUser] = useState<IUser>()
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
+
   const { user: currentUser, loading } = useAuth();
   const searchParams = useSearchParams();
   const [friends, setFriends] = useState<FriendUser[]>([]);
@@ -96,7 +101,6 @@ export default function Friends() {
       loadFriends();
       loadRequests();
       
-      // Log the structure of current user for debugging
       console.log('Current user structure:', {
         hasFriends: !!currentUser.friends?.id,
         friendsCount: currentUser.friends?.id?.length || 0,
@@ -175,21 +179,17 @@ export default function Friends() {
         const incomingRequests = response.data.incoming || [];
         const outgoingRequests = response.data.outgoing || [];
         
-        // Handle both old format (object with sender/receiver) and new format (array of IDs)
         let processedIncoming: any[] = [];
         let processedOutgoing: any[] = [];
         
-        // Process incoming requests
         if (Array.isArray(incomingRequests)) {
           if (incomingRequests.length > 0) {
-            // Check if we have new format (string IDs) or old format (objects)
             if (typeof incomingRequests[0] === 'string') {
-              // New format - array of user IDs
               processedIncoming = await Promise.all((incomingRequests as string[]).map(async userId => {
                 const profile = await fetchDetailedProfile(userId);
                 if (profile) {
                   return {
-                    requestId: `incoming-${userId}`,  // Generate a unique ID
+                    requestId: `incoming-${userId}`, 
                     senderId: { 
                       ...profile,
                       _id: userId
@@ -314,6 +314,19 @@ export default function Friends() {
       setIsLoading(prev => ({ ...prev, requests: false }));
     }
   };
+
+  const getUserP = async ({ userId } : any)=> {
+    const response = await getUserProfile(userId);
+
+
+    if (response.success && response.data) {
+      setSelectedUser(response.data); 
+    } else {
+      console.error("Failed to fetch user profile", response.error);
+      setSelectedUser(undefined); 
+    }
+
+  }
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -538,11 +551,19 @@ export default function Friends() {
               <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {searchResults.map((user) => {
                   if (!user || !user._id) return null;
+                  const showProfile = () => {
+                    getUserP(user._id)
+                  }
                   
                   const isCurrentUser = user._id === currentUser._id;
                   
                   return (
-                    <li key={user._id} className="border p-4 rounded-lg flex items-center justify-between">
+                    <li key={user._id} className="border p-4 rounded-lg flex items-center justify-between"
+                    onClick={() => (
+                      setIsProfileModalOpen(true),
+                      showProfile()
+                    )}
+                    >
                       <div className="flex items-center">
                         {user.profilePicture ? (
                           <img 
@@ -560,42 +581,7 @@ export default function Friends() {
                           {user.username && <p className="text-sm text-gray-500">@{user.username}</p>}
                         </div>
                       </div>
-                      {!isCurrentUser && (
-                        <div>
-                          {user.friendStatus === 'friends' ? (
-                            <button
-                              onClick={() => removeFriend(user._id)}
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              Remove Friend
-                            </button>
-                          ) : user.friendStatus === 'request-sent' ? (
-                            <span className="text-gray-500">Request Sent</span>
-                          ) : user.friendStatus === 'request-received' ? (
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => acceptRequest(`incoming-${user._id}`)}
-                                className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-sm"
-                              >
-                                Accept
-                              </button>
-                              <button
-                                onClick={() => rejectRequest(`incoming-${user._id}`)}
-                                className="bg-gray-200 text-gray-800 px-3 py-1 rounded hover:bg-gray-300 text-sm"
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => sendRequest(user._id)}
-                              className="text-blue-500 hover:text-blue-700"
-                            >
-                              Add Friend
-                            </button>
-                          )}
-                        </div>
-                      )}
+                     
                     </li>
                   );
                 })}
@@ -828,6 +814,14 @@ export default function Friends() {
           </div>
         )}
       </main>
+
+      {selectedUser && (
+          <ProfileModal 
+            isOpen={isProfileModalOpen} 
+            onClose={() => setIsProfileModalOpen(false)} 
+            user={selectedUser} 
+          />
+        )}
     </div>
   );
 } 

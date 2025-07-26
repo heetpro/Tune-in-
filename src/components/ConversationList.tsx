@@ -53,10 +53,8 @@
             };
           });
           
-          // Wait for all profile fetches to complete
           const results = await Promise.all(profilePromises);
           
-          // Build conversation map with fetched data
           const conversationMap = new Map<string, ExtendedChatUser>();
           
           results.forEach(result => {
@@ -266,7 +264,6 @@
           </ul>
         )}
 
-        {/* Profile Modal */}
         {selectedUser && (
           <ProfileModal 
             isOpen={isProfileModalOpen} 

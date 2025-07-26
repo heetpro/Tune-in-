@@ -51,7 +51,6 @@ export const getMyProfile = async (): Promise<ApiResponse<IUser>> => {
     // The backend returns the user object directly, not wrapped in a success/data structure
     const userData = await response.json();
     
-    // Convert to our expected format based on updated backend response
     return {
       success: true,
       data: {
@@ -68,6 +67,8 @@ export const getMyProfile = async (): Promise<ApiResponse<IUser>> => {
         intrestedIn: userData.intrestedIn || [],
         lastSeen: userData.lastSeen,
         friends: userData.friends || [],
+        friendRequests: userData.friendRequests || [],
+        dailyRolls: userData.dailyRolls || [],
         location: userData.location || {
           city: userData.city || '',
           country: userData.country || '',
