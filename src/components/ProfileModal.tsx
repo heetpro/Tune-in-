@@ -35,7 +35,6 @@ export const ProfileModal = ({ isOpen, onClose, user }: ProfileModalProps) => {
             onClose();
         }
     };
-console.log("user ::::::::", user);
 
     return (
         <div 

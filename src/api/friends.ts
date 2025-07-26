@@ -1,31 +1,23 @@
 import { API_BASE_URL, getHeaders, handleApiResponse, ApiResponse } from './config';
 import { IUser, IFriendRequest } from '@/types/index';
 
-// Updated interface to match backend response
-interface FriendRequestsResponse {
-  incoming: string[] | {
-    _id: string;
-    displayName: string;
-    firstName: string;
-    lastName: string;
-    profilePicture?: string;
-    username?: string;
-    bio?: string;
-  }[];
-  outgoing: string[] | {
-    _id: string;
-    displayName: string;
-    firstName: string;
-    lastName: string;
-    profilePicture?: string;
-    username?: string;
-    bio?: string;
-  }[];
-}
 
-/**
- * Gets the current user's friends list
- */
+
+export const sendFriendRequest = async (userId: string): Promise<ApiResponse<IUser[]>> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/request/${userId}`, {
+      method: 'POST',
+      headers: getHeaders(),
+      credentials: 'include'
+    });
+    
+    return await handleApiResponse<IUser[]>(response);
+  } catch (error) {
+    console.error('Failed to fetch friends list:', error);
+    throw error;
+  }
+};
+
 export const getFriendsList = async (): Promise<ApiResponse<IUser[]>> => {
   try {
     const response = await fetch(`${API_BASE_URL}/friends`, {
@@ -44,7 +36,7 @@ export const getFriendsList = async (): Promise<ApiResponse<IUser[]>> => {
 /**
  * Gets the current user's friend requests
  */
-export const getFriendRequestsList = async (): Promise<ApiResponse<FriendRequestsResponse>> => {
+export const getFriendRequestsList = async ():  Promise<ApiResponse<IUser[]>> => {
   try {
     const response = await fetch(`${API_BASE_URL}/requests`, {
       method: 'GET',
@@ -67,7 +59,7 @@ export const getFriendRequestsList = async (): Promise<ApiResponse<FriendRequest
       console.error('Failed to read raw response text:', textErr);
     }
     
-    const result = await handleApiResponse<FriendRequestsResponse>(response);
+    const result = await handleApiResponse<IUser[]>(response);
     return result;
   } catch (error) {
     console.error('Failed to fetch friend requests:', error);
@@ -98,8 +90,10 @@ export const searchForUsers = async (query: string): Promise<ApiResponse<IUser[]
           headers: getHeaders(),
           credentials: 'include'
         });
+
         
-        console.log(`Response status for ${endpoint}:`, response.status);
+        
+        console.log(`Response status for ${endpoint}:`, response);
         
         if (!response.ok) {
           console.log(`Endpoint ${endpoint} returned status ${response.status}, trying next...`);
@@ -152,83 +146,8 @@ export const searchForUsers = async (query: string): Promise<ApiResponse<IUser[]
 
 /**
  */
-export const sendFriendRequest = async (userId: string): Promise<ApiResponse<null>> => {
-  // Define possible endpoints to try
-  const endpointsToTry = [
-    { url: `${API_BASE_URL}/friends/requests`, body: { targetUserId: userId } },
-    { url: `${API_BASE_URL}/friends/request`, body: { userId } },
-    { url: `${API_BASE_URL}/friends/request`, body: { receiverId: userId } },
-    { url: `${API_BASE_URL}/request`, body: { userId } },
-    { url: `${API_BASE_URL}/request`, body: { receiverId: userId } },
-    { url: `${API_BASE_URL}/users/friends/request`, body: { userId } },
-    { url: `${API_BASE_URL}/friends/requests/${userId}`, body: {} }
-  ];
+
   
-  
-  let lastError = null;
-  
-  // Try each endpoint in sequence
-  for (const endpoint of endpointsToTry) {
-    try {
-      
-      const response = await fetch(endpoint.url, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(endpoint.body),
-        credentials: 'include'
-      });
-      
-      // If response is OK, we found the right endpoint
-      if (response.ok) {
-        try {
-          const result = await handleApiResponse<null>(response);
-          return result;
-        } catch (parseError) {
-          // Even if parsing fails, if response was OK we return success
-          return { success: true, data: null, message: "Friend request sent" };
-        }
-      }
-      
-      // If not OK but specific status code like 401 (unauthorized)
-      // don't try other endpoints as they'll likely fail the same way
-      if (response.status === 401) {
-        const result = await handleApiResponse<null>(response);
-        return result;
-      }
-      
-      // Store the error to return if all endpoints fail
-      try {
-        const responseClone = response.clone();
-        const responseBody = await responseClone.text();
-        lastError = { 
-          success: false, 
-          endpoint: endpoint.url,
-          status: response.status,
-          message: response.statusText,
-          body: responseBody
-        };
-      } catch (err) {
-        lastError = { 
-          success: false,
-          endpoint: endpoint.url,
-          status: response.status,
-          message: response.statusText 
-        };
-      }
-    } catch (error) {
-      console.error(`Error with endpoint ${endpoint.url}:`, error);
-      lastError = { success: false, endpoint: endpoint.url, error };
-    }
-  }
-  
-  // If we get here, all endpoints failed
-  console.error("All friend request endpoints failed. Last error:", lastError);
-  return { 
-    success: false, 
-    message: `All endpoints failed. Last attempt: ${lastError?.endpoint} (${lastError?.status}: ${lastError?.message})`,
-    error: lastError
-  };
-};
 
 /**
  * Accept friend request

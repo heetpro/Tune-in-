@@ -17,7 +17,7 @@ import { getMusicProfile, getMyMusicProfile } from '@/api';
 import Link from 'next/link';
 import { getUserProfile } from '@/api/user';
 import type { IUser } from '@/types';
-import { getFriendsList, sendFriendRequest } from '@/api/friends';
+import { acceptFriendRequest, getFriendsList, rejectFriendRequest, sendFriendRequest } from '@/api/friends';
 
 // Add these helper functions at the top of the component
 const getTrackImage = (track: any) => {
@@ -28,15 +28,7 @@ const getArtistImage = (artist: any) => {
   return artist?.images?.[0]?.url || '/images/artist-placeholder.jpg';
 };
 
-interface ProfileUser extends IUser {
-  id: string;
-} 
-
-interface ProfileProps {
-  user?: IUser; 
-}
-
-export const Profile = ({ user }: ProfileProps) => {
+export const Profile = ({ user }: {user: IUser}) => {
   const { user: currentUser, loading, refreshUser } = useAuth();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,12 +57,11 @@ export const Profile = ({ user }: ProfileProps) => {
   const [profileUser, setProfileUser] = useState<IUser | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
 
-  // The actual user data we're displaying (current user or another user)
   const displayUser = profileUser || currentUser;
 
   const isCurrentUserProfile = currentUser?._id === user?._id;
 
-  
+
   useEffect(() => {
     if (user) {
       setProfileUser(user);
@@ -86,24 +77,24 @@ export const Profile = ({ user }: ProfileProps) => {
   }, [currentUser, displayUser, isCurrentUserProfile]);
 
   const checkFriendshipStatus = async () => {
-    if (!currentUser || !displayUser || currentUser._id === user?._id) {
+    if (!currentUser || !displayUser || currentUser._id === displayUser._id) {
       return;
     }
 
     try {
       setLoadingFriendship(true);
-      
-      if (currentUser.friends && Array.isArray(currentUser.friends.id)) {
-        setIsFriend(currentUser.friends.id.includes(displayUser._id));
-      } else {
-        // Fallback to API call to get friends list
-        const response = await getFriendsList();
-        
-        if (response.success && Array.isArray(response.data)) {
-          // Check if the displayed user is in the friends list
-          const friendsIds = response.data.map(friend => friend._id);
-          setIsFriend(friendsIds.includes(displayUser._id));
-        }
+
+      // Check if they are already friends
+      const isAlreadyFriend = currentUser.friends?.id?.includes(displayUser._id) || false;
+      setIsFriend(isAlreadyFriend);
+
+      if (!isAlreadyFriend) {
+        // Check if there's a pending friend request
+        const hasOutgoingRequest = currentUser.friendRequests?.outgoing?.id?.includes(displayUser._id) || false;
+        const hasIncomingRequest = currentUser.friendRequests?.incoming?.id?.includes(displayUser._id) || false;
+
+        setFriendRequestSent(hasOutgoingRequest);
+        setFriendRequestPending(hasIncomingRequest);
       }
     } catch (error) {
       console.error('Error checking friendship status:', error);
@@ -112,25 +103,84 @@ export const Profile = ({ user }: ProfileProps) => {
     }
   };
 
-  // Function to send a friend request
   const handleSendFriendRequest = async () => {
+    if (isCurrentUserProfile) {
+      return;
+    }
+
+    try {
+      setLoadingFriendship(true);
+
+      console.log("tHe USERRRRRRRRRRRRRRRR",user);
+      
+      const response = await sendFriendRequest(user?._id);
+
+      if (response.success) {
+        setFriendRequestSent(true);
+        setSuccess('Friend request sent');
+
+        // Refresh user data to get updated friend requests
+        await refreshUser();
+      } else {
+        setError(response.message || 'Failed to send friend request');
+      }
+    } catch (error: any) {
+      setError(error.message || 'Failed to send friend request');
+    } finally {
+      setLoadingFriendship(false);
+    }
+  };
+
+  const handleAcceptFriendRequest = async () => {
     if (!displayUser?._id || isCurrentUserProfile) {
       return;
     }
 
     try {
-      setFriendRequestSent(true);
-      const response = await sendFriendRequest(displayUser._id);
-      
+      setLoadingFriendship(true);
+      const response = await acceptFriendRequest(user._id);
+
       if (response.success) {
-        setSuccess('Friend request sent');
+        setIsFriend(true);
+        setFriendRequestPending(false);
+        setSuccess('Friend request accepted');
+
+        // Refresh user data to get updated friends list
+        await refreshUser();
       } else {
-        setError(response.message || 'Failed to send friend request');
-        setFriendRequestSent(false);
+        setError(response.message || 'Failed to accept friend request');
       }
     } catch (error: any) {
-      setError(error.message || 'Failed to send friend request');
-      setFriendRequestSent(false);
+      setError(error.message || 'Failed to accept friend request');
+    } finally {
+      setLoadingFriendship(false);
+    }
+  };
+
+  // Update the friend request rejection handler (if you need it)
+  const handleRejectFriendRequest = async () => {
+    if (!displayUser?._id || isCurrentUserProfile) {
+      return;
+    }
+
+    try {
+      setLoadingFriendship(true);
+      // You'll need to create this API endpoint
+      const response = await rejectFriendRequest(displayUser._id);
+
+      if (response.success) {
+        setFriendRequestPending(false);
+        setSuccess('Friend request rejected');
+
+        // Refresh user data
+        await refreshUser();
+      } else {
+        setError(response.message || 'Failed to reject friend request');
+      }
+    } catch (error: any) {
+      setError(error.message || 'Failed to reject friend request');
+    } finally {
+      setLoadingFriendship(false);
     }
   };
 
@@ -145,7 +195,7 @@ export const Profile = ({ user }: ProfileProps) => {
 
     try {
       let musicProfileResponse;
-      if(currentUser?._id == user?._id) {
+      if (currentUser?._id == user?._id) {
         musicProfileResponse = await getMyMusicProfile();
       } else {
         musicProfileResponse = await getMusicProfile(user?._id || '');
@@ -437,7 +487,7 @@ export const Profile = ({ user }: ProfileProps) => {
     );
   }
 
-  
+
 
   // Only show the user info form for the current user, not for other profiles
   if (!user?._id && needsUserInfo()) {
@@ -465,76 +515,76 @@ export const Profile = ({ user }: ProfileProps) => {
       <main className="p-4 flex-grow">
         <div className=" ">
           {currentUser?._id == displayUser?._id && (
-          <div className="flex absolute justify-end right-4 z-50 dropdown-container">
+            <div className="flex absolute justify-end right-4 z-50 dropdown-container">
 
-            <Ellipsis
-              className='w-10 h-10 cursor-pointer hover:bg-white/10 rounded-full px-1 text-white'
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowDropdown(!showDropdown);
-              }}
-            />
-            {showDropdown && (
-              <div className="absolute right-0 top-12 w-48 bg-white rounded-xl shadow-lg py-2 z-50">
-                <button
-                  className="w-full px-4 cursor-pointer py-2 text-left hover:bg-gray-100 flex items-center gap-2"
-                  onClick={() => {
-                    setShowEditProfile(true);
-                    setShowDropdown(false);
-                  }}
-                >
-                  <Edit className="w-4 h-4" /> Edit Profile
-                </button>
-                <button
-                  className="w-full px-4 cursor-pointer  py-2 text-left hover:bg-gray-100 flex items-center gap-2"
-                  onClick={() => {
-                    setShowAge(!showAge);
-                    setShowDropdown(false);
-                  }}
-                >
-                  {showAge ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  {showAge ? 'Hide Age' : 'Show Age'}
-                </button>
-                <button
-                  className="w-full px-4 cursor-pointer py-2 text-left hover:bg-gray-100 flex items-center gap-2"
-                  onClick={() => {
-                    navigator.clipboard.writeText(window.location.href);
-                    setSuccess('Profile link copied to clipboard!');
-                    setShowDropdown(false);
-                    setTimeout(() => setSuccess(null), 3000);
-                  }}
-                >
-                  <Share2 className="w-4 h-4" /> Share Profile
-                </button>
-                <button
-                  className="w-full px-4 py-2 cursor-pointer text-left hover:bg-gray-100 text-red-600 flex items-center gap-2"
-                  onClick={() => {
-                    // TODO: Implement deactivate profile
-                    setShowDropdown(false);
-                  }}
-                >
-                  <UserMinus className="w-4 h-4" /> Deactivate
-                </button>
-                <div className="border-t border-gray-200 my-1"></div>
-                <button
-                  className="w-full px-4 py-2 cursor-pointer text-left hover:bg-gray-100 text-red-600 flex items-center gap-2"
-                  onClick={async () => {
-                    try {
+              <Ellipsis
+                className='w-10 h-10 cursor-pointer hover:bg-white/10 rounded-full px-1 text-white'
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDropdown(!showDropdown);
+                }}
+              />
+              {showDropdown && (
+                <div className="absolute right-0 top-12 w-48 bg-white rounded-xl shadow-lg py-2 z-50">
+                  <button
+                    className="w-full px-4 cursor-pointer py-2 text-left hover:bg-gray-100 flex items-center gap-2"
+                    onClick={() => {
+                      setShowEditProfile(true);
                       setShowDropdown(false);
-                      await logout();
-                      await refreshUser();
-                      await router.push('/login');
-                    } catch (err: any) {
-                      setError(err.message || 'Failed to log out');
-                    }
-                  }}
-                >
-                  <LogOut className="w-4 h-4" /> Log Out
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+                    }}
+                  >
+                    <Edit className="w-4 h-4" /> Edit Profile
+                  </button>
+                  <button
+                    className="w-full px-4 cursor-pointer  py-2 text-left hover:bg-gray-100 flex items-center gap-2"
+                    onClick={() => {
+                      setShowAge(!showAge);
+                      setShowDropdown(false);
+                    }}
+                  >
+                    {showAge ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showAge ? 'Hide Age' : 'Show Age'}
+                  </button>
+                  <button
+                    className="w-full px-4 cursor-pointer py-2 text-left hover:bg-gray-100 flex items-center gap-2"
+                    onClick={() => {
+                      navigator.clipboard.writeText(window.location.href);
+                      setSuccess('Profile link copied to clipboard!');
+                      setShowDropdown(false);
+                      setTimeout(() => setSuccess(null), 3000);
+                    }}
+                  >
+                    <Share2 className="w-4 h-4" /> Share Profile
+                  </button>
+                  <button
+                    className="w-full px-4 py-2 cursor-pointer text-left hover:bg-gray-100 text-red-600 flex items-center gap-2"
+                    onClick={() => {
+                      // TODO: Implement deactivate profile
+                      setShowDropdown(false);
+                    }}
+                  >
+                    <UserMinus className="w-4 h-4" /> Deactivate
+                  </button>
+                  <div className="border-t border-gray-200 my-1"></div>
+                  <button
+                    className="w-full px-4 py-2 cursor-pointer text-left hover:bg-gray-100 text-red-600 flex items-center gap-2"
+                    onClick={async () => {
+                      try {
+                        setShowDropdown(false);
+                        await logout();
+                        await refreshUser();
+                        await router.push('/login');
+                      } catch (err: any) {
+                        setError(err.message || 'Failed to log out');
+                      }
+                    }}
+                  >
+                    <LogOut className="w-4 h-4" /> Log Out
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="rounded-lg mb-6">
@@ -580,24 +630,50 @@ export const Profile = ({ user }: ProfileProps) => {
                     <div className="text-md font-semibold text-white/80">{displayUser?.age}</div>
                   </div>
                 </div>
-                
+
                 {/* Friend and Message buttons */}
-                {!isCurrentUserProfile && displayUser?._id && (
+                {!isCurrentUserProfile && (
                   <div className="flex gap-3 mt-2">
                     {isFriend ? (
+                      // If already friends, show message button
                       <button
                         onClick={handleMessageUser}
                         className="flex items-center gap-2 px-5 py-2 bg-white text-[#964FFF] rounded-full font-medium hover:bg-opacity-90 transition-all"
                       >
                         <MessageSquare className="w-4 h-4" /> Message
                       </button>
+                    ) : friendRequestPending ? (
+                      // If there's an incoming friend request, show accept/reject buttons
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleAcceptFriendRequest}
+                          disabled={loadingFriendship}
+                          className={`flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-full font-medium hover:bg-green-600 transition-all ${loadingFriendship ? 'opacity-70 cursor-not-allowed' : ''
+                            }`}
+                        >
+                          {loadingFriendship ? (
+                            <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
+                          ) : (
+                            <UserPlus className="w-4 h-4" />
+                          )}
+                          Accept
+                        </button>
+                        <button
+                          onClick={handleRejectFriendRequest}
+                          disabled={loadingFriendship}
+                          className={`flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-full font-medium hover:bg-gray-600 transition-all ${loadingFriendship ? 'opacity-70 cursor-not-allowed' : ''
+                            }`}
+                        >
+                          Reject
+                        </button>
+                      </div>
                     ) : (
+                      // If not friends and no pending request, show add friend button
                       <button
-                        onClick={handleSendFriendRequest}
+                        onClick={() => handleSendFriendRequest()}
                         disabled={friendRequestSent || loadingFriendship}
-                        className={`flex items-center gap-2 px-5 py-2 bg-white text-[#964FFF] rounded-full font-medium hover:bg-opacity-90 transition-all ${
-                          (friendRequestSent || loadingFriendship) ? 'opacity-70 cursor-not-allowed' : ''
-                        }`}
+                        className={`flex items-center cursor-pointer gap-2 px-5 py-2 bg-white text-[#964FFF] rounded-full font-medium hover:bg-opacity-90 transition-all ${(friendRequestSent || loadingFriendship) ? 'opacity-70 cursor-pointer' : ''
+                          }`}
                       >
                         {loadingFriendship ? (
                           <div className="w-4 h-4 border-2 border-t-transparent border-[#964FFF] rounded-full animate-spin"></div>
@@ -625,7 +701,7 @@ export const Profile = ({ user }: ProfileProps) => {
               </button>
             </div>
           )}
-          
+
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mt-4 relative">
               <span className="block sm:inline">{error}</span>
@@ -707,10 +783,10 @@ export const Profile = ({ user }: ProfileProps) => {
         </div>
       </main>
 
-        <EditProfile
-          isOpen={showEditProfile}
-          onClose={() => setShowEditProfile(false)}
-        />
+      <EditProfile
+        isOpen={showEditProfile}
+        onClose={() => setShowEditProfile(false)}
+      />
     </div>
   );
 }; 

@@ -57,7 +57,6 @@ export interface IUser {
     hasCompletedOnboarding: boolean;
     createdAt: Date;
     updatedAt: Date;
-    friendStatus?: 'friends' | 'request-sent' | 'request-received' | 'none';
 }
 
 export interface IFriendRequest {
