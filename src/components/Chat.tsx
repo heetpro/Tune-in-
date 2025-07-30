@@ -89,12 +89,7 @@ const Chat: React.FC<ChatProps> = ({ receiverId, receiverData }) => {
 
   return (
     <div className={`${spaceGrotesk.className} flex flex-col h-full bg-white rounded-3xl`}>
-      <div className="absolute inset-0 opacity-90 rounded-3xl"
-        style={{
-          backgroundImage: "url('/back.jpg')",
-          zIndex: -1
-        }}
-      ></div>
+  
       
       {/* Chat header with profile info */}
       <div className="p-3 border-b border-gray-200 flex items-center">
