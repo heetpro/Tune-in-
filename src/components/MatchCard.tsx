@@ -1,5 +1,5 @@
 import { hankenGrotesk, spaceGrotesk } from '@/app/fonts'
-import { BottleWine, Check, Cigarette, DiameterIcon, Dumbbell, MoveDown, MoveLeft, MoveRight, MoveUp, PersonStanding, Search, Star, VenetianMask, Waypoints, X } from 'lucide-react'
+import { BottleWine, Check, Cigarette, DiameterIcon, Disc, Dumbbell, MoveDown, MoveLeft, MoveRight, MoveUp, PersonStanding, Play, Search, SquarePlay, Star, VenetianMask, Waypoints, X } from 'lucide-react'
 import Image from 'next/image'
 import React from 'react'
 
@@ -19,7 +19,10 @@ const MatchCard = () => {
                             style={{
                                 fontSize: "clamp(1rem,2vw,100rem)"
                             }}
-                            className={`flex text-white ${spaceGrotesk.className}`}>Khushi {","}19</div>
+                            className={`flex text-white 
+                            
+                            `}>Khushi {","}19</div>
+                        {/* ${spaceGrotesk.className} */}
 
                         <div
                             style={{
@@ -88,6 +91,16 @@ const MatchCard = () => {
 
 
                     </div>
+                    <div className="flex"
+                        style={{
+                            marginTop: "clamp(1rem,3vw,100rem)"
+
+                        }}
+                    >
+
+                        <Disc color='white' size={40} />
+                    </div>
+
                 </div>
 
 
