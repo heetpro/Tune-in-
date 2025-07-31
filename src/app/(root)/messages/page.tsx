@@ -74,9 +74,9 @@ function MessagesContent() {
             </div>
 
 
-            <div className="w-full h-[88%] bg-[#fff] p-2 rounded-3xl  overflow-hidden">
+            <div className="w-full h-[88%]  p-1 rounded-4xl  overflow-hidden">
 
-              <div className=" bg-white w-[100%] rounded-2xl h-full">
+              <div className=" bg-[#2a2a2a] w-[100%] rounded-4xl h-full">
                 {loading ? (
                   <div className="flex justify-center items-center h-32">
                     <div className="spinner h-8 w-8 rounded-full animate-spin"></div>

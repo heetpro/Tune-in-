@@ -11,6 +11,7 @@
   import { spaceGrotesk } from '@/app/fonts';
   import { ProfileModal } from './ProfileModal';
   import { getUserProfile } from '@/api';
+import Image from 'next/image';
 
   // Update ChatUser to include the full user data
   interface ExtendedChatUser extends ChatUser {
@@ -187,8 +188,8 @@
 
     return (
       <div className={`${spaceGrotesk.className} flex flex-col gap-4 h-full w-full`}>
-        <div className="flex items-center w-full justify-center py-2 ">
-          <div className="flex gap-1 bg-[#151312]/70 text-white rounded-full px-4 py-2">
+        <div className="flex items-center w-full justify-center py-5 ">
+          <div className="flex gap-1 bg-[#F46D38] text-black rounded-full px-4 py-2">
             <h2 className="text-xl font-semibold">Convo </h2>
             <h2 className="text-xl font-semibold">{"/"}</h2>
             <h2 className="text-xl font-semibold">Buddies </h2>
@@ -213,11 +214,11 @@
               return (
                 <div key={conv.id} className={`${spaceGrotesk.className} rounded-full `}>
                   <li
-                    className={`p-1 mx-2 hover:opacity-90 rounded-full items-center cursor-pointer transition-all duration-300
+                    className={`p-1 mx-2 hover:bg-white/15 rounded-full items-center cursor-pointer flex justify-center transition-all  duration-100 
                     ${isActive ? 'bg-[#151312]' : ''}`}
                     onClick={() => handleClick(conv.id)}
                   >
-                    <div className="flex justify-start">
+                    <div className="flex w-[95%] justify-start">
                       <div 
                         className="relative"
                         style={{
@@ -228,7 +229,9 @@
                           openProfileModal(conv.userData as IUser);
                         }}
                       >
-                        <img
+                        <Image
+                        width={200}
+                        height={200}
                           src={conv.avatar}
                           alt={conv.name}
                           className="w-auto h-full object-cover aspect-square rounded-full"
@@ -238,7 +241,7 @@
                         )}
                       </div>
 
-                      <div className={`ml-2 flex justify-between items-center w-[80%] ${isActive ? 'text-white' : 'text-black'}`}>
+                      <div className={`ml-2 flex justify-between items-center w-[80%] ${isActive ? 'text-white' : 'text-white'}`}>
                         <div className={`flex w-[80%] flex-col justify-between items-start`}>
                           <h3 className="font-medium ">{conv.name}</h3>
                           <p className="text-sm -mt-1  truncate max-w-[180px]">
@@ -249,15 +252,15 @@
 
                         <div className="flex w-[20%] justify-center">
                           {unreadCount > 0 && (
-                            <div className={`p-1 aspect-square w-7 h-7 text-sm font-semibold flex items-center justify-center rounded-full ${isActive ? 'bg-white text-[#151312]' : 'bg-[#151312] text-white'}`}>
-                              <CircleDashedIcon />
+                            <div className={`p-1 translate-x-2 aspect-square w-7 h-7 text-sm font-semibold flex items-center justify-center rounded-full ${isActive ? 'bg-white text-[#151312]' : 'bg-[#C2F949] text-white'}`}>
+                              <CircleDashedIcon color='black' />
                             </div>
                           )}
                         </div>
                       </div>
                     </div>
                   </li>
-                  <hr className='w-[80%] opacity-70 mx-auto my-1'/>
+                  <hr className='w-[50%] opacity-70 border-white mx-auto my-2'/>
                 </div>
               );
             })}

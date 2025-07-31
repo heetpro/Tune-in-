@@ -3,7 +3,7 @@ import React from 'react'
 
 const MatchCard = () => {
     return (
-        <div className='w-full flex h-full bg-white rounded-3xl '>
+        <div className='w-full flex h-full bg-[#2a2a2a] rounded-3xl '>
 
             <div className="w-[45%] h-full"></div>
             <div className="flex flex-col h-full justify-center w-[55%]">
