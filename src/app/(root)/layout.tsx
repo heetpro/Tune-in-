@@ -9,8 +9,7 @@ export default function RootLayout({
 }) {
   return (
     <div className="w-full h-full">
-        <Navbar />
-        <div className="w-full h-[85vh]">
+        <div className="w-full h-[100vh]">
             {children}
         </div>
     </div>

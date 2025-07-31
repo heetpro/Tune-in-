@@ -57,17 +57,23 @@ function MessagesContent() {
 
   return (
     <div className=" w-full h-full  flex flex-col">
-      <div className="w-full px-3  flex-grow h-full ">
-        <div className="absolute inset-0 opacity-90 rounded-3xl"
+      <div className="w-full p-3  flex-grow h-full">
+        {/* <div className="absolute inset-0 "
           style={{
             backgroundImage: "url('/back.jpg')",
             zIndex: -1
 
-          }}
-        ></div>
+          }}>
+
+        </div> */}
+
         <div className="flex gap-2  h-full ">
-          {/* User list sidebar */}
-          <div className="w-[25%] h-full bg-[#8D50F9] p-2 rounded-3xl overflow-hidden">
+          <div className="flex flex-col w-[25%] gap-3" >
+        <Navbar />
+
+
+          <div className="w-full h-full bg-[#8D50F9] p-2 rounded-3xl  overflow-hidden">
+
             <div className=" bg-white w-[100%] rounded-2xl h-full">
               {loading ? (
                 <div className="flex justify-center items-center h-32">
@@ -81,6 +87,8 @@ function MessagesContent() {
                 />
               )}
             </div>
+          </div>
+
           </div>
 
           <div className="flex w-[75%] h-full">
