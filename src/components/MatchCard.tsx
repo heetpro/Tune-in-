@@ -97,7 +97,6 @@ const MatchCard = () => {
 
                         }}
                     >
-
                         <Disc color='white' size={40} />
                         <div className="flex">
 
@@ -105,15 +104,13 @@ const MatchCard = () => {
                             alt='audio'
                             width={100}
                             height={100}
-                            className='h-10 w-auto'
+                            className='h-10 w-auto' 
                             src={'/audio.svg'}
                             />
                         </div>
                     </div>
 
                 </div>
-
-
 
                 <div className="flex w-full justify-between">
                     <div className="flex gap-1">
