@@ -16,7 +16,7 @@ interface ChatProps {
   onClose? : boolean;
 }
 
-const Chat: React.FC<ChatProps> = ({ receiverId, receiverData }) => {
+const Chat: React.FC<ChatProps> = ({ receiverId, receiverData, }) => {
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);

@@ -62,7 +62,7 @@ function MessagesContent() {
 
   return (
     <div className=" w-full h-full bg-[#151312] flex flex-col">
-      <div className="w-full p-3  flex-grow h-full">
+      <div className="w-full p-5  flex-grow h-full">
         {/* <div className="absolute inset-0 "
           style={{
             backgroundImage: "url('/back.jpg')",
@@ -79,9 +79,8 @@ function MessagesContent() {
             </div>
 
 
-            <div className="w-full h-[88%]  p-1 rounded-4xl  overflow-hidden">
 
-              <div className=" bg-[#2a2a2a] w-[100%] rounded-4xl h-full">
+              <div className=" bg-[#2a2a2a] w-full h-[88%] rounded-4xl ">
                 {loading ? (
                   <div className="flex justify-center items-center h-32">
                     <div className="spinner h-8 w-8 rounded-full animate-spin"></div>
@@ -94,7 +93,6 @@ function MessagesContent() {
                   />
                 )}
               </div>
-            </div>
 
           </div>
 
