@@ -91,7 +91,7 @@ const MatchCard = () => {
 
 
                     </div>
-                    <div className="flex"
+                    <div className="flex w-fit gap-3"
                         style={{
                             marginTop: "clamp(1rem,3vw,100rem)"
 
@@ -99,6 +99,16 @@ const MatchCard = () => {
                     >
 
                         <Disc color='white' size={40} />
+                        <div className="flex">
+
+                            <Image
+                            alt='audio'
+                            width={100}
+                            height={100}
+                            className='h-10 w-auto'
+                            src={'/audio.svg'}
+                            />
+                        </div>
                     </div>
 
                 </div>
