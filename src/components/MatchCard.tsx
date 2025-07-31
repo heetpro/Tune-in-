@@ -1,5 +1,5 @@
 import { hankenGrotesk, spaceGrotesk } from '@/app/fonts'
-import { BottleWine, Cigarette, DiameterIcon, Dumbbell, PersonStanding, Search, VenetianMask, Waypoints } from 'lucide-react'
+import { BottleWine, Check, Cigarette, DiameterIcon, Dumbbell, MoveDown, MoveLeft, MoveRight, MoveUp, PersonStanding, Search, Star, VenetianMask, Waypoints, X } from 'lucide-react'
 import Image from 'next/image'
 import React from 'react'
 
@@ -7,85 +7,127 @@ const MatchCard = () => {
     return (
         <div className={`w-full flex h-full bg-[#2a2a2a] rounded-3xl   ${hankenGrotesk.className}`}>
 
-            <div className="w-[40%] h-full"
+            <div className="w-[40%] h-full flex flex-col justify-between"
                 style={{
                     padding: "clamp(1rem,1.25vw,100rem)"
 
                 }}
             >
+                <div className="flex flex-col ">
+                    <div className="flex flex-col gap-0.5">
+                        <div
+                            style={{
+                                fontSize: "clamp(1rem,2vw,100rem)"
+                            }}
+                            className={`flex text-white ${spaceGrotesk.className}`}>Khushi {","}19</div>
 
-                <div className="flex flex-col gap-0.5">
-                    <div
-                        style={{
-                            fontSize: "clamp(1rem,2vw,100rem)"
-                        }}
-                        className={`flex text-white ${spaceGrotesk.className}`}>Khushi {","}19</div>
+                        <div
+                            style={{
+                                fontSize: "clamp(1rem,1vw,100rem)"
+                            }}
+                            className={`flex text-white/80 w-[90%] font-normal `}>Not here for perfect love ✨ just real vibes and pizza with extra cheese.. 🍕🍔😋 just looking for good vibes, good chats 💭 and maybe great coffee... 🧋🎀</div>
+                    </div>
 
-                    <div
+                    {/* tags */}
+                    <div className=" gap-1.5 flex flex-wrap"
                         style={{
-                            fontSize: "clamp(1rem,1vw,100rem)"
+                            marginTop: "clamp(1rem,3vw,100rem)"
+
                         }}
-                        className={`flex text-white/80 w-[90%] font-normal `}>Not here for perfect love ✨ just real vibes and pizza with extra cheese.. 🍕🍔😋 just looking for good vibes, good chats 💭 and maybe great coffee... 🧋🎀</div>
+                    >
+                        <div className="text-black w-fit flex gap-0.5 items-center font-semibold bg-[#C2F949] px-2 py-0.5 rounded-3xl"><DiameterIcon size={15} />
+                            <span>
+                                156 cm
+                            </span>
+                        </div>
+
+                        <div className="text-black w-fit flex gap-0.5 items-center font-semibold bg-[#C2F949] px-2 py-0.5 rounded-3xl"><Dumbbell size={15} />
+                            <span>
+                                Sometimes
+                            </span>
+                        </div>
+
+
+                        <div className="text-black w-fit flex gap-0.5 items-center font-semibold bg-[#C2F949] px-2 py-0.5 rounded-3xl"><BottleWine size={15} />
+                            <span>
+                                Never
+                            </span>
+                        </div>
+
+                        <div className="text-black w-fit flex gap-0.5 items-center font-semibold bg-[#C2F949] px-2 py-0.5 rounded-3xl"><Cigarette size={15} />
+                            <span>
+                                Never
+                            </span>
+                        </div>
+
+
+                        <div className="text-black w-fit flex gap-0.5 items-center font-semibold bg-[#C2F949] px-2 py-0.5 rounded-3xl"><PersonStanding size={15} />
+                            <span>
+                                Female
+                            </span>
+                        </div>
+
+                        <div className="text-black w-fit flex gap-0.5 items-center font-semibold bg-[#C2F949] px-2 py-0.5 rounded-3xl"><Search size={15} />
+                            <span>
+                                Something casual
+                            </span>
+                        </div>
+
+                        <div className="text-black w-fit flex gap-0.5 items-center font-semibold bg-[#C2F949] px-2 py-0.5 rounded-3xl"><Waypoints size={15} />
+                            <span>
+                                Virgo
+                            </span>
+                        </div>
+
+
+                        <div className="text-black w-fit flex gap-0.5 items-center font-semibold bg-[#C2F949] px-2 py-0.5 rounded-3xl"><VenetianMask size={15} />
+                            <span>
+                                Hindu
+                            </span>
+                        </div>
+
+
+                    </div>
                 </div>
 
-                {/* tags */}
-                <div className=" gap-1.5 flex flex-wrap"
-                    style={{
-                        marginTop: "clamp(1rem,3vw,100rem)"
 
-                    }}
-                >
-                    <div className="text-black w-fit flex gap-0.5 items-center font-semibold bg-[#C2F949] px-2 py-0.5 rounded-3xl"><DiameterIcon size={15} />
-                        <span>
-                            156 cm
-                        </span>
+
+                <div className="flex w-full justify-between">
+                    <div className="flex gap-1">
+                        <div className="w-14 h-14 flex items-center justify-center rounded-2xl aspect-square bg-[#ff3636]">
+                            <X color='black' size={30} />
+                        </div>
+                        <div className="w-14 h-14 flex items-center justify-center rounded-2xl aspect-square bg-[#ffdd1f]">
+                            <Star color='#2a2a2a' fill='#2a2a2a' size={30} />
+                        </div>
+
+                        <div className="w-14 h-14 flex items-center justify-center rounded-2xl aspect-square bg-[#C2F949]">
+                            <Check color='black' size={30} />
+                        </div>
                     </div>
 
-                    <div className="text-black w-fit flex gap-0.5 items-center font-semibold bg-[#C2F949] px-2 py-0.5 rounded-3xl"><Dumbbell size={15} />
-                        <span>
-                            Sometimes
-                        </span>
+                    <div className="flex gap-1 items-end">
+
+                        <div className="w-10 h-10 flex items-center justify-center rounded-xl aspect-square bg-[#8D50F9]">
+                            <MoveLeft color='white' size={20} />
+                        </div>
+
+                        <div className="w-10 h-10 flex items-center justify-center rounded-xl aspect-square bg-[#8D50F9]">
+                            <MoveUp color='white' size={20} />
+                        </div>
+
+                        <div className="w-10 h-10 flex items-center justify-center rounded-xl aspect-square bg-[#8D50F9]">
+                            <MoveDown color='white' size={20} />
+                        </div>
+
+                        <div className="w-10 h-10 flex items-center justify-center rounded-xl aspect-square bg-[#8D50F9]">
+                            <MoveRight color='white' size={20} />
+                        </div>
+
+
+
                     </div>
 
-
-                      <div className="text-black w-fit flex gap-0.5 items-center font-semibold bg-[#C2F949] px-2 py-0.5 rounded-3xl"><BottleWine size={15} />
-                        <span>
-                            Never
-                        </span>
-                    </div>
-
-                      <div className="text-black w-fit flex gap-0.5 items-center font-semibold bg-[#C2F949] px-2 py-0.5 rounded-3xl"><Cigarette size={15} />
-                        <span>
-                            Never
-                        </span>
-                    </div>
-
-
-                      <div className="text-black w-fit flex gap-0.5 items-center font-semibold bg-[#C2F949] px-2 py-0.5 rounded-3xl"><PersonStanding size={15} />
-                        <span>
-                            Female
-                        </span>
-                    </div>
-
-                      <div className="text-black w-fit flex gap-0.5 items-center font-semibold bg-[#C2F949] px-2 py-0.5 rounded-3xl"><Search size={15} />
-                        <span>
-                            Something casual
-                        </span>
-                    </div>
-
-                       <div className="text-black w-fit flex gap-0.5 items-center font-semibold bg-[#C2F949] px-2 py-0.5 rounded-3xl"><Waypoints size={15} />
-                        <span>
-                            Virgo
-                        </span>
-                    </div>
-
-
-                       <div className="text-black w-fit flex gap-0.5 items-center font-semibold bg-[#C2F949] px-2 py-0.5 rounded-3xl"><VenetianMask size={15} />
-                        <span>
-                            Hindu
-                        </span>
-                    </div>
-                    
 
                 </div>
 
