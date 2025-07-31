@@ -17,14 +17,15 @@ const Navbar = () => {
         // padding: 'clamp(0.5rem, 0.25vw, 200rem)',
       }}
     >
-      <div className="flex items-start gap-2 h-full w-full">
-        <div className="w-[30%] h-full">
-          <Logo2 />
-        </div>
-        <div className="flex gap-2 h-full w-full">
+      <div className="flex  items-start gap-5 h-full w-full">
+
+        <div className="grid grid-cols-3 h-full w-full">
           {user && (
-            <div className='h-full flex w-full'>
-              <div className="relative w-auto  h-full aspect-square rounded-2xl border-4 border-[#fff] overflow-hidden"
+            <div className='h-full flex gap-1.5  justify-start w-full'>
+              <div className="w-[100%] h-full">
+                <Logo2 />
+              </div>
+              <div className=" w-[100%]   h-full aspect-square rounded-3xl border-4 border-[#fff] "
                 onClick={() => { setIsOpen(true) }}
               >
                 {user.profilePicture ? (
@@ -34,7 +35,7 @@ const Navbar = () => {
                       alt={user.displayName}
                       width={200}
                       height={200}
-                      className="object-cover cursor-pointer w-full h-full aspect-square"
+                      className="object-cover rounded-3xl cursor-pointer w-full h-full aspect-square"
                     />
                   </div>
 

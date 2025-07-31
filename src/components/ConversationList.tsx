@@ -260,7 +260,7 @@ import Image from 'next/image';
                       </div>
                     </div>
                   </li>
-                  <hr className='w-[50%] opacity-70 border-white mx-auto my-2'/>
+                  <hr className='w-[90%] opacity-70  mx-auto my-1.5'/>
                 </div>
               );
             })}
