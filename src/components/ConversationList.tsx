@@ -252,7 +252,7 @@ import Image from 'next/image';
 
                         <div className="flex w-[20%] justify-center">
                           {unreadCount > 0 && (
-                            <div className={`p-1 translate-x-2 aspect-square w-7 h-7 text-sm font-semibold flex items-center justify-center rounded-full ${isActive ? 'bg-white text-[#151312]' : 'bg-[#C2F949] text-white'}`}>
+                            <div className={`p-1  aspect-square w-7 h-7 text-sm font-semibold flex items-center justify-center rounded-full ${isActive ? 'bg-white text-[#151312]' : 'bg-[#C2F949] text-white'}`}>
                               <CircleDashedIcon color='black' />
                             </div>
                           )}

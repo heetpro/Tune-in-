@@ -10,6 +10,7 @@ import Picker from '@emoji-mart/react';
 import { IUser } from '@/types';
 import { ProfileModal } from './ProfileModal';
 import Image from 'next/image';
+import Loader from './Loader';
 
 interface ChatProps {
   receiverId: string;
@@ -148,9 +149,8 @@ const Chat: React.FC<ChatProps> = ({ receiverId, receiverData, }) => {
 
       <div className="flex-1 p-4 overflow-y-auto">
         {loading ? (
-          <div className="flex justify-center items-center h-32">
-            <div className="spinner h-8 w-8 rounded-full border-4 border-t-blue-500 border-r-transparent border-b-blue-500 border-l-transparent animate-spin"></div>
-          </div>
+          <div className="flex w-full h-full flex-col justify-center items-center"><Loader/></div>
+         
         ) : messages.length === 0 ? (
           <div className="flex items-center justify-center h-full text-gray-500">
             No messages yet. Start the conversation!

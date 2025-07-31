@@ -16,6 +16,7 @@ import { spaceGrotesk } from '@/app/fonts';
 import { Settings } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import MatchCard from '@/components/MatchCard';
+import Loader from '@/components/Loader';
 
 export default function MessagesPage() {
   return (
@@ -82,8 +83,8 @@ function MessagesContent() {
 
               <div className=" bg-[#2a2a2a] w-full h-[88%] rounded-4xl ">
                 {loading ? (
-                  <div className="flex justify-center items-center h-32">
-                    <div className="spinner h-8 w-8 rounded-full animate-spin"></div>
+                  <div className="flex justify-center items-center w-full h-full">
+                    <Loader/>
                   </div>
                 ) : (
                   <ConversationList

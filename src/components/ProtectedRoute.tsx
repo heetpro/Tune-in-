@@ -5,6 +5,7 @@ import { useEffect, ReactNode, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { checkUserAuth } from '@/api/auth';
 import Cookies from 'js-cookie';
+import Loader from './Loader';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -67,11 +68,8 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps): ReactNode => {
 
   if (loading || checking) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <div className="spinner h-12 w-12 rounded-full border-4 border-t-blue-500 border-r-transparent border-b-blue-500 border-l-transparent animate-spin mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
+      <div className="flex items-center w-full bg-[#2a2a2a] justify-center h-screen">
+       <Loader/>
       </div>
     );
   }
