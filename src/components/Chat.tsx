@@ -9,11 +9,12 @@ import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import { IUser } from '@/types';
 import { ProfileModal } from './ProfileModal';
+import Image from 'next/image';
 
 interface ChatProps {
   receiverId: string;
-  receiverData?: IUser; 
-  onClose? : boolean;
+  receiverData?: IUser;
+  onClose?: boolean;
 }
 
 const Chat: React.FC<ChatProps> = ({ receiverId, receiverData, }) => {
@@ -24,7 +25,7 @@ const Chat: React.FC<ChatProps> = ({ receiverId, receiverData, }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
   const { user } = useAuth();
-  
+
   const {
     messages,
     loading,
@@ -38,21 +39,18 @@ const Chat: React.FC<ChatProps> = ({ receiverId, receiverData, }) => {
     chatPartner
   } = useChat(receiverId);
 
-  // The user data to display in the profile modal
   const profileUser = receiverData || chatPartner;
 
-  // Color patterns for your messages
   const myMessageColors = [
-    { bg: '#F46D38', text: '#fff' }, // Orange
-    { bg: '#C2F949', text: '#000' }, // Green
-    { bg: '#8D50F9', text: '#fff' }  // Purple
+    { bg: '#F46D38', text: '#fff' },
+    { bg: '#C2F949', text: '#000' },
+    { bg: '#8D50F9', text: '#fff' }
   ];
 
-  // Color patterns for other person's messages
   const otherMessageColors = [
-    { bg: '#FF6B9D', text: '#000' }, // Pink
-    { bg: '#901E3E', text: '#fff' }, // Teal
-    { bg: '#00CAFF', text: '#000' }  // Blue
+    { bg: '#FF6B9D', text: '#000' },
+    { bg: '#901E3E', text: '#fff' },
+    { bg: '#00CAFF', text: '#000' }
   ];
 
   // Function to get message color based on index and sender
@@ -84,7 +82,7 @@ const Chat: React.FC<ChatProps> = ({ receiverId, receiverData, }) => {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !user || sending) return;
-    
+
     try {
       setSending(true);
       await sendMessage(newMessage);
@@ -110,20 +108,22 @@ const Chat: React.FC<ChatProps> = ({ receiverId, receiverData, }) => {
 
   return (
     <div className={`${spaceGrotesk.className} text-white flex flex-col h-full bg-[#2a2a2a] rounded-3xl`}>
-  
-      
+
+
       {/* Chat header with profile info */}
       <div className="p-3 border-b border-gray-200 flex items-center">
         {profileUser && (
-          <div 
+          <div
             className="flex items-center cursor-pointer"
             onClick={() => setIsProfileModalOpen(true)}
           >
-            <div className="relative mr-2 p-1 border-4 border-[#151312] rounded-xl">
-              <img 
-                src={profileUser.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(profileUser.displayName || 'User')}`} 
-                alt={profileUser.displayName} 
-                className="w-10 h-10 rounded-md object-cover"
+            <div className="relative mr-2 p-1 rounded-xl">
+              <Image
+                width={100}
+                height={100}
+                src={profileUser.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(profileUser.displayName || 'User')}`}
+                alt={profileUser.displayName}
+                className="w-12 h-12 rounded-full object-cover"
               />
               {isOnline && (
                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
@@ -131,7 +131,7 @@ const Chat: React.FC<ChatProps> = ({ receiverId, receiverData, }) => {
             </div>
             <div>
               <div className="font-medium text-lg">{profileUser.displayName}</div>
-              <div className="text-xs -mt-1 text-gray-500">
+              <div className="text-xs -mt-1 text-white/80">
                 {isOnline ? 'Online' : 'Offline'}
                 {isTyping && <span className="ml-2 italic">typing...</span>}
               </div>
@@ -139,13 +139,13 @@ const Chat: React.FC<ChatProps> = ({ receiverId, receiverData, }) => {
           </div>
         )}
       </div>
-      
+
       {!isConnected && (
         <div className="p-2 bg-yellow-100 text-yellow-800 text-center text-sm">
           {error || "Socket disconnected. Messages may be delayed."}
         </div>
       )}
-      
+
       <div className="flex-1 p-4 overflow-y-auto">
         {loading ? (
           <div className="flex justify-center items-center h-32">
@@ -159,16 +159,15 @@ const Chat: React.FC<ChatProps> = ({ receiverId, receiverData, }) => {
           messages.map((message, index) => {
             const isMyMessage = message.senderId === user?._id;
             const messageColor = getMessageColor(index, isMyMessage);
-            
+
             return (
-              <div 
-                key={message.id || `msg-${message.senderId}-${message.receiverId}-${index}`} 
+              <div
+                key={message.id || `msg-${message.senderId}-${message.receiverId}-${index}`}
                 className={`mb-0.5 ${isMyMessage ? 'text-right' : 'text-left'}`}
               >
-                <div 
-                  className={`inline-block ${spaceGrotesk.className} max-w-[70%] px-3.5 py-2  font-medium rounded-3xl ${
-                    isMyMessage && message.error ? 'bg-red-400' : ''
-                  }`}
+                <div
+                  className={`inline-block ${spaceGrotesk.className} max-w-[70%] px-3.5 py-2  font-medium rounded-3xl ${isMyMessage && message.error ? 'bg-red-400' : ''
+                    }`}
                   style={{
                     backgroundColor: message.error ? '#ef4444' : messageColor.bg,
                     color: message.error ? '#fff' : messageColor.text
@@ -180,16 +179,16 @@ const Chat: React.FC<ChatProps> = ({ receiverId, receiverData, }) => {
             );
           })
         )}
-        
+
         {isTyping && (
           <div className="typing-indicator text-gray-500 italic text-sm p-2">
             Someone is typing...
           </div>
         )}
-        
+
         <div ref={messagesEndRef} />
       </div>
-      
+
       <form onSubmit={handleSendMessage} className={`${spaceGrotesk.className} p-4 relative`}>
         <div className="flex gap-2">
           <div className="relative flex-1 flex gap-2">
@@ -206,19 +205,19 @@ const Chat: React.FC<ChatProps> = ({ receiverId, receiverData, }) => {
               value={newMessage}
               onChange={handleInputChange}
               placeholder="Type a message..."
-              className="flex-1 px-4 p-2 border border-gray-300 rounded-2xl focus:outline-none focus:border-[#151312]"
+              className="flex-1 px-4 p-2 bg-white/10 rounded-2xl focus:outline-none focus:border-[#151312] placeholder:text-white/60"
               disabled={sending}
             />
           </div>
-          <button 
+          <button
             type="submit"
-            className="bg-[#151312] border-2 border-[#151312] text-white px-4 py-2 rounded-2xl hover:bg-blue-600 focus:outline-none disabled:bg-[#151312]/50"
+            className="bg-[#151312] cursor-pointer text-white px-4 py-2 rounded-2xl hover:bg-blue-600 focus:outline-none disabled:bg-[#151312]/50"
             disabled={sending || !newMessage.trim() || !isConnected}
           >
             {sending ? 'Sending...' : 'Send'}
           </button>
         </div>
-        
+
         {showEmojiPicker && (
           <div className="absolute bottom-full mb-2">
             <Picker
@@ -234,10 +233,10 @@ const Chat: React.FC<ChatProps> = ({ receiverId, receiverData, }) => {
 
       {/* Profile Modal */}
       {profileUser && (
-        <ProfileModal 
-          isOpen={isProfileModalOpen} 
-          onClose={() => setIsProfileModalOpen(false)} 
-          user={profileUser} 
+        <ProfileModal
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+          user={profileUser}
         />
       )}
     </div>
