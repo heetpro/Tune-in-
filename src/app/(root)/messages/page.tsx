@@ -73,7 +73,7 @@ function MessagesContent() {
         </div> */}
 
         <div className="flex gap-4  h-full ">
-          <div className="flex flex-col w-[20%] h-full gap-3" >
+          <div className="flex flex-col w-[18%] h-full gap-3" >
             <div className="w-full h-[12%]">
               <Navbar />
             </div>

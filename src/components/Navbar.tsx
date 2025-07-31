@@ -5,7 +5,7 @@ import Logo2 from './Logo2'
 import Image from 'next/image'
 import { spaceGrotesk } from '@/app/fonts'
 import { ProfileModal } from './ProfileModal'
-import { FileUser, PersonStanding, UserRound, Users, UsersRound } from 'lucide-react'
+import { Cog, FileUser, PersonStanding, UserRound, Users, UsersRound } from 'lucide-react'
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false)
@@ -19,9 +19,9 @@ const Navbar = () => {
     >
       <div className="flex  items-start gap-5 h-full w-full">
 
-        <div className="grid grid-cols-3 h-full w-full">
+        <div className="  h-full w-full">
           {user && (
-            <div className='h-full flex gap-1.5  justify-start w-full'>
+            <div className='h-full grid grid-cols-3 gap-2  w-full'>
               <div className="w-[100%] h-full">
                 <Logo2 />
               </div>
@@ -46,7 +46,12 @@ const Navbar = () => {
                     </span>
                   </div>
                 )}
+
               </div>
+                <div className="flex w-full h-full items-center bg-[#8D50F9] rounded-full aspect-square border-4 justify-center border-white">
+                  <Cog size={60} color='white'/>
+                </div>
+
               {/* <div className={`flex justify-end pb-1 h-full py-2 px-3 rounded-2xl  bg-[#151312] flex-col`}>
                 <span className="font-semibold text-white"
                 style={{
