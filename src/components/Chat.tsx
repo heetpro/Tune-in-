@@ -41,6 +41,26 @@ const Chat: React.FC<ChatProps> = ({ receiverId, receiverData, }) => {
   // The user data to display in the profile modal
   const profileUser = receiverData || chatPartner;
 
+  // Color patterns for your messages
+  const myMessageColors = [
+    { bg: '#F46D38', text: '#000' }, // Orange
+    { bg: '#C2F949', text: '#000' }, // Green
+    { bg: '#8D50F9', text: '#fff' }  // Purple
+  ];
+
+  // Color patterns for other person's messages
+  const otherMessageColors = [
+    { bg: '#FF6B9D', text: '#000' }, // Pink
+    { bg: '#4ECDC4', text: '#000' }, // Teal
+    { bg: '#45B7D1', text: '#fff' }  // Blue
+  ];
+
+  // Function to get message color based on index and sender
+  const getMessageColor = (index: number, isMyMessage: boolean) => {
+    const colors = isMyMessage ? myMessageColors : otherMessageColors;
+    return colors[index % colors.length];
+  };
+
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -136,24 +156,29 @@ const Chat: React.FC<ChatProps> = ({ receiverId, receiverData, }) => {
             No messages yet. Start the conversation!
           </div>
         ) : (
-          messages.map((message, index) => (
-            <div 
-              key={message.id || `msg-${message.senderId}-${message.receiverId}-${index}`} 
-              className={`mb-0.5 ${message.senderId === user?._id ? 'text-right' : 'text-left'}`}
-            >
+          messages.map((message, index) => {
+            const isMyMessage = message.senderId === user?._id;
+            const messageColor = getMessageColor(index, isMyMessage);
+            
+            return (
               <div 
-                className={`inline-block ${spaceGrotesk.className} max-w-[70%] px-3.5 py-2 rounded-3xl ${
-                  message.senderId === user?._id 
-                    ? `bg-[#151312] text-white ${
-                        message.error ? 'bg-red-400' : ''
-                      }`
-                    : 'bg-gray-200 text-gray-800 rounded-bl-none'
-                }`}
+                key={message.id || `msg-${message.senderId}-${message.receiverId}-${index}`} 
+                className={`mb-0.5 ${isMyMessage ? 'text-right' : 'text-left'}`}
               >
-                {message.text}
+                <div 
+                  className={`inline-block ${spaceGrotesk.className} max-w-[70%] px-3.5 py-2 rounded-3xl ${
+                    isMyMessage && message.error ? 'bg-red-400' : ''
+                  }`}
+                  style={{
+                    backgroundColor: message.error ? '#ef4444' : messageColor.bg,
+                    color: message.error ? '#fff' : messageColor.text
+                  }}
+                >
+                  {message.text}
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
         
         {isTyping && (
@@ -219,4 +244,4 @@ const Chat: React.FC<ChatProps> = ({ receiverId, receiverData, }) => {
   );
 };
 
-export default Chat; 
+export default Chat;
