@@ -251,7 +251,7 @@ const SetupPage = () => {
     return (
       <div className={`flex min-h-screen items-center justify-center p-2 z-50 ${spaceGrotesk.className}`}>
         <div className="flex w-[90vw] md:w-[400px]">
-          <div className="bg-[#8D50F9] rounded-2xl p-6 w-full">
+          <div className="bg-[#151312] rounded-2xl p-6 w-full">
             <div className="mb-6">
               <h2 className="text-xl text-white font-bold mb-2">{steps[currentStep].title}</h2>
               <div className="flex gap-2">
@@ -299,7 +299,7 @@ const SetupPage = () => {
                       key={option}
                       onClick={() => setFormData(prev => ({ ...prev, gender: option as any }))}
                       className={`p-3 border-2 rounded-lg text-sm capitalize ${formData.gender === option
-                        ? 'bg-white text-[#8D50F9] border-white'
+                        ? 'bg-white text-[#151312] border-white'
                         : 'text-white border-white/50 hover:border-white'
                         }`}
                     >
@@ -321,7 +321,7 @@ const SetupPage = () => {
                         setFormData(prev => ({ ...prev, intrestedIn: newInterested }));
                       }}
                       className={`p-3 border-2 rounded-lg text-sm capitalize ${formData.intrestedIn.includes(option)
-                        ? 'bg-white text-[#8D50F9] border-white'
+                        ? 'bg-white text-[#151312] border-white'
                         : 'text-white border-white/50 hover:border-white'
                         }`}
                     >
@@ -349,7 +349,7 @@ const SetupPage = () => {
                   <button
                     onClick={detectLocation}
                     disabled={isLoadingLocation}
-                    className="w-full p-3 border-2 border-white rounded-lg text-sm text-white hover:bg-white hover:text-[#8D50F9] transition-colors"
+                    className="w-full p-3 border-2 border-white rounded-lg text-sm text-white hover:bg-white hover:text-[#151312] transition-colors"
                   >
                     {isLoadingLocation ? 'Detecting...' : 'Detect My Location'}
                   </button>
@@ -385,7 +385,7 @@ const SetupPage = () => {
               <button
                 onClick={handleNextStep}
                 disabled={isSubmitting}
-                className="w-full mt-2 px-5 bg-white hover:bg-transparent border-2 border-white hover:text-white cursor-pointer text-[#8D50F9] py-3 rounded-xl font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full mt-2 px-5 bg-white hover:bg-transparent border-2 border-white hover:text-white cursor-pointer text-[#151312] py-3 rounded-xl font-medium disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isSubmitting ? 'Saving...' : currentStep === steps.length - 1 ? 'Complete Setup' : 'Continue'}
                 {!isSubmitting && <ChevronRight className="w-5 h-5" />}

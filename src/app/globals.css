@@ -29,7 +29,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  --super : #8D50F9;
+  --super : #151312;
 }
 
 
@@ -41,7 +41,7 @@
 }
 
 *{
-  border: 1px solid red;
+  /* border: 1px solid red; */
 }
 
 body {

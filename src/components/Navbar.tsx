@@ -12,7 +12,7 @@ const Navbar = () => {
   const [isFriendsOpen, setIsFriendsOpen] = useState(false)
   const { user } = useAuth()
   return (
-    <div className={`${spaceGrotesk.className} w-full h-[15vh] overflow-hidden `}
+    <div className={`${spaceGrotesk.className} w-full h-full overflow-hidden `}
       style={{
         // padding: 'clamp(0.5rem, 0.25vw, 200rem)',
       }}
@@ -21,10 +21,10 @@ const Navbar = () => {
         <div className="w-[30%] h-full">
           <Logo2 />
         </div>
-        <div className="flex gap-2 h-full w-[60%]">
+        <div className="flex gap-2 h-full w-full">
           {user && (
             <div className='h-full flex w-full'>
-              <div className="relative w-full h-full aspect-square rounded-2xl border-4 border-[#8D50F9] overflow-hidden"
+              <div className="relative w-auto  h-full aspect-square rounded-2xl border-4 border-[#fff] overflow-hidden"
                 onClick={() => { setIsOpen(true) }}
               >
                 {user.profilePicture ? (
@@ -34,7 +34,7 @@ const Navbar = () => {
                       alt={user.displayName}
                       width={200}
                       height={200}
-                      className="object-cover w-full h-full aspect-square"
+                      className="object-cover cursor-pointer w-full h-full aspect-square"
                     />
                   </div>
 
@@ -46,17 +46,25 @@ const Navbar = () => {
                   </div>
                 )}
               </div>
-              <div className={`flex justify-end pb-1 h-full py-2 px-3 rounded-2xl w-[55%] bg-[#8D50F9] flex-col `}>
-                <span className="font-semibold text-white text-xl">{user.displayName}</span>
+              <div className={`flex justify-end pb-1 h-full py-2 px-3 rounded-2xl  bg-[#151312] flex-col`}>
+                <span className="font-semibold text-white"
+                style={{
+                  fontSize: "clamp(1rem, 1.2vw, 180rem)"
+                }}
+                >{user.displayName}</span>
                 {user.username && (
-                  <span className="text-sm text-white/80 -mt-1 font-medium">@{user.username}</span>
+                  <span
+                          style={{
+                  fontSize: "clamp(0.76rem, 0.85vw, 180rem)"
+                }}
+                  className="text-white/80 -mt-1 font-medium">@{user.username}</span>
                 )}
               </div>
             </div>
           )}
         </div>
 
-        {/* <div className="bg-[#8D50F9] rounded-2xl p-2  aspect-square h-full flex items-center justify-center">
+        {/* <div className="bg-[#151312] rounded-2xl p-2  aspect-square h-full flex items-center justify-center">
           <div className="flex rounded-full bg-white p-1"
             style={{
               width: 'clamp(20px, 1.25vw, 100px)',
@@ -69,7 +77,7 @@ const Navbar = () => {
 
 
 
-        {/* <div className="flex overflow-hidden cursor-pointer justify-end h-full rounded-2xl w-[9vw] bg-[#8D50F9] relative flex-col"
+        {/* <div className="flex overflow-hidden cursor-pointer justify-end h-full rounded-2xl w-[9vw] bg-[#151312] relative flex-col"
           onMouseEnter={() => setIsFriendsOpen(true)}
           onMouseLeave={() => setIsFriendsOpen(false)}
         >

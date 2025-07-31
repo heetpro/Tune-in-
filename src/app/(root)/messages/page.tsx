@@ -56,7 +56,7 @@ function MessagesContent() {
   };
 
   return (
-    <div className=" w-full h-full  flex flex-col">
+    <div className=" w-full h-full bg-[#151312] flex flex-col">
       <div className="w-full p-3  flex-grow h-full">
         {/* <div className="absolute inset-0 "
           style={{
@@ -67,31 +67,33 @@ function MessagesContent() {
 
         </div> */}
 
-        <div className="flex gap-2  h-full ">
-          <div className="flex flex-col w-[25%] gap-3" >
-        <Navbar />
-
-
-          <div className="w-full h-full bg-[#8D50F9] p-2 rounded-3xl  overflow-hidden">
-
-            <div className=" bg-white w-[100%] rounded-2xl h-full">
-              {loading ? (
-                <div className="flex justify-center items-center h-32">
-                  <div className="spinner h-8 w-8 rounded-full animate-spin"></div>
-                </div>
-              ) : (
-                <ConversationList
-                  activeConversationId={selectedUserId || undefined}
-                  onSelectConversation={handleSelectUser}
-                  friendsList={chatUsers}
-                />
-              )}
+        <div className="flex gap-4  h-full ">
+          <div className="flex flex-col w-[23%] h-full gap-3" >
+            <div className="w-full h-[12%]">
+              <Navbar />
             </div>
-          </div>
+
+
+            <div className="w-full h-[88%] bg-[#fff] p-2 rounded-3xl  overflow-hidden">
+
+              <div className=" bg-white w-[100%] rounded-2xl h-full">
+                {loading ? (
+                  <div className="flex justify-center items-center h-32">
+                    <div className="spinner h-8 w-8 rounded-full animate-spin"></div>
+                  </div>
+                ) : (
+                  <ConversationList
+                    activeConversationId={selectedUserId || undefined}
+                    onSelectConversation={handleSelectUser}
+                    friendsList={chatUsers}
+                  />
+                )}
+              </div>
+            </div>
 
           </div>
 
-          <div className="flex w-[75%] h-full">
+          <div className="flex w-[77%] h-full">
             <MatchCard />
           </div>
           {/* <div className="w-1/3 h-full ">

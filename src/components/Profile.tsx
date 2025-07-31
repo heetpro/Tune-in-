@@ -493,14 +493,14 @@ export const Profile = ({ user }: {user: IUser}) => {
   if (!user?._id && needsUserInfo()) {
     return (
       <div className={`fixed inset-0 flex items-center justify-center p-2 z-50 ${spaceGrotesk.className}`}>
-        <div className="bg-[#8D50F9] rounded-2xl p-6 w-full max-w-md">
+        <div className="bg-[#151312] rounded-2xl p-6 w-full max-w-md">
           <h2 className="text-xl text-white font-bold mb-4">Complete Your Profile</h2>
           <p className="text-white mb-6">
             Please complete your profile setup before accessing this feature.
           </p>
           <button
             onClick={() => router.push('/setup')}
-            className="w-full mt-2 px-5 bg-white border-2 border-white text-[#8D50F9] py-3 rounded-xl font-medium flex items-center justify-center gap-2"
+            className="w-full mt-2 px-5 bg-white border-2 border-white text-[#151312] py-3 rounded-xl font-medium flex items-center justify-center gap-2"
           >
             Go to Setup <ChevronRight className="w-5 h-5" />
           </button>

@@ -98,7 +98,7 @@ const Chat: React.FC<ChatProps> = ({ receiverId, receiverData }) => {
             className="flex items-center cursor-pointer"
             onClick={() => setIsProfileModalOpen(true)}
           >
-            <div className="relative mr-2 p-1 border-4 border-[#8D50F9] rounded-xl">
+            <div className="relative mr-2 p-1 border-4 border-[#151312] rounded-xl">
               <img 
                 src={profileUser.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(profileUser.displayName || 'User')}`} 
                 alt={profileUser.displayName} 
@@ -143,7 +143,7 @@ const Chat: React.FC<ChatProps> = ({ receiverId, receiverData }) => {
               <div 
                 className={`inline-block ${spaceGrotesk.className} max-w-[70%] px-3.5 py-2 rounded-3xl ${
                   message.senderId === user?._id 
-                    ? `bg-[#8D50F9] text-white ${
+                    ? `bg-[#151312] text-white ${
                         message.error ? 'bg-red-400' : ''
                       }`
                     : 'bg-gray-200 text-gray-800 rounded-bl-none'
@@ -173,20 +173,20 @@ const Chat: React.FC<ChatProps> = ({ receiverId, receiverData }) => {
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
               className="p-0 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
             >
-              <Sticker className="w-8 h-8 text-[#000000]/50" />
+              <Sticker className="w-8 h-8 text-[#151312000]/50" />
             </button>
             <input
               type="text"
               value={newMessage}
               onChange={handleInputChange}
               placeholder="Type a message..."
-              className="flex-1 px-4 p-2 border border-gray-300 rounded-2xl focus:outline-none focus:border-[#8D50F9]"
+              className="flex-1 px-4 p-2 border border-gray-300 rounded-2xl focus:outline-none focus:border-[#151312]"
               disabled={sending}
             />
           </div>
           <button 
             type="submit"
-            className="bg-[#8D50F9] border-2 border-[#8D50F9] text-white px-4 py-2 rounded-2xl hover:bg-blue-600 focus:outline-none disabled:bg-[#8D50F9]/50"
+            className="bg-[#151312] border-2 border-[#151312] text-white px-4 py-2 rounded-2xl hover:bg-blue-600 focus:outline-none disabled:bg-[#151312]/50"
             disabled={sending || !newMessage.trim() || !isConnected}
           >
             {sending ? 'Sending...' : 'Send'}

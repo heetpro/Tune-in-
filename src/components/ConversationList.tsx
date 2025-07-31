@@ -188,7 +188,7 @@
     return (
       <div className={`${spaceGrotesk.className} flex flex-col gap-4 h-full w-full`}>
         <div className="flex items-center w-full justify-center py-2 ">
-          <div className="flex gap-1 bg-[#8D50F9]/70 text-white rounded-full px-4 py-2">
+          <div className="flex gap-1 bg-[#151312]/70 text-white rounded-full px-4 py-2">
             <h2 className="text-xl font-semibold">Convo </h2>
             <h2 className="text-xl font-semibold">{"/"}</h2>
             <h2 className="text-xl font-semibold">Buddies </h2>
@@ -214,7 +214,7 @@
                 <div key={conv.id} className={`${spaceGrotesk.className} rounded-full `}>
                   <li
                     className={`p-1 mx-2 hover:opacity-90 rounded-full items-center cursor-pointer transition-all duration-300
-                    ${isActive ? 'bg-[#8D50F9]' : ''}`}
+                    ${isActive ? 'bg-[#151312]' : ''}`}
                     onClick={() => handleClick(conv.id)}
                   >
                     <div className="flex justify-start">
@@ -249,7 +249,7 @@
 
                         <div className="flex w-[20%] justify-center">
                           {unreadCount > 0 && (
-                            <div className={`p-1 aspect-square w-7 h-7 text-sm font-semibold flex items-center justify-center rounded-full ${isActive ? 'bg-white text-[#8D50F9]' : 'bg-[#8D50F9] text-white'}`}>
+                            <div className={`p-1 aspect-square w-7 h-7 text-sm font-semibold flex items-center justify-center rounded-full ${isActive ? 'bg-white text-[#151312]' : 'bg-[#151312] text-white'}`}>
                               <CircleDashedIcon />
                             </div>
                           )}
