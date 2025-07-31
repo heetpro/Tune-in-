@@ -214,11 +214,11 @@ import Image from 'next/image';
               return (
                 <div key={conv.id} className={`${spaceGrotesk.className} rounded-full `}>
                   <li
-                    className={`p-1 mx-2 hover:bg-white/15 rounded-full items-center cursor-pointer flex justify-center transition-all  duration-100 
+                    className={` mx-4 hover:bg-white/15 rounded-full items-center cursor-pointer flex justify-center transition-all  duration-100 
                     ${isActive ? 'bg-[#151312]' : ''}`}
                     onClick={() => handleClick(conv.id)}
                   >
-                    <div className="flex w-[95%] justify-start">
+                    <div className="flex w-[100%] justify-start">
                       <div 
                         className="relative"
                         style={{

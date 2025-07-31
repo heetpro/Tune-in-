@@ -29,6 +29,10 @@ function MessagesContent() {
   const [chatUsers, setChatUsers] = useState<IUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [isShow, setIsShow] = useState(false);
+
+
+  
   const { user } = useAuth();
   const { isConnected } = useSocket();
   const router = useRouter();
@@ -52,6 +56,7 @@ function MessagesContent() {
   }, []);
 
   const handleSelectUser = (userId: string) => {
+    setIsShow(true)
     setSelectedUserId(userId);
   };
 
@@ -68,7 +73,7 @@ function MessagesContent() {
         </div> */}
 
         <div className="flex gap-4  h-full ">
-          <div className="flex flex-col w-[23%] h-full gap-3" >
+          <div className="flex flex-col w-[20%] h-full gap-3" >
             <div className="w-full h-[12%]">
               <Navbar />
             </div>
@@ -93,16 +98,17 @@ function MessagesContent() {
 
           </div>
 
-          <div className="flex w-[77%] h-full">
+          <div className={`flex  h-full ${selectedUserId ? 'w-[55%]': 'w-[80%]'}`}>
             <MatchCard />
           </div>
-          {/* <div className="w-1/3 h-full ">
+          <div className={`w-[25%] h-full ${selectedUserId ? 'w-[25%]': 'hidden'}`}>
             {selectedUserId && (
               <Chat
+                onClose={isShow}
                 receiverId={selectedUserId}
               />
             )}
-          </div> */}
+          </div>
         </div>
       </div>
     </div>

@@ -12,7 +12,8 @@ import { ProfileModal } from './ProfileModal';
 
 interface ChatProps {
   receiverId: string;
-  receiverData?: IUser; // Full user data of the receiver
+  receiverData?: IUser; 
+  onClose? : boolean;
 }
 
 const Chat: React.FC<ChatProps> = ({ receiverId, receiverData }) => {
@@ -88,7 +89,7 @@ const Chat: React.FC<ChatProps> = ({ receiverId, receiverData }) => {
   };
 
   return (
-    <div className={`${spaceGrotesk.className} flex flex-col h-full bg-white rounded-3xl`}>
+    <div className={`${spaceGrotesk.className} text-white flex flex-col h-full bg-[#2a2a2a] rounded-3xl`}>
   
       
       {/* Chat header with profile info */}

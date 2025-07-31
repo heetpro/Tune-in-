@@ -762,14 +762,14 @@ export const Profile = ({ user }: {user: IUser}) => {
                 All-time favorite
               </div>
               <img
-                src={getTrackImage((topTracks as any)?.long_term?.[1])}
+                src={getTrackImage((topTracks as any)?.long_term?.[0])}
                 alt={displayUser?.displayName}
                 className="w-full h-48 object-cover rounded-3xl select-none"
               />
               <div className="absolute bottom-0 left-0 w-full px-3 pb-2 pt-10 rounded-b-3xl font-semibold z-10 text-white text-xl truncate bg-gradient-to-t from-black/70 to-transparent">
-                {(topTracks as any)?.long_term?.[1]?.name || "No track data"}
+                {(topTracks as any)?.long_term?.[0]?.name || "No track data"}
               </div>
-              <Link href={`${(topTracks as any)?.long_term?.[1]?.album?.externalUrl?.spotify}`} target='_blank'>
+              <Link href={`${(topTracks as any)?.long_term?.[0]?.album?.externalUrl?.spotify}`} target='_blank'>
                 <div className="absolute bottom-0 items-center flex justify-center right-0 w-10 h-10 p-2 m-2 aspect-square rounded-full z-10 bg-white hover:bg-gray-200 transition-colors">
                   <Play className="w-4 h-4" fill='black' />
                 </div>

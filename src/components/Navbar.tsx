@@ -46,7 +46,7 @@ const Navbar = () => {
                   </div>
                 )}
               </div>
-              <div className={`flex justify-end pb-1 h-full py-2 px-3 rounded-2xl  bg-[#151312] flex-col`}>
+              {/* <div className={`flex justify-end pb-1 h-full py-2 px-3 rounded-2xl  bg-[#151312] flex-col`}>
                 <span className="font-semibold text-white"
                 style={{
                   fontSize: "clamp(1rem, 1.2vw, 180rem)"
@@ -59,7 +59,7 @@ const Navbar = () => {
                 }}
                   className="text-white/80 -mt-1 font-medium">@{user.username}</span>
                 )}
-              </div>
+              </div> */}
             </div>
           )}
         </div>
