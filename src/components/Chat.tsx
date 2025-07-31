@@ -43,7 +43,7 @@ const Chat: React.FC<ChatProps> = ({ receiverId, receiverData, }) => {
 
   // Color patterns for your messages
   const myMessageColors = [
-    { bg: '#F46D38', text: '#000' }, // Orange
+    { bg: '#F46D38', text: '#fff' }, // Orange
     { bg: '#C2F949', text: '#000' }, // Green
     { bg: '#8D50F9', text: '#fff' }  // Purple
   ];
@@ -51,8 +51,8 @@ const Chat: React.FC<ChatProps> = ({ receiverId, receiverData, }) => {
   // Color patterns for other person's messages
   const otherMessageColors = [
     { bg: '#FF6B9D', text: '#000' }, // Pink
-    { bg: '#4ECDC4', text: '#000' }, // Teal
-    { bg: '#45B7D1', text: '#fff' }  // Blue
+    { bg: '#901E3E', text: '#fff' }, // Teal
+    { bg: '#00CAFF', text: '#000' }  // Blue
   ];
 
   // Function to get message color based on index and sender
@@ -166,7 +166,7 @@ const Chat: React.FC<ChatProps> = ({ receiverId, receiverData, }) => {
                 className={`mb-0.5 ${isMyMessage ? 'text-right' : 'text-left'}`}
               >
                 <div 
-                  className={`inline-block ${spaceGrotesk.className} max-w-[70%] px-3.5 py-2 rounded-3xl ${
+                  className={`inline-block ${spaceGrotesk.className} max-w-[70%] px-3.5 py-2  font-medium rounded-3xl ${
                     isMyMessage && message.error ? 'bg-red-400' : ''
                   }`}
                   style={{
